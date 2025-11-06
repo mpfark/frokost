@@ -204,41 +204,65 @@ export const KitchenView = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCalendarMonth(addMonths(calendarMonth, -1))}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <div className="text-lg font-semibold">
-              {format(calendarMonth, "MMMM yyyy")}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left side - Calendar */}
+            <div>
+              <Calendar
+                mode="single"
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                modifiers={{
+                  closed: closedDates.map((cd) => new Date(cd.date + "T00:00:00")),
+                }}
+                modifiersClassNames={{
+                  closed: "bg-destructive/20 text-destructive font-bold line-through",
+                }}
+                onDayClick={toggleClosedDate}
+                className="rounded-md border"
+              />
+              <p className="text-sm text-muted-foreground mt-4">
+                Click any date to lock/unlock it. Locked dates prevent lunch signups.
+              </p>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+
+            {/* Right side - List of closed dates */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Closed Dates</h3>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {closedDates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No closed dates</p>
+                ) : (
+                  closedDates
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .map((cd) => (
+                      <div
+                        key={cd.id}
+                        className="flex items-start justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">
+                            {format(new Date(cd.date + "T00:00:00"), "EEEE, MMMM d, yyyy")}
+                          </div>
+                          {cd.reason && (
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {cd.reason}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleClosedDate(new Date(cd.date + "T00:00:00"))}
+                          className="ml-2"
+                        >
+                          Reopen
+                        </Button>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
           </div>
-          <Calendar
-            mode="single"
-            month={calendarMonth}
-            onMonthChange={setCalendarMonth}
-            modifiers={{
-              closed: closedDates.map((cd) => new Date(cd.date + "T00:00:00")),
-            }}
-            modifiersClassNames={{
-              closed: "bg-destructive/20 text-destructive font-bold line-through",
-            }}
-            onDayClick={toggleClosedDate}
-            className="rounded-md border"
-          />
-          <p className="text-sm text-muted-foreground mt-4">
-            Click any date to lock/unlock it. Locked dates prevent lunch signups.
-          </p>
         </CardContent>
       </Card>
       <div className="flex items-center gap-3 mb-6">

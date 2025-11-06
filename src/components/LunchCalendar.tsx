@@ -17,8 +17,15 @@ interface LunchSignup {
   };
 }
 
+interface ClosedDate {
+  id: string;
+  date: string;
+  reason: string | null;
+}
+
 export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
+  const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const today = new Date();
@@ -49,10 +56,26 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     setSignups(data || []);
   };
 
+  const fetchClosedDates = async () => {
+    const { data, error } = await supabase
+      .from("closed_dates")
+      .select("*")
+      .gte("date", format(startDate, "yyyy-MM-dd"))
+      .lte("date", format(addDays(startDate, 20), "yyyy-MM-dd"));
+
+    if (error) {
+      toast.error("Failed to load closed dates");
+      return;
+    }
+
+    setClosedDates(data || []);
+  };
+
   useEffect(() => {
     fetchSignups();
+    fetchClosedDates();
 
-    const channel = supabase
+    const signupsChannel = supabase
       .channel("lunch_signups_changes")
       .on(
         "postgres_changes",
@@ -67,8 +90,24 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       )
       .subscribe();
 
+    const closedDatesChannel = supabase
+      .channel("closed_dates_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "closed_dates",
+        },
+        () => {
+          fetchClosedDates();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(signupsChannel);
+      supabase.removeChannel(closedDatesChannel);
     };
   }, []);
 
@@ -117,6 +156,16 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return dateStr < todayStr;
   };
 
+  const isDateClosed = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return closedDates.some((cd) => cd.date === dateStr);
+  };
+
+  const getClosedReason = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return closedDates.find((cd) => cd.date === dateStr)?.reason;
+  };
+
   return (
     <div className="space-y-4">
       {weeks.map(({ weekNumber, days }) => (
@@ -135,11 +184,13 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                   const signedUp = isSignedUp(date);
                   const daySignups = getSignupsForDate(date);
                   const isPast = isPastDate(date);
+                  const isClosed = isDateClosed(date);
+                  const closedReason = getClosedReason(date);
 
                   return (
                     <div
                       key={date.toISOString()}
-                      className={`flex flex-col gap-2 ${isPast ? "opacity-60" : ""}`}
+                      className={`flex flex-col gap-2 ${isPast || isClosed ? "opacity-60" : ""}`}
                     >
                       <div className="text-center">
                         <div className="text-xs text-muted-foreground font-medium">
@@ -148,9 +199,14 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         <div className="text-sm font-semibold">
                           {format(date, "MMM d")}
                         </div>
+                        {isClosed && (
+                          <div className="text-xs text-destructive font-medium mt-1">
+                            Closed
+                          </div>
+                        )}
                       </div>
                       
-                      {daySignups.length > 0 && (
+                      {daySignups.length > 0 && !isClosed && (
                         <Badge variant="secondary" className="flex items-center justify-center gap-1 text-xs">
                           <Users className="w-3 h-3" />
                           {daySignups.length}
@@ -159,14 +215,15 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
                       <Button
                         onClick={() => toggleSignup(date)}
-                        disabled={isLoading || isPast}
+                        disabled={isLoading || isPast || isClosed}
                         variant={signedUp ? "default" : "outline"}
                         size="sm"
                         className="w-full h-8 text-xs"
+                        title={isClosed ? closedReason || "Office closed" : ""}
                       >
                         {signedUp ? (
                           <Check className="w-3 h-3" />
-                        ) : isPast ? (
+                        ) : isPast || isClosed ? (
                           <X className="w-3 h-3" />
                         ) : (
                           <X className="w-3 h-3" />

@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      closed_dates: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       lunch_signups: {
         Row: {
           created_at: string

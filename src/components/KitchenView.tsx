@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, format, startOfWeek, getWeek } from "date-fns";
+import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, Plus, Trash2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   Drawer,
@@ -14,6 +15,13 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@/components/ui/drawer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LunchSignup {
   id: string;
@@ -37,9 +45,10 @@ interface ClosedDate {
 export const KitchenView = () => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
-  const [newClosedDate, setNewClosedDate] = useState("");
-  const [newClosedReason, setNewClosedReason] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [reasonDialogDate, setReasonDialogDate] = useState<Date | null>(null);
+  const [reasonInput, setReasonInput] = useState("");
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -73,46 +82,50 @@ export const KitchenView = () => {
   const fetchClosedDates = async () => {
     const { data } = await supabase
       .from("closed_dates")
-      .select("*")
-      .gte("date", format(startDate, "yyyy-MM-dd"))
-      .lte("date", format(addDays(startDate, 20), "yyyy-MM-dd"));
+      .select("*");
 
     setClosedDates(data || []);
   };
 
-  const addClosedDate = async () => {
-    if (!newClosedDate) {
-      toast.error("Please select a date");
-      return;
+  const toggleClosedDate = async (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const existingClosed = closedDates.find((cd) => cd.date === dateStr);
+
+    if (existingClosed) {
+      // Remove closed date
+      const { error } = await supabase
+        .from("closed_dates")
+        .delete()
+        .eq("id", existingClosed.id);
+
+      if (error) {
+        toast.error("Failed to reopen date");
+        return;
+      }
+
+      toast.success("Date reopened");
+      fetchClosedDates();
+    } else {
+      // Show reason dialog
+      setReasonDialogDate(date);
     }
+  };
+
+  const addClosedDateWithReason = async () => {
+    if (!reasonDialogDate) return;
 
     const { error } = await supabase
       .from("closed_dates")
-      .insert({ date: newClosedDate, reason: newClosedReason || null });
+      .insert({ date: format(reasonDialogDate, "yyyy-MM-dd"), reason: reasonInput || null });
 
     if (error) {
-      toast.error("Failed to add closed date");
+      toast.error("Failed to close date");
       return;
     }
 
     toast.success("Date marked as closed");
-    setNewClosedDate("");
-    setNewClosedReason("");
-    fetchClosedDates();
-  };
-
-  const removeClosedDate = async (id: string) => {
-    const { error } = await supabase
-      .from("closed_dates")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      toast.error("Failed to remove closed date");
-      return;
-    }
-
-    toast.success("Date reopened");
+    setReasonDialogDate(null);
+    setReasonInput("");
     fetchClosedDates();
   };
 
@@ -182,7 +195,7 @@ export const KitchenView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Manage Closed Dates */}
+      {/* Manage Closed Dates - Calendar */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -190,45 +203,42 @@ export const KitchenView = () => {
             Manage Closed Dates
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              type="date"
-              value={newClosedDate}
-              onChange={(e) => setNewClosedDate(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              type="text"
-              placeholder="Reason (optional)"
-              value={newClosedReason}
-              onChange={(e) => setNewClosedReason(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={addClosedDate} size="icon">
-              <Plus className="w-4 h-4" />
+        <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCalendarMonth(addMonths(calendarMonth, -1))}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="text-lg font-semibold">
+              {format(calendarMonth, "MMMM yyyy")}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+            >
+              <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          
-          {closedDates.length > 0 && (
-            <div className="space-y-2">
-              {closedDates.map((cd) => (
-                <div key={cd.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                  <div>
-                    <span className="font-medium">{format(new Date(cd.date + "T00:00:00"), "EEE, MMM d, yyyy")}</span>
-                    {cd.reason && <span className="text-sm text-muted-foreground ml-2">- {cd.reason}</span>}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeClosedDate(cd.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+          <Calendar
+            mode="single"
+            month={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            modifiers={{
+              closed: closedDates.map((cd) => new Date(cd.date + "T00:00:00")),
+            }}
+            modifiersClassNames={{
+              closed: "bg-destructive/20 text-destructive font-bold line-through",
+            }}
+            onDayClick={toggleClosedDate}
+            className="rounded-md border"
+          />
+          <p className="text-sm text-muted-foreground mt-4">
+            Click any date to lock/unlock it. Locked dates prevent lunch signups.
+          </p>
         </CardContent>
       </Card>
       <div className="flex items-center gap-3 mb-6">
@@ -374,6 +384,33 @@ export const KitchenView = () => {
           </div>
         </DrawerContent>
       </Drawer>
+
+      {/* Reason Dialog */}
+      <Dialog open={reasonDialogDate !== null} onOpenChange={(open) => !open && setReasonDialogDate(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Close Date</DialogTitle>
+            <DialogDescription>
+              {reasonDialogDate && format(reasonDialogDate, "EEEE, MMMM d, yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Reason (optional)"
+              value={reasonInput}
+              onChange={(e) => setReasonInput(e.target.value)}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setReasonDialogDate(null)}>
+                Cancel
+              </Button>
+              <Button onClick={addClosedDateWithReason}>
+                Close Date
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

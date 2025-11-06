@@ -49,6 +49,9 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_gluten_free: boolean
+          is_lactose_free: boolean
+          is_vegetarian: boolean
           updated_at: string
         }
         Insert: {
@@ -56,6 +59,9 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          is_gluten_free?: boolean
+          is_lactose_free?: boolean
+          is_vegetarian?: boolean
           updated_at?: string
         }
         Update: {
@@ -63,6 +69,9 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_gluten_free?: boolean
+          is_lactose_free?: boolean
+          is_vegetarian?: boolean
           updated_at?: string
         }
         Relationships: []

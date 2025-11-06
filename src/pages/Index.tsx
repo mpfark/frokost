@@ -4,6 +4,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { AuthForm } from "@/components/AuthForm";
 import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
+import { ProfileSettings } from "@/components/ProfileSettings";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, UtensilsCrossed } from "lucide-react";
@@ -73,15 +74,21 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
             <TabsTrigger value="calendar">My Schedule</TabsTrigger>
             <TabsTrigger value="kitchen">Kitchen View</TabsTrigger>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
           <TabsContent value="calendar">
             <LunchCalendar userId={user.id} />
           </TabsContent>
           <TabsContent value="kitchen">
             <KitchenView />
+          </TabsContent>
+          <TabsContent value="profile">
+            <div className="max-w-2xl mx-auto">
+              <ProfileSettings userId={user.id} />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

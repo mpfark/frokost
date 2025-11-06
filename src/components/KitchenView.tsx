@@ -226,41 +226,33 @@ export const KitchenView = () => {
             </div>
 
             {/* Right side - List of closed dates */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Closed Dates</h3>
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {closedDates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No closed dates</p>
-                ) : (
-                  closedDates
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .map((cd) => (
-                      <div
-                        key={cd.id}
-                        className="flex items-start justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium">
-                            {format(new Date(cd.date + "T00:00:00"), "EEEE, MMMM d, yyyy")}
-                          </div>
-                          {cd.reason && (
-                            <div className="text-sm text-muted-foreground mt-1">
-                              {cd.reason}
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleClosedDate(new Date(cd.date + "T00:00:00"))}
-                          className="ml-2"
-                        >
-                          Reopen
-                        </Button>
-                      </div>
-                    ))
-                )}
-              </div>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {closedDates
+                .filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd")))
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map((cd) => (
+                  <div
+                    key={cd.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex-1 text-sm">
+                      {format(new Date(cd.date + "T00:00:00"), "MMM d, yyyy")}
+                      {cd.reason && (
+                        <span className="text-muted-foreground ml-2">- {cd.reason}</span>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleClosedDate(new Date(cd.date + "T00:00:00"))}
+                    >
+                      Reopen
+                    </Button>
+                  </div>
+                ))}
+              {closedDates.filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd"))).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">No upcoming closed dates</p>
+              )}
             </div>
           </div>
         </CardContent>

@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 
 interface LunchSignup {
   id: string;
@@ -32,6 +39,7 @@ export const KitchenView = () => {
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [newClosedDate, setNewClosedDate] = useState("");
   const [newClosedReason, setNewClosedReason] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -254,7 +262,8 @@ export const KitchenView = () => {
                   return (
                     <div
                       key={date.toISOString()}
-                      className={`border rounded-lg p-3 ${isPast || isClosed ? "opacity-60 bg-muted/50" : "bg-card"}`}
+                      className={`border rounded-lg p-3 ${isPast || isClosed ? "opacity-60 bg-muted/50" : "bg-card hover:bg-accent/50"} ${daySignups.length > 0 ? "cursor-pointer transition-colors" : ""}`}
+                      onClick={() => daySignups.length > 0 && setSelectedDate(date)}
                     >
                       <div className="text-center mb-2">
                         <div className="text-xs text-muted-foreground font-medium">
@@ -304,19 +313,6 @@ export const KitchenView = () => {
                         </div>
                       )}
 
-                      {daySignups.length > 0 && (
-                        <div className="mt-2 pt-2 border-t space-y-1">
-                          {daySignups.map((signup) => (
-                            <div
-                              key={signup.id}
-                              className="text-xs truncate"
-                              title={signup.profiles.full_name || signup.profiles.email}
-                            >
-                              {signup.profiles.full_name || signup.profiles.email}
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -325,6 +321,59 @@ export const KitchenView = () => {
           </CardContent>
         </Card>
       ))}
+
+      <Drawer open={selectedDate !== null} onOpenChange={(open) => !open && setSelectedDate(null)}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>
+              {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
+            </DrawerTitle>
+            <DrawerDescription>
+              {selectedDate && `${getSignupsForDate(selectedDate).length} lunch signups`}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
+            {selectedDate && getSignupsForDate(selectedDate).map((signup) => {
+              const dietaryInfo = [];
+              if (signup.profiles.is_gluten_free) dietaryInfo.push("GF");
+              if (signup.profiles.is_lactose_free) dietaryInfo.push("LF");
+              if (signup.profiles.is_vegetarian) dietaryInfo.push("V");
+              
+              return (
+                <div key={signup.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {signup.profiles.full_name || signup.profiles.email}
+                    </div>
+                    {dietaryInfo.length > 0 && (
+                      <div className="flex gap-2 mt-1">
+                        {signup.profiles.is_gluten_free && (
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                            <Wheat className="w-3 h-3" />
+                            Gluten Free
+                          </Badge>
+                        )}
+                        {signup.profiles.is_lactose_free && (
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                            <Milk className="w-3 h-3" />
+                            Lactose Free
+                          </Badge>
+                        )}
+                        {signup.profiles.is_vegetarian && (
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                            <Leaf className="w-3 h-3" />
+                            Vegetarian
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };

@@ -211,6 +211,7 @@ export const KitchenView = () => {
                 mode="single"
                 month={calendarMonth}
                 onMonthChange={setCalendarMonth}
+                weekStartsOn={1}
                 modifiers={{
                   closed: closedDates.map((cd) => new Date(cd.date + "T00:00:00")),
                 }}

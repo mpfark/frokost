@@ -195,69 +195,6 @@ export const KitchenView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Manage Closed Dates - Calendar */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="w-5 h-5" />
-            Manage Closed Dates
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left side - Calendar */}
-            <div>
-              <Calendar
-                mode="single"
-                month={calendarMonth}
-                onMonthChange={setCalendarMonth}
-                weekStartsOn={1}
-                modifiers={{
-                  closed: closedDates.map((cd) => new Date(cd.date + "T00:00:00")),
-                }}
-                modifiersClassNames={{
-                  closed: "bg-destructive/20 text-destructive font-bold line-through",
-                }}
-                onDayClick={toggleClosedDate}
-                className="rounded-md border"
-              />
-              <p className="text-sm text-muted-foreground mt-4">
-                Click any date to lock/unlock it. Locked dates prevent lunch signups.
-              </p>
-            </div>
-
-            {/* Right side - List of closed dates */}
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {closedDates
-                .filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd")))
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                .map((cd) => (
-                  <div
-                    key={cd.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex-1 text-sm">
-                      {format(new Date(cd.date + "T00:00:00"), "MMM d, yyyy")}
-                      {cd.reason && (
-                        <span className="text-muted-foreground ml-2">- {cd.reason}</span>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleClosedDate(new Date(cd.date + "T00:00:00"))}
-                    >
-                      Reopen
-                    </Button>
-                  </div>
-                ))}
-              {closedDates.filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd"))).length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">No upcoming closed dates</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
           <UtensilsCrossed className="w-6 h-6 text-primary-foreground" />
@@ -348,6 +285,70 @@ export const KitchenView = () => {
           </CardContent>
         </Card>
       ))}
+
+      {/* Manage Closed Dates - Calendar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            Manage Closed Dates
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left side - Calendar */}
+            <div>
+              <Calendar
+                mode="single"
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                weekStartsOn={1}
+                modifiers={{
+                  closed: closedDates.map((cd) => new Date(cd.date + "T00:00:00")),
+                }}
+                modifiersClassNames={{
+                  closed: "bg-destructive/20 text-destructive font-bold line-through",
+                }}
+                onDayClick={toggleClosedDate}
+                className="rounded-md border"
+              />
+              <p className="text-sm text-muted-foreground mt-4">
+                Click any date to lock/unlock it. Locked dates prevent lunch signups.
+              </p>
+            </div>
+
+            {/* Right side - List of closed dates */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {closedDates
+                .filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd")))
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map((cd) => (
+                  <div
+                    key={cd.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex-1 text-sm">
+                      {format(new Date(cd.date + "T00:00:00"), "MMM d, yyyy")}
+                      {cd.reason && (
+                        <span className="text-muted-foreground ml-2">- {cd.reason}</span>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleClosedDate(new Date(cd.date + "T00:00:00"))}
+                    >
+                      Reopen
+                    </Button>
+                  </div>
+                ))}
+              {closedDates.filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd"))).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">No upcoming closed dates</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Drawer open={selectedDate !== null} onOpenChange={(open) => !open && setSelectedDate(null)}>
         <DrawerContent>

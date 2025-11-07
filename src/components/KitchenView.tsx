@@ -27,6 +27,7 @@ interface LunchSignup {
   id: string;
   user_id: string;
   lunch_date: string;
+  guest_count: number;
   profiles: {
     full_name: string | null;
     email: string;
@@ -174,6 +175,11 @@ export const KitchenView = () => {
     return signups.filter((s) => s.lunch_date === dateStr);
   };
 
+  const getTotalPeopleForDate = (date: Date) => {
+    const daySignups = getSignupsForDate(date);
+    return daySignups.length + daySignups.reduce((sum, s) => sum + s.guest_count, 0);
+  };
+
   const isDateClosed = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return closedDates.some((cd) => cd.date === dateStr);
@@ -219,6 +225,7 @@ export const KitchenView = () => {
               <div className="flex-1 grid grid-cols-5 gap-3">
                 {days.map((date) => {
                   const daySignups = getSignupsForDate(date);
+                  const totalPeople = getTotalPeopleForDate(date);
                   const isPast = isPastDate(date);
                   const isClosed = isDateClosed(date);
                   const dietaryCounts = getDietaryCounts(daySignups);
@@ -244,13 +251,13 @@ export const KitchenView = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-center gap-1 mb-2">
+                      <div className="flex items-center justify-center gap-2 mb-2">
                         <Badge
                           variant={daySignups.length > 0 ? "default" : "secondary"}
                           className="flex items-center gap-1"
                         >
                           <Users className="w-3 h-3" />
-                          {daySignups.length}
+                          {totalPeople}
                         </Badge>
                       </div>
 
@@ -357,7 +364,7 @@ export const KitchenView = () => {
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DrawerTitle>
             <DrawerDescription>
-              {selectedDate && `${getSignupsForDate(selectedDate).length} lunch signups`}
+              {selectedDate && `${getTotalPeopleForDate(selectedDate)} total people (${getSignupsForDate(selectedDate).length} signups)`}
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
@@ -370,8 +377,13 @@ export const KitchenView = () => {
               return (
                 <div key={signup.id} className="flex items-center justify-between py-3 border-b last:border-0">
                   <div className="flex-1">
-                    <div className="font-medium">
+                    <div className="font-medium flex items-center gap-2">
                       {signup.profiles.full_name || signup.profiles.email}
+                      {signup.guest_count > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{signup.guest_count} guest{signup.guest_count > 1 ? 's' : ''}
+                        </Badge>
+                      )}
                     </div>
                     {dietaryInfo.length > 0 && (
                       <div className="flex gap-2 mt-1">

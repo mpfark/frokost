@@ -5,12 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, X, Users } from "lucide-react";
+import { Check, X, Users, UserPlus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface LunchSignup {
   id: string;
   user_id: string;
   lunch_date: string;
+  guest_count: number;
   profiles: {
     full_name: string | null;
     email: string;
@@ -27,6 +37,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [guestDialogDate, setGuestDialogDate] = useState<Date | null>(null);
+  const [guestCount, setGuestCount] = useState("0");
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -54,6 +66,11 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     }
 
     setSignups(data || []);
+  };
+
+  const getUserSignup = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return signups.find((s) => s.lunch_date === dateStr && s.user_id === userId);
   };
 
   const fetchClosedDates = async () => {
@@ -112,8 +129,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   }, []);
 
   const isSignedUp = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-    return signups.some((s) => s.lunch_date === dateStr && s.user_id === userId);
+    return getUserSignup(date) !== undefined;
   };
 
   const getSignupsForDate = (date: Date) => {
@@ -121,28 +137,56 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return signups.filter((s) => s.lunch_date === dateStr);
   };
 
-  const toggleSignup = async (date: Date) => {
-    setIsLoading(true);
-    const dateStr = format(date, "yyyy-MM-dd");
+  const getTotalPeopleForDate = (date: Date) => {
+    const daySignups = getSignupsForDate(date);
+    return daySignups.length + daySignups.reduce((sum, s) => sum + s.guest_count, 0);
+  };
 
-    try {
-      if (isSignedUp(date)) {
+  const toggleSignup = async (date: Date) => {
+    const userSignup = getUserSignup(date);
+    
+    if (userSignup) {
+      // Cancel signup
+      setIsLoading(true);
+      try {
         const { error } = await supabase
           .from("lunch_signups")
           .delete()
-          .eq("user_id", userId)
-          .eq("lunch_date", dateStr);
+          .eq("id", userSignup.id);
 
         if (error) throw error;
         toast.success("Cancelled lunch signup");
-      } else {
-        const { error } = await supabase
-          .from("lunch_signups")
-          .insert({ user_id: userId, lunch_date: dateStr });
-
-        if (error) throw error;
-        toast.success("Signed up for lunch!");
+      } catch (error: any) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
       }
+    } else {
+      // Show guest dialog
+      setGuestDialogDate(date);
+      setGuestCount("0");
+    }
+  };
+
+  const confirmSignup = async () => {
+    if (!guestDialogDate) return;
+    
+    setIsLoading(true);
+    const dateStr = format(guestDialogDate, "yyyy-MM-dd");
+    const guests = parseInt(guestCount) || 0;
+
+    try {
+      const { error } = await supabase
+        .from("lunch_signups")
+        .insert({ 
+          user_id: userId, 
+          lunch_date: dateStr,
+          guest_count: guests
+        });
+
+      if (error) throw error;
+      toast.success(guests > 0 ? `Signed up for lunch with ${guests} guest${guests > 1 ? 's' : ''}!` : "Signed up for lunch!");
+      setGuestDialogDate(null);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -182,7 +226,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
               <div className="flex-1 grid grid-cols-5 gap-3">
                 {days.map((date) => {
                   const signedUp = isSignedUp(date);
-                  const daySignups = getSignupsForDate(date);
+                  const userSignup = getUserSignup(date);
+                  const totalPeople = getTotalPeopleForDate(date);
                   const isPast = isPastDate(date);
                   const isClosed = isDateClosed(date);
                   const closedReason = getClosedReason(date);
@@ -206,10 +251,10 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         )}
                       </div>
                       
-                      {daySignups.length > 0 && !isClosed && (
+                      {totalPeople > 0 && !isClosed && (
                         <Badge variant="secondary" className="flex items-center justify-center gap-1 text-xs">
                           <Users className="w-3 h-3" />
-                          {daySignups.length}
+                          {totalPeople}
                         </Badge>
                       )}
 
@@ -218,15 +263,20 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         disabled={isLoading || isPast || isClosed}
                         variant={signedUp ? "default" : "outline"}
                         size="sm"
-                        className="w-full h-8 text-xs"
+                        className="w-full h-8 text-xs gap-1"
                         title={isClosed ? closedReason || "Office closed" : ""}
                       >
                         {signedUp ? (
-                          <Check className="w-3 h-3" />
+                          <>
+                            <Check className="w-3 h-3" />
+                            {userSignup && userSignup.guest_count > 0 && (
+                              <span className="text-[10px]">+{userSignup.guest_count}</span>
+                            )}
+                          </>
                         ) : isPast || isClosed ? (
                           <X className="w-3 h-3" />
                         ) : (
-                          <X className="w-3 h-3" />
+                          <UserPlus className="w-3 h-3" />
                         )}
                       </Button>
                     </div>
@@ -237,6 +287,43 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           </CardContent>
         </Card>
       ))}
+
+      {/* Guest Count Dialog */}
+      <Dialog open={guestDialogDate !== null} onOpenChange={(open) => !open && setGuestDialogDate(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign Up for Lunch</DialogTitle>
+            <DialogDescription>
+              {guestDialogDate && format(guestDialogDate, "EEEE, MMMM d, yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="guests">Number of guests (optional)</Label>
+              <Input
+                id="guests"
+                type="number"
+                min="0"
+                max="10"
+                value={guestCount}
+                onChange={(e) => setGuestCount(e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-sm text-muted-foreground">
+                How many guests will you bring? (Max 10)
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setGuestDialogDate(null)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmSignup} disabled={isLoading}>
+                Confirm Signup
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

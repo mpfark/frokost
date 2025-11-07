@@ -38,18 +38,21 @@ export type Database = {
       lunch_signups: {
         Row: {
           created_at: string
+          guest_count: number
           id: string
           lunch_date: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          guest_count?: number
           id?: string
           lunch_date: string
           user_id: string
         }
         Update: {
           created_at?: string
+          guest_count?: number
           id?: string
           lunch_date?: string
           user_id?: string

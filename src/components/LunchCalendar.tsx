@@ -166,7 +166,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           table: "guests",
         },
         () => {
-          fetchGuests();
+          fetchSignups();
         }
       )
       .subscribe();
@@ -391,8 +391,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                 size="sm"
                                 className="h-9 px-3 text-xs"
                               >
-                                <UserPlus className="w-3 h-3 mr-1" />
-                                {userSignup.guest_count > 0 ? `${userSignup.guest_count}` : "0"}
+                                <UserPlus className="w-3 h-3" />
+                                Guests
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-md">

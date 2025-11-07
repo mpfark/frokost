@@ -1,0 +1,58 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "office-lunch-app",
+  "packageName": "com.officelunch.app",
+  "developer": {
+    "name": "Your Company Name",
+    "websiteUrl": "https://your-app-url.lovable.app",
+    "privacyUrl": "https://your-app-url.lovable.app/privacy",
+    "termsOfUseUrl": "https://your-app-url.lovable.app/terms"
+  },
+  "icons": {
+    "color": "teams-color-icon.png",
+    "outline": "teams-outline-icon.png"
+  },
+  "name": {
+    "short": "Office Lunch",
+    "full": "Office Lunch - Team Scheduling"
+  },
+  "description": {
+    "short": "Track office lunch attendance",
+    "full": "Organize office lunches effortlessly. Track who's eating at the office for the next 3 weeks with dietary preferences and guest management."
+  },
+  "accentColor": "#ef4444",
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://your-app-url.lovable.app/teams-config",
+      "canUpdateConfiguration": true,
+      "scopes": [
+        "team",
+        "groupchat"
+      ]
+    }
+  ],
+  "staticTabs": [
+    {
+      "entityId": "lunch-calendar",
+      "name": "Lunch Calendar",
+      "contentUrl": "https://your-app-url.lovable.app?context=teams",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "your-app-url.lovable.app",
+    "gupglbmayvwwxwkunotk.supabase.co"
+  ],
+  "webApplicationInfo": {
+    "id": "YOUR_AZURE_APP_CLIENT_ID",
+    "resource": "api://your-app-url.lovable.app/YOUR_AZURE_APP_CLIENT_ID"
+  }
+}

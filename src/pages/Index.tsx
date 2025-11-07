@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { AuthForm } from "@/components/AuthForm";
+import { initializeTeams, detectTeamsContext } from "@/lib/teams-context";
 import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { ProfileSettings } from "@/components/ProfileSettings";
@@ -14,8 +15,14 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInTeams, setIsInTeams] = useState(false);
 
   useEffect(() => {
+    // Initialize Teams context if applicable
+    initializeTeams().then((context) => {
+      setIsInTeams(context.isInTeams);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -52,25 +59,27 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
+      {!isInTeams && (
+        <header className="border-b bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                  <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">Office Lunch</h1>
+                  <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold">Office Lunch</h1>
-                <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
-              </div>
+              <Button onClick={handleSignOut} variant="outline" size="sm">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">

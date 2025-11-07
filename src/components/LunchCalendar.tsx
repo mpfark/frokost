@@ -5,7 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, UserPlus, Plus, Minus } from "lucide-react";
+import { Users, UserPlus, Plus, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+
+interface Guest {
+  id: string;
+  signup_id: string;
+  is_gluten_free: boolean;
+  is_lactose_free: boolean;
+  is_vegetarian: boolean;
+}
 
 interface LunchSignup {
   id: string;
@@ -27,7 +45,9 @@ interface ClosedDate {
 export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [openDialog, setOpenDialog] = useState<string | null>(null);
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -77,10 +97,35 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     setClosedDates(data || []);
   };
 
+  const fetchGuests = async () => {
+    const signupIds = signups.map(s => s.id);
+    if (signupIds.length === 0) return;
+
+    const { data, error } = await supabase
+      .from("guests")
+      .select("*")
+      .in("signup_id", signupIds);
+
+    if (error) {
+      toast.error("Failed to load guests");
+      return;
+    }
+
+    setGuests(data || []);
+  };
+
   useEffect(() => {
     fetchSignups();
     fetchClosedDates();
+  }, []);
 
+  useEffect(() => {
+    if (signups.length > 0) {
+      fetchGuests();
+    }
+  }, [signups]);
+
+  useEffect(() => {
     const signupsChannel = supabase
       .channel("lunch_signups_changes")
       .on(
@@ -111,11 +156,27 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       )
       .subscribe();
 
+    const guestsChannel = supabase
+      .channel("guests_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "guests",
+        },
+        () => {
+          fetchGuests();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
+      supabase.removeChannel(guestsChannel);
     };
-  }, []);
+  }, [signups]);
 
   const isSignedUp = (date: Date) => {
     return getUserSignup(date) !== undefined;
@@ -166,31 +227,62 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     }
   };
 
-  const updateGuestCount = async (date: Date, delta: number) => {
-    const userSignup = getUserSignup(date);
-    if (!userSignup) return;
+  const getGuestsForSignup = (signupId: string) => {
+    return guests.filter(g => g.signup_id === signupId);
+  };
 
-    const newCount = Math.max(0, Math.min(10, userSignup.guest_count + delta));
-    if (newCount === userSignup.guest_count) return;
-
+  const addGuest = async (signupId: string) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from("lunch_signups")
-        .update({ guest_count: newCount })
-        .eq("id", userSignup.id);
+        .from("guests")
+        .insert({
+          signup_id: signupId,
+          is_gluten_free: false,
+          is_lactose_free: false,
+          is_vegetarian: false,
+        });
 
       if (error) throw error;
-      
-      if (newCount === 0) {
-        toast.success("Removed all guests");
-      } else {
-        toast.success(`Updated to ${newCount} guest${newCount > 1 ? 's' : ''}`);
-      }
+      toast.success("Guest added");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const removeGuest = async (guestId: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("guests")
+        .delete()
+        .eq("id", guestId);
+
+      if (error) throw error;
+      toast.success("Guest removed");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateGuestRestrictions = async (
+    guestId: string,
+    field: "is_gluten_free" | "is_lactose_free" | "is_vegetarian",
+    value: boolean
+  ) => {
+    try {
+      const { error } = await supabase
+        .from("guests")
+        .update({ [field]: value })
+        .eq("id", guestId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -271,7 +363,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         )}
                       </div>
 
-                      {/* Bottom Row: Signup Button and Guest Controls */}
+                      {/* Bottom Row: Signup Button and Guest Button */}
                       <div className="flex gap-2 mt-auto">
                         {/* Signup Button - Half Width */}
                         <Button
@@ -285,39 +377,91 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                           {signedUp ? "Signed Up" : isPast || isClosed ? "Closed" : "Sign Up"}
                         </Button>
 
-                        {/* Guest Controls - Only show when signed up */}
+                        {/* Guest Management Dialog - Only show when signed up */}
                         {signedUp && !isPast && !isClosed && userSignup && (
-                          <div className="flex flex-col gap-1">
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateGuestCount(date, 1);
-                              }}
-                              disabled={isLoading || (userSignup.guest_count >= 10)}
-                              variant="outline"
-                              size="sm"
-                              className="h-4 w-8 p-0"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                            {userSignup.guest_count > 0 && (
-                              <div className="text-xs text-center font-medium">
-                                +{userSignup.guest_count}
+                          <Dialog
+                            open={openDialog === date.toISOString()}
+                            onOpenChange={(open) => setOpenDialog(open ? date.toISOString() : null)}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-3 text-xs"
+                              >
+                                <UserPlus className="w-3 h-3 mr-1" />
+                                {userSignup.guest_count > 0 ? `${userSignup.guest_count}` : "0"}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>Manage Guests for {format(date, "MMM d")}</DialogTitle>
+                                <DialogDescription>
+                                  Add guests and specify their dietary restrictions
+                                </DialogDescription>
+                              </DialogHeader>
+
+                              <div className="space-y-4">
+                                {getGuestsForSignup(userSignup.id).map((guest, index) => (
+                                  <Card key={guest.id} className="p-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                      <h4 className="font-medium">Guest {index + 1}</h4>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeGuest(guest.id)}
+                                        disabled={isLoading}
+                                      >
+                                        <Trash2 className="w-4 h-4 text-destructive" />
+                                      </Button>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`gluten-${guest.id}`}
+                                          checked={guest.is_gluten_free}
+                                          onCheckedChange={(checked) =>
+                                            updateGuestRestrictions(guest.id, "is_gluten_free", checked as boolean)
+                                          }
+                                        />
+                                        <Label htmlFor={`gluten-${guest.id}`}>Gluten Free</Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`lactose-${guest.id}`}
+                                          checked={guest.is_lactose_free}
+                                          onCheckedChange={(checked) =>
+                                            updateGuestRestrictions(guest.id, "is_lactose_free", checked as boolean)
+                                          }
+                                        />
+                                        <Label htmlFor={`lactose-${guest.id}`}>Lactose Free</Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`vegetarian-${guest.id}`}
+                                          checked={guest.is_vegetarian}
+                                          onCheckedChange={(checked) =>
+                                            updateGuestRestrictions(guest.id, "is_vegetarian", checked as boolean)
+                                          }
+                                        />
+                                        <Label htmlFor={`vegetarian-${guest.id}`}>Vegetarian</Label>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                ))}
+
+                                <Button
+                                  onClick={() => addGuest(userSignup.id)}
+                                  disabled={isLoading || userSignup.guest_count >= 10}
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Add Guest
+                                </Button>
                               </div>
-                            )}
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateGuestCount(date, -1);
-                              }}
-                              disabled={isLoading || userSignup.guest_count === 0}
-                              variant="outline"
-                              size="sm"
-                              className="h-4 w-8 p-0"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                          </div>
+                            </DialogContent>
+                          </Dialog>
                         )}
                       </div>
                     </div>

@@ -35,6 +35,41 @@ export type Database = {
         }
         Relationships: []
       }
+      guests: {
+        Row: {
+          created_at: string
+          id: string
+          is_gluten_free: boolean
+          is_lactose_free: boolean
+          is_vegetarian: boolean
+          signup_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_gluten_free?: boolean
+          is_lactose_free?: boolean
+          is_vegetarian?: boolean
+          signup_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_gluten_free?: boolean
+          is_lactose_free?: boolean
+          is_vegetarian?: boolean
+          signup_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guests_signup_id_fkey"
+            columns: ["signup_id"]
+            isOneToOne: false
+            referencedRelation: "lunch_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lunch_signups: {
         Row: {
           created_at: string

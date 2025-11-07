@@ -5,10 +5,10 @@
   "id": "office-lunch-app",
   "packageName": "com.officelunch.app",
   "developer": {
-    "name": "Your Company Name",
-    "websiteUrl": "https://your-app-url.lovable.app",
-    "privacyUrl": "https://your-app-url.lovable.app/privacy",
-    "termsOfUseUrl": "https://your-app-url.lovable.app/terms"
+    "name": "Pluskontoret",
+    "websiteUrl": "https://frokost.lovable.app",
+    "privacyUrl": "https://frokost.lovable.app/privacy",
+    "termsOfUseUrl": "https://frokost.lovable.app/terms"
   },
   "icons": {
     "color": "teams-color-icon.png",
@@ -25,7 +25,7 @@
   "accentColor": "#ef4444",
   "configurableTabs": [
     {
-      "configurationUrl": "https://your-app-url.lovable.app/teams-config",
+      "configurationUrl": "https://frokost.lovable.app/teams-config",
       "canUpdateConfiguration": true,
       "scopes": [
         "team",
@@ -37,7 +37,7 @@
     {
       "entityId": "lunch-calendar",
       "name": "Lunch Calendar",
-      "contentUrl": "https://your-app-url.lovable.app?context=teams",
+      "contentUrl": "https://frokost.lovable.app?context=teams",
       "scopes": [
         "personal"
       ]
@@ -48,11 +48,11 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "your-app-url.lovable.app",
+    "frokost.lovable.app",
     "gupglbmayvwwxwkunotk.supabase.co"
   ],
   "webApplicationInfo": {
-    "id": "YOUR_AZURE_APP_CLIENT_ID",
-    "resource": "api://your-app-url.lovable.app/YOUR_AZURE_APP_CLIENT_ID"
+    "id": "4a478a74-a4dc-4553-8cae-10c9814416b8",
+    "resource": "api://frokost.lovable.app/4a478a74-a4dc-4553-8cae-10c9814416b8"
   }
 }

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { profileSchema } from "@/lib/validations";
 
 interface ProfileSettingsProps {
   userId: string;
@@ -48,22 +49,43 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
 
   const handleSave = async () => {
     setIsLoading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        is_gluten_free: isGlutenFree,
-        is_lactose_free: isLactoseFree,
-        is_vegetarian: isVegetarian,
-      })
-      .eq("id", userId);
 
-    if (error) {
-      toast.error("Failed to update profile");
-    } else {
-      toast.success("Profile updated successfully!");
+    try {
+      // Validate profile data
+      const validationResult = profileSchema.safeParse({
+        fullName,
+        isGlutenFree,
+        isLactoseFree,
+        isVegetarian,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: validationResult.data.fullName,
+          is_gluten_free: validationResult.data.isGlutenFree,
+          is_lactose_free: validationResult.data.isLactoseFree,
+          is_vegetarian: validationResult.data.isVegetarian,
+        })
+        .eq("id", userId);
+
+      if (error) {
+        toast.error("Failed to update profile");
+      } else {
+        toast.success("Profile updated successfully!");
+      }
+    } catch (error) {
+      toast.error("An error occurred while updating profile");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   if (isFetching) {

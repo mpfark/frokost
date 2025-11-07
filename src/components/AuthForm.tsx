@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
+import { signUpSchema, signInSchema } from "@/lib/validations";
+import { z } from "zod";
 
 export const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,20 +21,37 @@ export const AuthForm = () => {
     setIsLoading(true);
 
     try {
+      // Validate input based on login/signup mode
       if (isLogin) {
+        const validationResult = signInSchema.safeParse({ email, password });
+        if (!validationResult.success) {
+          const firstError = validationResult.error.errors[0];
+          toast.error(firstError.message);
+          setIsLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: validationResult.data.email,
+          password: validationResult.data.password,
         });
         if (error) throw error;
         toast.success("Welcome back!");
       } else {
+        const validationResult = signUpSchema.safeParse({ email, password, fullName });
+        if (!validationResult.success) {
+          const firstError = validationResult.error.errors[0];
+          toast.error(firstError.message);
+          setIsLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: validationResult.data.email,
+          password: validationResult.data.password,
           options: {
             data: {
-              full_name: fullName,
+              full_name: validationResult.data.fullName,
             },
             emailRedirectTo: `${window.location.origin}/`,
           },

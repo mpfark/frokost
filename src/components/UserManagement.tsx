@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Shield, ShieldOff, Pencil, Save, X } from "lucide-react";
+import { profileSchema } from "@/lib/validations";
 
 interface UserProfile {
   id: string;
@@ -133,13 +134,28 @@ export const UserManagement = () => {
   const saveUser = async (userId: string) => {
     setIsLoading(true);
     try {
+      // Validate profile data
+      const validationResult = profileSchema.safeParse({
+        fullName: editForm.full_name || "",
+        isGlutenFree: editForm.is_gluten_free || false,
+        isLactoseFree: editForm.is_lactose_free || false,
+        isVegetarian: editForm.is_vegetarian || false,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
-          full_name: editForm.full_name,
-          is_gluten_free: editForm.is_gluten_free,
-          is_lactose_free: editForm.is_lactose_free,
-          is_vegetarian: editForm.is_vegetarian,
+          full_name: validationResult.data.fullName,
+          is_gluten_free: validationResult.data.isGlutenFree,
+          is_lactose_free: validationResult.data.isLactoseFree,
+          is_vegetarian: validationResult.data.isVegetarian,
         })
         .eq("id", userId);
 

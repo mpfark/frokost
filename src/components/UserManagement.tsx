@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Pencil, Save, X } from "lucide-react";
+import { Shield, ShieldOff, Pencil, Save, X, KeyRound } from "lucide-react";
 import { profileSchema } from "@/lib/validations";
 
 interface UserProfile {
@@ -171,6 +171,22 @@ export const UserManagement = () => {
     }
   };
 
+  const sendPasswordReset = async (email: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-password-reset", {
+        body: { email },
+      });
+
+      if (error) throw error;
+      toast.success(`Password reset email sent to ${email}`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send password reset email");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isLoading && users.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -273,7 +289,7 @@ export const UserManagement = () => {
                       ) : null
                     )}
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-2 flex-wrap">
                       {isEditing ? (
                         <>
                           <Button
@@ -322,6 +338,15 @@ export const UserManagement = () => {
                                 Make Admin
                               </>
                             )}
+                          </Button>
+                          <Button
+                            onClick={() => sendPasswordReset(user.email)}
+                            disabled={isLoading}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <KeyRound className="w-4 h-4 mr-2" />
+                            Reset Password
                           </Button>
                         </>
                       )}

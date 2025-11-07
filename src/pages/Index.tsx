@@ -81,13 +81,17 @@ const Index = () => {
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
           <TabsContent value="calendar">
-            <LunchCalendar userId={user.id} />
+            <div className="max-w-7xl mx-auto">
+              <LunchCalendar userId={user.id} />
+            </div>
           </TabsContent>
           <TabsContent value="kitchen">
-            <KitchenView />
+            <div className="max-w-7xl mx-auto">
+              <KitchenView />
+            </div>
           </TabsContent>
           <TabsContent value="profile">
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-7xl mx-auto">
               <ProfileSettings userId={user.id} />
             </div>
           </TabsContent>

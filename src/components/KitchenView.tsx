@@ -23,6 +23,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface Guest {
+  id: string;
+  signup_id: string;
+  is_gluten_free: boolean;
+  is_lactose_free: boolean;
+  is_vegetarian: boolean;
+}
+
 interface LunchSignup {
   id: string;
   user_id: string;
@@ -45,6 +53,7 @@ interface ClosedDate {
 
 export const KitchenView = () => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -86,6 +95,26 @@ export const KitchenView = () => {
       .select("*");
 
     setClosedDates(data || []);
+  };
+
+  const fetchGuests = async () => {
+    const signupIds = signups.map(s => s.id);
+    if (signupIds.length === 0) {
+      setGuests([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("guests")
+      .select("*")
+      .in("signup_id", signupIds);
+
+    if (error) {
+      console.error("Error fetching guests:", error);
+      return;
+    }
+
+    setGuests(data || []);
   };
 
   const toggleClosedDate = async (date: Date) => {
@@ -133,7 +162,15 @@ export const KitchenView = () => {
   useEffect(() => {
     fetchSignups();
     fetchClosedDates();
+  }, []);
 
+  useEffect(() => {
+    if (signups.length > 0) {
+      fetchGuests();
+    }
+  }, [signups]);
+
+  useEffect(() => {
     const signupsChannel = supabase
       .channel("kitchen_view_signups")
       .on(
@@ -164,11 +201,27 @@ export const KitchenView = () => {
       )
       .subscribe();
 
+    const guestsChannel = supabase
+      .channel("kitchen_guests_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "guests",
+        },
+        () => {
+          fetchGuests();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
+      supabase.removeChannel(guestsChannel);
     };
-  }, []);
+  }, [signups]);
 
   const getSignupsForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -191,11 +244,21 @@ export const KitchenView = () => {
     return dateStr < todayStr;
   };
 
+  const getGuestsForSignups = (signupIds: string[]) => {
+    return guests.filter(g => signupIds.includes(g.signup_id));
+  };
+
   const getDietaryCounts = (daySignups: LunchSignup[]) => {
+    const signupIds = daySignups.map(s => s.id);
+    const dayGuests = getGuestsForSignups(signupIds);
+
     return {
-      glutenFree: daySignups.filter(s => s.profiles.is_gluten_free).length,
-      lactoseFree: daySignups.filter(s => s.profiles.is_lactose_free).length,
-      vegetarian: daySignups.filter(s => s.profiles.is_vegetarian).length,
+      glutenFree: daySignups.filter(s => s.profiles.is_gluten_free).length + 
+                  dayGuests.filter(g => g.is_gluten_free).length,
+      lactoseFree: daySignups.filter(s => s.profiles.is_lactose_free).length + 
+                   dayGuests.filter(g => g.is_lactose_free).length,
+      vegetarian: daySignups.filter(s => s.profiles.is_vegetarian).length + 
+                  dayGuests.filter(g => g.is_vegetarian).length,
     };
   };
 
@@ -369,13 +432,14 @@ export const KitchenView = () => {
           </DrawerHeader>
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
             {selectedDate && getSignupsForDate(selectedDate).map((signup) => {
+              const signupGuests = guests.filter(g => g.signup_id === signup.id);
               const dietaryInfo = [];
               if (signup.profiles.is_gluten_free) dietaryInfo.push("GF");
               if (signup.profiles.is_lactose_free) dietaryInfo.push("LF");
               if (signup.profiles.is_vegetarian) dietaryInfo.push("V");
               
               return (
-                <div key={signup.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                <div key={signup.id} className="py-3 border-b last:border-0">
                   <div className="flex-1">
                     <div className="font-medium flex items-center gap-2">
                       {signup.profiles.full_name || signup.profiles.email}
@@ -405,6 +469,46 @@ export const KitchenView = () => {
                             Vegetarian
                           </Badge>
                         )}
+                      </div>
+                    )}
+                    
+                    {/* Guest dietary restrictions */}
+                    {signupGuests.length > 0 && (
+                      <div className="ml-4 mt-2 space-y-1">
+                        {signupGuests.map((guest, index) => {
+                          const guestDietary = [];
+                          if (guest.is_gluten_free) guestDietary.push("GF");
+                          if (guest.is_lactose_free) guestDietary.push("LF");
+                          if (guest.is_vegetarian) guestDietary.push("V");
+                          
+                          if (guestDietary.length === 0) return null;
+                          
+                          return (
+                            <div key={guest.id} className="flex gap-2 items-center">
+                              <span className="text-xs text-muted-foreground">Guest {index + 1}:</span>
+                              <div className="flex gap-2">
+                                {guest.is_gluten_free && (
+                                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                    <Wheat className="w-3 h-3" />
+                                    GF
+                                  </Badge>
+                                )}
+                                {guest.is_lactose_free && (
+                                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                    <Milk className="w-3 h-3" />
+                                    LF
+                                  </Badge>
+                                )}
+                                {guest.is_vegetarian && (
+                                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                    <Leaf className="w-3 h-3" />
+                                    V
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

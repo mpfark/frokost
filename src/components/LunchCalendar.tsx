@@ -286,6 +286,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         .eq("id", guestId);
 
       if (error) throw error;
+      await fetchGuests();
     } catch (error: any) {
       toast.error(error.message);
     }

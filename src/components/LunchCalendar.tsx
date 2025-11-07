@@ -205,6 +205,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           .eq("id", userSignup.id);
 
         if (error) throw error;
+        await fetchSignups();
         toast.success("Cancelled lunch signup");
       } else {
         // Sign up with 0 guests initially
@@ -218,6 +219,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           });
 
         if (error) throw error;
+        await fetchSignups();
         toast.success("Signed up for lunch!");
       }
     } catch (error: any) {

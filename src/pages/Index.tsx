@@ -5,15 +5,18 @@ import { AuthForm } from "@/components/AuthForm";
 import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { ProfileSettings } from "@/components/ProfileSettings";
+import { UserManagement } from "@/components/UserManagement";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAdmin, isLoading: isRoleLoading } = useUserRole(user?.id);
 
   useEffect(() => {
 
@@ -39,7 +42,7 @@ const Index = () => {
     toast.success("Signed out successfully");
   };
 
-  if (isLoading) {
+  if (isLoading || isRoleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -75,9 +78,10 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
+          <TabsList className={`grid w-full max-w-md mx-auto mb-8 ${isAdmin ? 'grid-cols-4' : 'grid-cols-2'}`}>
             <TabsTrigger value="calendar">My Schedule</TabsTrigger>
-            <TabsTrigger value="kitchen">Kitchen View</TabsTrigger>
+            {isAdmin && <TabsTrigger value="kitchen">Kitchen View</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users">Users</TabsTrigger>}
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
           <TabsContent value="calendar">
@@ -85,11 +89,20 @@ const Index = () => {
               <LunchCalendar userId={user.id} />
             </div>
           </TabsContent>
-          <TabsContent value="kitchen">
-            <div className="max-w-7xl mx-auto">
-              <KitchenView />
-            </div>
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="kitchen">
+              <div className="max-w-7xl mx-auto">
+                <KitchenView />
+              </div>
+            </TabsContent>
+          )}
+          {isAdmin && (
+            <TabsContent value="users">
+              <div className="max-w-7xl mx-auto">
+                <UserManagement />
+              </div>
+            </TabsContent>
+          )}
           <TabsContent value="profile">
             <div className="max-w-7xl mx-auto">
               <ProfileSettings userId={user.id} />

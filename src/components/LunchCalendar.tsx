@@ -308,16 +308,16 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     <div className="space-y-4">
       {weeks.map(({ weekNumber, days }) => (
         <Card key={weekNumber}>
-          <CardContent className="p-6">
-            <div className="flex gap-4">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col md:flex-row gap-4">
               {/* Week Number */}
-              <div className="flex-shrink-0 flex flex-col items-center justify-center bg-muted rounded-lg px-4 py-2 min-w-[80px]">
+              <div className="flex-shrink-0 flex flex-row md:flex-col items-center justify-center bg-muted rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">Week</div>
-                <div className="text-4xl font-bold text-foreground">{weekNumber}</div>
+                <div className="text-2xl md:text-4xl font-bold text-foreground">{weekNumber}</div>
               </div>
 
               {/* Days Grid */}
-              <div className="flex-1 grid grid-cols-5 gap-3">
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {days.map((date) => {
                   const signedUp = isSignedUp(date);
                   const userSignup = getUserSignup(date);

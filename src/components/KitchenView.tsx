@@ -264,16 +264,6 @@ export const KitchenView = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-          <UtensilsCrossed className="w-6 h-6 text-primary-foreground" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Kitchen Dashboard</h1>
-          <p className="text-muted-foreground">Next 3 weeks lunch schedule</p>
-        </div>
-      </div>
-
       {weeks.map(({ weekNumber, days }) => (
         <Card key={weekNumber}>
           <CardContent className="p-6">

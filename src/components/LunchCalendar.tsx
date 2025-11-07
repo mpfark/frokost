@@ -176,7 +176,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
     };
-  }, [signups]);
+  }, []);
 
   const isSignedUp = (date: Date) => {
     return getUserSignup(date) !== undefined;

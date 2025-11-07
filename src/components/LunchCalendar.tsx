@@ -167,6 +167,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         },
         () => {
           fetchSignups();
+          fetchGuests();
         }
       )
       .subscribe();
@@ -246,6 +247,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         });
 
       if (error) throw error;
+      await fetchGuests();
       toast.success("Guest added");
     } catch (error: any) {
       toast.error(error.message);
@@ -263,6 +265,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         .eq("id", guestId);
 
       if (error) throw error;
+      await fetchGuests();
       toast.success("Guest removed");
     } catch (error: any) {
       toast.error(error.message);

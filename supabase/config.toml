@@ -1,1 +1,4 @@
 project_id = "gupglbmayvwwxwkunotk"
+
+[functions.validate-teams-token]
+verify_jwt = false

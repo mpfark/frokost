@@ -62,10 +62,40 @@ export const getTeamsAuthToken = async (): Promise<string | null> => {
 
   try {
     const teamsSDK = (window as any).microsoftTeams;
-    const token = await teamsSDK.authentication.getAuthToken();
+    await teamsSDK.app.initialize();
+    
+    const token = await teamsSDK.authentication.getAuthToken({
+      resources: ['https://graph.microsoft.com'],
+      silent: false,
+    });
+    
     return token;
   } catch (error) {
     console.error('Failed to get Teams auth token:', error);
     return null;
   }
+};
+
+/**
+ * Validate Teams token with backend and get Supabase session
+ */
+export const validateTeamsToken = async (token: string): Promise<any> => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-teams-token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ token }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to validate Teams token');
+  }
+
+  return response.json();
 };

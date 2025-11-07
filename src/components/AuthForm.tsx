@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
+import { detectTeamsContext, getTeamsAuthToken, validateTeamsToken } from "@/lib/teams-context";
 
 export const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +14,48 @@ export const AuthForm = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInTeams, setIsInTeams] = useState(false);
+  const [teamsAuthAttempted, setTeamsAuthAttempted] = useState(false);
+
+  useEffect(() => {
+    const checkTeamsContext = async () => {
+      const inTeams = detectTeamsContext();
+      setIsInTeams(inTeams);
+      
+      if (inTeams && !teamsAuthAttempted) {
+        setTeamsAuthAttempted(true);
+        await handleTeamsAuth();
+      }
+    };
+    
+    checkTeamsContext();
+  }, [teamsAuthAttempted]);
+
+  const handleTeamsAuth = async () => {
+    setIsLoading(true);
+    try {
+      const token = await getTeamsAuthToken();
+      
+      if (!token) {
+        console.log('No Teams token available, falling back to email/password');
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await validateTeamsToken(token);
+      
+      if (result.session_url) {
+        // Navigate to the magic link to establish session
+        window.location.href = result.session_url;
+      } else {
+        toast.success(`Welcome ${result.user.full_name}!`);
+      }
+    } catch (error: any) {
+      console.error('Teams auth error:', error);
+      toast.error('Teams authentication failed. Please use email/password.');
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +101,19 @@ export const AuthForm = () => {
           </div>
           <CardTitle className="text-2xl">Office Lunch</CardTitle>
           <CardDescription>
-            {isLogin ? "Sign in to your account" : "Create a new account"}
+            {isInTeams 
+              ? "Signing in with Microsoft Teams..." 
+              : isLogin ? "Sign in to your account" : "Create a new account"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {isLoading && isInTeams ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Authenticating with Teams...</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
@@ -103,15 +154,18 @@ export const AuthForm = () => {
               {isLoading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline"
-            >
-              {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
+          )}
+          {!isInTeams && (
+            <div className="mt-4 text-center text-sm">
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary hover:underline"
+              >
+                {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

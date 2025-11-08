@@ -396,7 +396,6 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                 className="h-9 px-3 text-xs"
                               >
                                 <UserPlus className="w-3 h-3" />
-                                Guests
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-md">

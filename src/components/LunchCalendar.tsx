@@ -355,7 +355,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
                         {/* Right: People Count */}
                         {!isClosed && (
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end">
                             <div className="flex items-center gap-1 text-xs font-medium">
                               <Users className="w-3 h-3" />
                               <span>{totalPeople}</span>

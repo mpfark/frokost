@@ -78,11 +78,11 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className={`grid w-full max-w-md mx-auto mb-8 ${isAdmin ? 'grid-cols-4' : 'grid-cols-2'}`}>
-            <TabsTrigger value="calendar">My Schedule</TabsTrigger>
-            {isAdmin && <TabsTrigger value="kitchen">Kitchen View</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="users">Users</TabsTrigger>}
-            <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 ${isAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+            <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
+            {isAdmin && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>}
+            <TabsTrigger value="profile" className="text-xs sm:text-sm">Profile</TabsTrigger>
           </TabsList>
           <TabsContent value="calendar">
             <div className="max-w-7xl mx-auto">

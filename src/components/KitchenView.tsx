@@ -279,6 +279,8 @@ export const KitchenView = () => {
                 {days.map((date) => {
                   const daySignups = getSignupsForDate(date);
                   const totalPeople = getTotalPeopleForDate(date);
+                  const memberCount = daySignups.length;
+                  const guestCount = daySignups.reduce((sum, s) => sum + s.guest_count, 0);
                   const isPast = isPastDate(date);
                   const isClosed = isDateClosed(date);
                   const dietaryCounts = getDietaryCounts(daySignups);
@@ -310,7 +312,8 @@ export const KitchenView = () => {
                           className="flex items-center gap-1"
                         >
                           <Users className="w-3 h-3" />
-                          {totalPeople}
+                          <span>{memberCount}</span>
+                          {guestCount > 0 && <span className="text-xs opacity-80">+{guestCount}</span>}
                         </Badge>
                       </div>
 

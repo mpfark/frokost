@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
 import { signUpSchema, signInSchema } from "@/lib/validations";
 import { z } from "zod";
+import { Separator } from "@/components/ui/separator";
 
 export const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -59,6 +60,24 @@ export const AuthForm = () => {
         if (error) throw error;
         toast.success("Account created! You can now log in.");
       }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          scopes: 'openid profile email',
+        },
+      });
+      if (error) throw error;
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -122,6 +141,30 @@ export const AuthForm = () => {
               {isLoading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
+
+          <div className="relative my-4">
+            <Separator />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+              OR
+            </span>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleMicrosoftSignIn}
+            disabled={isLoading}
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 23 23" fill="none">
+              <path d="M0 0h11v11H0z" fill="#F25022"/>
+              <path d="M12 0h11v11H12z" fill="#7FBA00"/>
+              <path d="M0 12h11v11H0z" fill="#00A4EF"/>
+              <path d="M12 12h11v11H12z" fill="#FFB900"/>
+            </svg>
+            Sign in with Microsoft
+          </Button>
+
           <div className="mt-4 text-center text-sm">
             <button
               type="button"

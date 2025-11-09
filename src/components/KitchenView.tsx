@@ -360,7 +360,7 @@ export const KitchenView = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left side - Calendar */}
-            <div>
+            <div className="flex flex-col">
               <Calendar
                 mode="single"
                 month={calendarMonth}
@@ -381,7 +381,7 @@ export const KitchenView = () => {
             </div>
 
             {/* Right side - List of closed dates */}
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            <div className="space-y-2 overflow-y-auto h-full">
               {closedDates
                 .filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd")))
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())

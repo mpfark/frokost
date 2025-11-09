@@ -6,6 +6,8 @@ import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { UserManagement } from "@/components/UserManagement";
+import { InvitationManagement } from "@/components/InvitationManagement";
+import { CompanySettings } from "@/components/CompanySettings";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, UtensilsCrossed } from "lucide-react";
@@ -78,10 +80,12 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2'}`}>
             <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
             {isAdmin && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
             {isAdmin && <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="invites" className="text-xs sm:text-sm">Invitations</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>}
             <TabsTrigger value="profile" className="text-xs sm:text-sm">Profile</TabsTrigger>
           </TabsList>
           <TabsContent value="calendar">
@@ -100,6 +104,20 @@ const Index = () => {
             <TabsContent value="users">
               <div className="max-w-7xl mx-auto">
                 <UserManagement />
+              </div>
+            </TabsContent>
+          )}
+          {isAdmin && (
+            <TabsContent value="invites">
+              <div className="max-w-7xl mx-auto">
+                <InvitationManagement />
+              </div>
+            </TabsContent>
+          )}
+          {isAdmin && (
+            <TabsContent value="settings">
+              <div className="max-w-7xl mx-auto">
+                <CompanySettings />
               </div>
             </TabsContent>
           )}

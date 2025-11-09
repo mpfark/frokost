@@ -35,6 +35,27 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          allowed_domain: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_domain: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_domain?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guests: {
         Row: {
           created_at: string
@@ -66,6 +87,77 @@ export type Database = {
             columns: ["signup_id"]
             isOneToOne: false
             referencedRelation: "lunch_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitation_batches: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          total_invites: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          total_invites?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          total_invites?: number
+        }
+        Relationships: []
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          batch_id: string | null
+          email: string
+          expires_at: string
+          id: string
+          invite_code: string
+          invited_at: string
+          invited_by: string
+          status: string
+          used_by: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          batch_id?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invite_code: string
+          invited_at?: string
+          invited_by: string
+          status?: string
+          used_by?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          batch_id?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invite_code?: string
+          invited_at?: string
+          invited_by?: string
+          status?: string
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "invitation_batches"
             referencedColumns: ["id"]
           },
         ]
@@ -161,6 +253,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_old_invitations: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -1,0 +1,348 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
+import { Mail, Users, Copy, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
+
+interface Invitation {
+  id: string;
+  email: string;
+  invite_code: string;
+  status: string;
+  invited_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
+export const InvitationManagement = () => {
+  const [singleEmail, setSingleEmail] = useState("");
+  const [batchEmails, setBatchEmails] = useState("");
+  const [batchDescription, setBatchDescription] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    accepted: 0,
+    expired: 0,
+  });
+
+  useEffect(() => {
+    fetchInvitations();
+  }, []);
+
+  const fetchInvitations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("invitations")
+        .select("*")
+        .order("invited_at", { ascending: false });
+
+      if (error) throw error;
+
+      setInvitations(data || []);
+      
+      // Calculate stats
+      const stats = {
+        total: data?.length || 0,
+        pending: data?.filter(i => i.status === "pending").length || 0,
+        accepted: data?.filter(i => i.status === "accepted").length || 0,
+        expired: data?.filter(i => i.status === "expired").length || 0,
+      };
+      setStats(stats);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendInvitation = async (emails: string[]) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-invitations", {
+        body: { 
+          emails,
+          batchDescription: emails.length > 1 ? batchDescription : undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      const { totalSent, totalFailed, results } = data;
+      
+      if (totalSent > 0) {
+        toast({
+          title: "Success",
+          description: `${totalSent} invitation${totalSent > 1 ? "s" : ""} sent successfully${totalFailed > 0 ? ` (${totalFailed} failed)` : ""}`,
+        });
+      }
+
+      if (totalFailed > 0) {
+        const failedEmails = results.filter((r: any) => !r.success).map((r: any) => r.email);
+        console.error("Failed emails:", failedEmails);
+      }
+
+      // Clear form
+      setSingleEmail("");
+      setBatchEmails("");
+      setBatchDescription("");
+      
+      // Refresh invitations
+      fetchInvitations();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendSingle = () => {
+    if (!singleEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(singleEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendInvitation([singleEmail]);
+  };
+
+  const handleSendBatch = () => {
+    if (!batchEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Parse emails (comma or newline separated)
+    const emails = batchEmails
+      .split(/[\n,]/)
+      .map(e => e.trim())
+      .filter(e => e.length > 0);
+
+    if (emails.length === 0) {
+      toast({
+        title: "Error",
+        description: "No valid email addresses found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate all emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter(e => !emailRegex.test(e));
+    
+    if (invalidEmails.length > 0) {
+      toast({
+        title: "Error",
+        description: `Invalid email addresses: ${invalidEmails.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendInvitation(emails);
+  };
+
+  const copyInviteLink = (inviteCode: string, email: string) => {
+    const link = `${window.location.origin}/?invite=${inviteCode}&email=${encodeURIComponent(email)}`;
+    navigator.clipboard.writeText(link);
+    toast({
+      title: "Copied",
+      description: "Invite link copied to clipboard",
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
+      case "accepted":
+        return <Badge className="gap-1 bg-green-500"><CheckCircle2 className="h-3 w-3" />Accepted</Badge>;
+      case "expired":
+        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Expired</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total Invites</CardDescription>
+            <CardTitle className="text-3xl">{stats.total}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Pending</CardDescription>
+            <CardTitle className="text-3xl">{stats.pending}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Accepted</CardDescription>
+            <CardTitle className="text-3xl">{stats.accepted}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Expired</CardDescription>
+            <CardTitle className="text-3xl">{stats.expired}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Send Invitations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Send Invitations</CardTitle>
+          <CardDescription>Invite users to join the platform</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="single">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="single" className="gap-2">
+                <Mail className="h-4 w-4" />
+                Single Invite
+              </TabsTrigger>
+              <TabsTrigger value="batch" className="gap-2">
+                <Users className="h-4 w-4" />
+                Batch Invite
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="single" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="single-email">Email Address</Label>
+                <Input
+                  id="single-email"
+                  type="email"
+                  placeholder="user@company.com"
+                  value={singleEmail}
+                  onChange={(e) => setSingleEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <Button onClick={handleSendSingle} disabled={isLoading}>
+                {isLoading ? "Sending..." : "Send Invitation"}
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="batch" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="batch-emails">Email Addresses</Label>
+                <Textarea
+                  id="batch-emails"
+                  placeholder="Enter email addresses (one per line or comma-separated)&#10;user1@company.com&#10;user2@company.com"
+                  rows={6}
+                  value={batchEmails}
+                  onChange={(e) => setBatchEmails(e.target.value)}
+                  disabled={isLoading}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {batchEmails.split(/[\n,]/).filter(e => e.trim().length > 0).length} email(s)
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="batch-description">Description (optional)</Label>
+                <Input
+                  id="batch-description"
+                  placeholder="e.g., Marketing team invites"
+                  value={batchDescription}
+                  onChange={(e) => setBatchDescription(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <Button onClick={handleSendBatch} disabled={isLoading}>
+                {isLoading ? "Sending..." : "Send Batch Invitations"}
+              </Button>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Invitations List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Invitations</CardTitle>
+          <CardDescription>Manage and track sent invitations</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {invitations.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No invitations sent yet
+              </p>
+            ) : (
+              invitations.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="space-y-1">
+                    <p className="font-medium">{invite.email}</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Sent {formatDistanceToNow(new Date(invite.invited_at))} ago</span>
+                      {invite.status === "pending" && (
+                        <span>• Expires {formatDistanceToNow(new Date(invite.expires_at))}</span>
+                      )}
+                      {invite.accepted_at && (
+                        <span>• Accepted {formatDistanceToNow(new Date(invite.accepted_at))} ago</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(invite.status)}
+                    {invite.status === "pending" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyInviteLink(invite.invite_code, invite.email)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

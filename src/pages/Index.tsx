@@ -61,15 +61,18 @@ const Index = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setActiveTab("calendar")} 
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                 <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div>
+              <div className="text-left">
                 <h1 className="text-xl font-bold">Office Lunch</h1>
                 <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
               </div>
-            </div>
+            </button>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={() => setActiveTab("profile")}>
                 <UserIcon className="w-4 h-4" />

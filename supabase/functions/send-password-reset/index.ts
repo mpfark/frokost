@@ -99,8 +99,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-    // Get the current site URL for the redirect
-    const redirectUrl = `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovableproject.com') || ''}/`;
+    // Get the current site URL for the redirect to password reset page
+    const redirectUrl = `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovableproject.com') || ''}/reset-password`;
 
     const requestId = crypto.randomUUID();
     console.log("Request ID:", requestId, "Processing password reset request");

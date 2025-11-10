@@ -8,7 +8,7 @@ import { ProfileSettings } from "@/components/ProfileSettings";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, UtensilsCrossed } from "lucide-react";
+import { LogOut, UtensilsCrossed, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -69,21 +69,24 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
               </div>
             </div>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon">
+                <UserIcon className="w-4 h-4" />
+              </Button>
+              <Button onClick={handleSignOut} variant="outline" size="icon">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-2 sm:grid-cols-4' : canAccessKitchen ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-3' : canAccessKitchen ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
             {canAccessKitchen && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
             {isAdmin && <TabsTrigger value="admin" className="text-xs sm:text-sm">Admin</TabsTrigger>}
-            <TabsTrigger value="profile" className="text-xs sm:text-sm">Profile</TabsTrigger>
           </TabsList>
           <TabsContent value="calendar">
             <div className="max-w-7xl mx-auto">
@@ -98,11 +101,6 @@ const Index = () => {
           <TabsContent value="admin">
             <div className="max-w-7xl mx-auto">
               {isAdmin ? <AdminPanel /> : null}
-            </div>
-          </TabsContent>
-          <TabsContent value="profile">
-            <div className="max-w-7xl mx-auto">
-              <ProfileSettings userId={user.id} />
             </div>
           </TabsContent>
         </Tabs>

@@ -16,7 +16,8 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAdmin, isLoading: isRoleLoading } = useUserRole(user?.id);
+  const { isAdmin, isKitchen, isLoading: isRoleLoading } = useUserRole(user?.id);
+  const canAccessKitchen = isAdmin || isKitchen;
 
   useEffect(() => {
 
@@ -78,9 +79,9 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-2 sm:grid-cols-4' : canAccessKitchen ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
-            {isAdmin && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
+            {canAccessKitchen && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
             {isAdmin && <TabsTrigger value="admin" className="text-xs sm:text-sm">Admin</TabsTrigger>}
             <TabsTrigger value="profile" className="text-xs sm:text-sm">Profile</TabsTrigger>
           </TabsList>
@@ -89,7 +90,7 @@ const Index = () => {
               <LunchCalendar userId={user.id} />
             </div>
           </TabsContent>
-          {isAdmin && (
+          {canAccessKitchen && (
             <TabsContent value="kitchen">
               <div className="max-w-7xl mx-auto">
                 <KitchenView />

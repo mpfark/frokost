@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = (userId: string | undefined) => {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isKitchen, setIsKitchen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -12,23 +13,24 @@ export const useUserRole = (userId: string | undefined) => {
       return;
     }
 
-    const checkAdminStatus = async () => {
+    const checkRoles = async () => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .single();
+        .eq("user_id", userId);
 
       if (!error && data) {
-        setIsAdmin(true);
+        const roles = data.map(r => r.role);
+        setIsAdmin(roles.includes("admin"));
+        setIsKitchen(roles.includes("kitchen"));
       } else {
         setIsAdmin(false);
+        setIsKitchen(false);
       }
       setIsLoading(false);
     };
 
-    checkAdminStatus();
+    checkRoles();
 
     // Subscribe to role changes
     const channel = supabase
@@ -42,7 +44,7 @@ export const useUserRole = (userId: string | undefined) => {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          checkAdminStatus();
+          checkRoles();
         }
       )
       .subscribe();
@@ -52,5 +54,5 @@ export const useUserRole = (userId: string | undefined) => {
     };
   }, [userId]);
 
-  return { isAdmin, isLoading };
+  return { isAdmin, isKitchen, isLoading };
 };

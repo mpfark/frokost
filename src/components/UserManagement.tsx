@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Pencil, Save, X, KeyRound } from "lucide-react";
+import { Shield, ShieldOff, Pencil, Save, X, KeyRound, UtensilsCrossed } from "lucide-react";
 import { profileSchema } from "@/lib/validations";
 
 interface UserProfile {
@@ -86,6 +86,38 @@ export const UserManagement = () => {
 
   const isUserAdmin = (user: UserWithRoles) => {
     return user.roles?.includes("admin");
+  };
+
+  const isUserKitchen = (user: UserWithRoles) => {
+    return user.roles?.includes("kitchen");
+  };
+
+  const toggleKitchenRole = async (userId: string, currentlyKitchen: boolean) => {
+    setIsLoading(true);
+    try {
+      if (currentlyKitchen) {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", userId)
+          .eq("role", "kitchen");
+
+        if (error) throw error;
+        toast.success("Kitchen role removed");
+      } else {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role: "kitchen" });
+
+        if (error) throw error;
+        toast.success("Kitchen role granted");
+      }
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleAdminRole = async (userId: string, currentlyAdmin: boolean) => {
@@ -207,6 +239,8 @@ export const UserManagement = () => {
               const isAdmin = isUserAdmin(user);
               const isEditing = editingUser === user.id;
 
+              const isKitchen = isUserKitchen(user);
+              
               return (
                 <Card key={user.id} className="p-4">
                   <div className="space-y-4">
@@ -238,6 +272,12 @@ export const UserManagement = () => {
                           <Badge variant="default" className="flex items-center gap-1">
                             <Shield className="w-3 h-3" />
                             Admin
+                          </Badge>
+                        )}
+                        {isKitchen && (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <UtensilsCrossed className="w-3 h-3" />
+                            Kitchen
                           </Badge>
                         )}
                       </div>
@@ -336,6 +376,24 @@ export const UserManagement = () => {
                               <>
                                 <Shield className="w-4 h-4 mr-2" />
                                 Make Admin
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => toggleKitchenRole(user.id, isKitchen)}
+                            disabled={isLoading}
+                            variant={isKitchen ? "outline" : "secondary"}
+                            size="sm"
+                          >
+                            {isKitchen ? (
+                              <>
+                                <ShieldOff className="w-4 h-4 mr-2" />
+                                Remove Kitchen
+                              </>
+                            ) : (
+                              <>
+                                <UtensilsCrossed className="w-4 h-4 mr-2" />
+                                Make Kitchen
                               </>
                             )}
                           </Button>

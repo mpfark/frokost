@@ -83,33 +83,47 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-3' : canAccessKitchen ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
-            {canAccessKitchen && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="admin" className="text-xs sm:text-sm">Admin</TabsTrigger>}
-          </TabsList>
-          <TabsContent value="calendar">
-            <div className="max-w-7xl mx-auto">
-              <LunchCalendar userId={user.id} />
-            </div>
-          </TabsContent>
-          <TabsContent value="kitchen">
-            <div className="max-w-7xl mx-auto">
-              {canAccessKitchen ? <KitchenView /> : null}
-            </div>
-          </TabsContent>
-          <TabsContent value="admin">
-            <div className="max-w-7xl mx-auto">
-              {isAdmin ? <AdminPanel /> : null}
-            </div>
-          </TabsContent>
-          <TabsContent value="profile">
-            <div className="max-w-7xl mx-auto">
-              <ProfileSettings userId={user.id} />
-            </div>
-          </TabsContent>
-        </Tabs>
+        {(isAdmin || canAccessKitchen) ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
+              {canAccessKitchen && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="admin" className="text-xs sm:text-sm">Admin</TabsTrigger>}
+            </TabsList>
+            <TabsContent value="calendar">
+              <div className="max-w-7xl mx-auto">
+                <LunchCalendar userId={user.id} />
+              </div>
+            </TabsContent>
+            <TabsContent value="kitchen">
+              <div className="max-w-7xl mx-auto">
+                {canAccessKitchen ? <KitchenView /> : null}
+              </div>
+            </TabsContent>
+            <TabsContent value="admin">
+              <div className="max-w-7xl mx-auto">
+                {isAdmin ? <AdminPanel /> : null}
+              </div>
+            </TabsContent>
+            <TabsContent value="profile">
+              <div className="max-w-7xl mx-auto">
+                <ProfileSettings userId={user.id} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <>
+            {activeTab === "profile" ? (
+              <div className="max-w-7xl mx-auto">
+                <ProfileSettings userId={user.id} />
+              </div>
+            ) : (
+              <div className="max-w-7xl mx-auto">
+                <LunchCalendar userId={user.id} />
+              </div>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

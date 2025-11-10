@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,8 @@ const corsHeaders = {
 interface PasswordResetRequest {
   email: string;
 }
+
+const emailSchema = z.string().trim().email().max(255);
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
@@ -72,9 +75,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Parse request body
     const { email }: PasswordResetRequest = await req.json();
 
-    if (!email) {
+    // Validate email format
+    const emailValidation = emailSchema.safeParse(email);
+    if (!emailValidation.success) {
       return new Response(
-        JSON.stringify({ error: "Email is required" }),
+        JSON.stringify({ error: "Invalid email format" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -97,8 +102,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Get the current site URL for the redirect
     const redirectUrl = `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovableproject.com') || ''}/`;
 
-    console.log("Sending password reset to:", email);
-    console.log("Redirect URL:", redirectUrl);
+    const requestId = crypto.randomUUID();
+    console.log("Request ID:", requestId, "Processing password reset request");
 
     // Send password reset email using Supabase's built-in functionality
     const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
@@ -106,11 +111,11 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (resetError) {
-      console.error("Error sending password reset:", resetError);
+      console.error("Request ID:", requestId, "Error sending password reset:", resetError);
       throw resetError;
     }
 
-    console.log("Password reset email sent successfully to:", email);
+    console.log("Request ID:", requestId, "Password reset email sent successfully");
 
     return new Response(
       JSON.stringify({ 

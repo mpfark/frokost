@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,9 @@ interface InviteRequest {
   emails: string[];
   batchDescription?: string;
 }
+
+const emailSchema = z.string().trim().email().max(255);
+const emailArraySchema = z.array(emailSchema).min(1).max(50);
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -51,8 +55,10 @@ serve(async (req: Request) => {
 
     const { emails, batchDescription }: InviteRequest = await req.json();
 
-    if (!emails || !Array.isArray(emails) || emails.length === 0) {
-      throw new Error("No emails provided");
+    // Validate email array
+    const emailsValidation = emailArraySchema.safeParse(emails);
+    if (!emailsValidation.success) {
+      throw new Error("Invalid email format in request");
     }
 
     // Get admin profile for email
@@ -88,7 +94,9 @@ serve(async (req: Request) => {
     const appUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "") || "";
 
     for (const email of emails) {
+      const requestId = crypto.randomUUID();
       try {
+        console.log("Request ID:", requestId, "Processing invitation");
         // Check if user already exists
         const { data: existingProfile } = await supabase
           .from("profiles")
@@ -185,7 +193,7 @@ serve(async (req: Request) => {
           });
         }
       } catch (error: any) {
-        console.error(`Error processing ${email}:`, error);
+        console.error("Request ID:", requestId, "Error processing invitation:", error);
         results.push({
           email,
           success: false,

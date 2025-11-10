@@ -90,20 +90,16 @@ const Index = () => {
               <LunchCalendar userId={user.id} />
             </div>
           </TabsContent>
-          {canAccessKitchen && (
-            <TabsContent value="kitchen">
-              <div className="max-w-7xl mx-auto">
-                <KitchenView />
-              </div>
-            </TabsContent>
-          )}
-          {isAdmin && (
-            <TabsContent value="admin">
-              <div className="max-w-7xl mx-auto">
-                <AdminPanel />
-              </div>
-            </TabsContent>
-          )}
+          <TabsContent value="kitchen">
+            <div className="max-w-7xl mx-auto">
+              {canAccessKitchen ? <KitchenView /> : null}
+            </div>
+          </TabsContent>
+          <TabsContent value="admin">
+            <div className="max-w-7xl mx-auto">
+              {isAdmin ? <AdminPanel /> : null}
+            </div>
+          </TabsContent>
           <TabsContent value="profile">
             <div className="max-w-7xl mx-auto">
               <ProfileSettings userId={user.id} />

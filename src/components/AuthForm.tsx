@@ -20,6 +20,7 @@ export const AuthForm = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [inviteValid, setInviteValid] = useState(false);
   const [inviteChecking, setInviteChecking] = useState(false);
+  const [emailFromInvite, setEmailFromInvite] = useState(false);
 
   useEffect(() => {
     // Parse URL parameters
@@ -32,6 +33,7 @@ export const AuthForm = () => {
       setIsLogin(false);
       if (emailParam) {
         setEmail(emailParam);
+        setEmailFromInvite(true);
       }
       validateInviteCode(invite, emailParam || "");
     }
@@ -264,7 +266,13 @@ export const AuthForm = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
+                disabled={!isLogin && emailFromInvite}
               />
+              {!isLogin && emailFromInvite && (
+                <p className="text-xs text-muted-foreground">
+                  This email is locked to your invitation
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

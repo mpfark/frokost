@@ -5,6 +5,7 @@ import { AuthForm } from "@/components/AuthForm";
 import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { ProfileSettings } from "@/components/ProfileSettings";
+import { PasswordChange } from "@/components/PasswordChange";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -109,16 +110,18 @@ const Index = () => {
               </div>
             </TabsContent>
             <TabsContent value="profile">
-              <div className="max-w-7xl mx-auto">
+              <div className="max-w-7xl mx-auto space-y-6">
                 <ProfileSettings userId={user.id} />
+                <PasswordChange />
               </div>
             </TabsContent>
           </Tabs>
         ) : (
           <>
             {activeTab === "profile" ? (
-              <div className="max-w-7xl mx-auto">
+              <div className="max-w-7xl mx-auto space-y-6">
                 <ProfileSettings userId={user.id} />
+                <PasswordChange />
               </div>
             ) : (
               <div className="max-w-7xl mx-auto">

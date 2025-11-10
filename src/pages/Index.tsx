@@ -16,6 +16,7 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("calendar");
   const { isAdmin, isKitchen, isLoading: isRoleLoading } = useUserRole(user?.id);
   const canAccessKitchen = isAdmin || isKitchen;
 
@@ -70,7 +71,7 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={() => setActiveTab("profile")}>
                 <UserIcon className="w-4 h-4" />
               </Button>
               <Button onClick={handleSignOut} variant="outline" size="icon">
@@ -82,7 +83,7 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="calendar" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-3' : canAccessKitchen ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
             {canAccessKitchen && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
@@ -101,6 +102,11 @@ const Index = () => {
           <TabsContent value="admin">
             <div className="max-w-7xl mx-auto">
               {isAdmin ? <AdminPanel /> : null}
+            </div>
+          </TabsContent>
+          <TabsContent value="profile">
+            <div className="max-w-7xl mx-auto">
+              <ProfileSettings userId={user.id} />
             </div>
           </TabsContent>
         </Tabs>

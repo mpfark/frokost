@@ -237,7 +237,12 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const addGuest = async (signupId: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Get current guest count
+      const signup = signups.find(s => s.id === signupId);
+      if (!signup) throw new Error("Signup not found");
+
+      // Insert guest
+      const { error: guestError } = await supabase
         .from("guests")
         .insert({
           signup_id: signupId,
@@ -246,8 +251,17 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           is_vegetarian: false,
         });
 
-      if (error) throw error;
-      await fetchGuests();
+      if (guestError) throw guestError;
+
+      // Update guest count
+      const { error: updateError } = await supabase
+        .from("lunch_signups")
+        .update({ guest_count: signup.guest_count + 1 })
+        .eq("id", signupId);
+
+      if (updateError) throw updateError;
+
+      await fetchSignups();
       toast.success("Guest added");
     } catch (error: any) {
       toast.error(error.message);
@@ -259,13 +273,31 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const removeGuest = async (guestId: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Find the guest to get signup_id
+      const guest = guests.find(g => g.id === guestId);
+      if (!guest) throw new Error("Guest not found");
+
+      // Find the signup to get current guest count
+      const signup = signups.find(s => s.id === guest.signup_id);
+      if (!signup) throw new Error("Signup not found");
+
+      // Delete guest
+      const { error: deleteError } = await supabase
         .from("guests")
         .delete()
         .eq("id", guestId);
 
-      if (error) throw error;
-      await fetchGuests();
+      if (deleteError) throw deleteError;
+
+      // Update guest count
+      const { error: updateError } = await supabase
+        .from("lunch_signups")
+        .update({ guest_count: Math.max(0, signup.guest_count - 1) })
+        .eq("id", guest.signup_id);
+
+      if (updateError) throw updateError;
+
+      await fetchSignups();
       toast.success("Guest removed");
     } catch (error: any) {
       toast.error(error.message);

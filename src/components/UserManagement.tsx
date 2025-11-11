@@ -7,7 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Pencil, Save, X, KeyRound, UtensilsCrossed } from "lucide-react";
+import { Shield, ShieldOff, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { profileSchema } from "@/lib/validations";
 
 interface UserProfile {
@@ -28,6 +38,8 @@ export const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
 
   const fetchUsers = async () => {
     // Fetch profiles
@@ -214,6 +226,32 @@ export const UserManagement = () => {
       toast.success(`Password reset email sent to ${email}`);
     } catch (error: any) {
       toast.error(error.message || "Failed to send password reset email");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openDeleteDialog = (user: UserWithRoles) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: userToDelete.id },
+      });
+
+      if (error) throw error;
+      toast.success(`User ${userToDelete.email} deleted successfully`);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete user");
     } finally {
       setIsLoading(false);
     }
@@ -406,6 +444,15 @@ export const UserManagement = () => {
                             <KeyRound className="w-4 h-4 mr-2" />
                             Reset Password
                           </Button>
+                          <Button
+                            onClick={() => openDeleteDialog(user)}
+                            disabled={isLoading}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete User
+                          </Button>
                         </>
                       )}
                     </div>
@@ -416,6 +463,28 @@ export const UserManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{userToDelete?.email}</strong>? 
+              This action cannot be undone. All user data, signups, and associated records will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={deleteUser} 
+              disabled={isLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isLoading ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -77,21 +77,21 @@ export const AuthForm = () => {
         .single();
 
       if (error || !data) {
-        toast.error("This invitation code is invalid or has expired");
+        toast.error("Denne invitationskode er ugyldig eller udløbet");
         setInviteValid(false);
         return;
       }
 
       // Check if expired
       if (new Date(data.expires_at) < new Date()) {
-        toast.error("This invitation has expired");
+        toast.error("Denne invitation er udløbet");
         setInviteValid(false);
         return;
       }
 
       // Check if email matches
       if (emailToCheck && data.email.toLowerCase() !== emailToCheck.toLowerCase()) {
-        toast.error("This invitation was sent to a different email address");
+        toast.error("Denne invitation blev sendt til en anden e-mailadresse");
         setInviteValid(false);
         return;
       }
@@ -168,13 +168,13 @@ export const AuthForm = () => {
       } else {
         // Signup with invite validation
         if (!allowedDomain) {
-          toast.error("Company domain not configured. Please contact administrator.");
+          toast.error("Virksomhedsdomæne ikke konfigureret. Kontakt venligst administrator.");
           setIsLoading(false);
           return;
         }
 
         if (!inviteCode) {
-          toast.error("An invitation code is required to sign up");
+          toast.error("En invitationskode er påkrævet for at tilmelde dig");
           setIsLoading(false);
           return;
         }
@@ -203,19 +203,19 @@ export const AuthForm = () => {
           .single();
 
         if (inviteError || !inviteData) {
-          toast.error("This invitation code is invalid or has already been used");
+          toast.error("Denne invitationskode er ugyldig eller er allerede blevet brugt");
           setIsLoading(false);
           return;
         }
 
         if (inviteData.email.toLowerCase() !== email.toLowerCase()) {
-          toast.error("This invitation was sent to a different email address");
+          toast.error("Denne invitation blev sendt til en anden e-mailadresse");
           setIsLoading(false);
           return;
         }
 
         if (new Date(inviteData.expires_at) < new Date()) {
-          toast.error("This invitation has expired");
+          toast.error("Denne invitation er udløbet");
           setIsLoading(false);
           return;
         }
@@ -246,7 +246,7 @@ export const AuthForm = () => {
             .eq("id", inviteData.id);
         }
 
-        toast.success("Account created! You can now log in.");
+        toast.success("Konto oprettet! Du kan nu logge ind.");
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -266,7 +266,7 @@ export const AuthForm = () => {
           </div>
           <CardTitle className="text-2xl">Office Lunch</CardTitle>
           <CardDescription>
-            {isLogin ? "Sign in to your account" : "Create a new account"}
+            {isLogin ? "Log ind på din konto" : "Opret en ny konto"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -274,7 +274,7 @@ export const AuthForm = () => {
             <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                You've been invited to join Office Lunch!
+                Du er blevet inviteret til at deltage i Office Lunch!
               </AlertDescription>
             </Alert>
           )}
@@ -283,7 +283,7 @@ export const AuthForm = () => {
             <Alert className="mb-4" variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Sign up is by invitation only. Please contact your administrator for an invite link.
+                Tilmelding er kun på invitation. Kontakt venligst din administrator for et invitationslink.
               </AlertDescription>
             </Alert>
           )}
@@ -291,36 +291,36 @@ export const AuthForm = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">Fulde navn</Label>
                 <Input
                   id="fullName"
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required={!isLogin}
-                  placeholder="John Doe"
+                  placeholder="Anders Andersen"
                 />
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="you@example.com"
+                placeholder="dig@eksempel.dk"
                 disabled={!isLogin && emailFromInvite}
               />
               {!isLogin && emailFromInvite && (
                 <p className="text-xs text-muted-foreground">
-                  This email is locked to your invitation
+                  Denne e-mail er låst til din invitation
                 </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Adgangskode</Label>
               <Input
                 id="password"
                 type="password"
@@ -336,7 +336,7 @@ export const AuthForm = () => {
               className="w-full" 
               disabled={isLoading || (!isLogin && !inviteCode) || inviteChecking || (!isLogin && settingsLoading)}
             >
-              {isLoading ? "Loading..." : settingsLoading && !isLogin ? "Loading settings..." : isLogin ? "Sign In" : "Sign Up"}
+              {isLoading ? "Indlæser..." : settingsLoading && !isLogin ? "Indlæser indstillinger..." : isLogin ? "Log ind" : "Tilmeld"}
             </Button>
           </form>
 
@@ -346,7 +346,7 @@ export const AuthForm = () => {
               onClick={() => setIsLogin(!isLogin)}
               className="text-primary hover:underline"
             >
-              {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
+              {isLogin ? "Har du brug for en konto? Tilmeld dig" : "Har du allerede en konto? Log ind"}
             </button>
           </div>
         </CardContent>

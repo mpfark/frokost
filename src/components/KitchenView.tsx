@@ -129,11 +129,11 @@ export const KitchenView = () => {
         .eq("id", existingClosed.id);
 
       if (error) {
-        toast.error("Failed to reopen date");
+        toast.error("Kunne ikke åbne dato igen");
         return;
       }
 
-      toast.success("Date reopened");
+      toast.success("Dato åbnet igen");
       fetchClosedDates();
     } else {
       // Show reason dialog
@@ -149,11 +149,11 @@ export const KitchenView = () => {
       .insert({ date: format(reasonDialogDate, "yyyy-MM-dd"), reason: reasonInput || null });
 
     if (error) {
-      toast.error("Failed to close date");
+      toast.error("Kunne ikke lukke dato");
       return;
     }
 
-    toast.success("Date marked as closed");
+    toast.success("Dato markeret som lukket");
     setReasonDialogDate(null);
     setReasonInput("");
     fetchClosedDates();
@@ -270,7 +270,7 @@ export const KitchenView = () => {
             <div className="flex flex-col md:flex-row gap-4">
               {/* Week Number */}
               <div className="flex-shrink-0 flex flex-row md:flex-col items-center justify-center bg-muted rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Week</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Uge</div>
                 <div className="text-2xl md:text-4xl font-bold text-foreground">{weekNumber}</div>
               </div>
 
@@ -301,7 +301,7 @@ export const KitchenView = () => {
                         {isClosed && (
                           <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1">
                             <Lock className="w-3 h-3" />
-                            Closed
+                            Lukket
                           </div>
                         )}
                       </div>
@@ -354,7 +354,7 @@ export const KitchenView = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="w-5 h-5" />
-            Manage Closed Dates
+            Administrer lukkede dage
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -376,7 +376,7 @@ export const KitchenView = () => {
                 className="rounded-md border"
               />
               <p className="text-sm text-muted-foreground mt-4">
-                Click any date to lock/unlock it. Locked dates prevent lunch signups.
+                Klik på en dato for at låse/åbne den. Låste dage forhindrer frokosttilmeldinger.
               </p>
             </div>
 
@@ -401,12 +401,12 @@ export const KitchenView = () => {
                       size="sm"
                       onClick={() => toggleClosedDate(new Date(cd.date + "T00:00:00"))}
                     >
-                      Reopen
+                      Åbn igen
                     </Button>
                   </div>
                 ))}
               {closedDates.filter((cd) => new Date(cd.date) >= new Date(format(new Date(), "yyyy-MM-dd"))).length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">No upcoming closed dates</p>
+                <p className="text-sm text-muted-foreground text-center py-8">Ingen kommende lukkede dage</p>
               )}
             </div>
           </div>
@@ -420,7 +420,7 @@ export const KitchenView = () => {
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DrawerTitle>
             <DrawerDescription>
-              {selectedDate && `${getTotalPeopleForDate(selectedDate)} total people (${getSignupsForDate(selectedDate).length} signups)`}
+              {selectedDate && `${getTotalPeopleForDate(selectedDate)} personer i alt (${getSignupsForDate(selectedDate).length} tilmeldinger)`}
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
@@ -438,7 +438,7 @@ export const KitchenView = () => {
                       {signup.profiles.full_name || signup.profiles.email}
                       {signup.guest_count > 0 && (
                         <Badge variant="outline" className="text-xs">
-                          +{signup.guest_count} guest{signup.guest_count > 1 ? 's' : ''}
+                          +{signup.guest_count} gæst{signup.guest_count > 1 ? 'er' : ''}
                         </Badge>
                       )}
                     </div>
@@ -447,19 +447,19 @@ export const KitchenView = () => {
                         {signup.profiles.is_gluten_free && (
                           <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Wheat className="w-3 h-3" />
-                            Gluten Free
+                            Glutenfri
                           </Badge>
                         )}
                         {signup.profiles.is_lactose_free && (
                           <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Milk className="w-3 h-3" />
-                            Lactose Free
+                            Laktosefri
                           </Badge>
                         )}
                         {signup.profiles.is_vegetarian && (
                           <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Leaf className="w-3 h-3" />
-                            Vegetarian
+                            Vegetar
                           </Badge>
                         )}
                       </div>
@@ -516,23 +516,23 @@ export const KitchenView = () => {
       <Dialog open={reasonDialogDate !== null} onOpenChange={(open) => !open && setReasonDialogDate(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Close Date</DialogTitle>
+            <DialogTitle>Luk dato</DialogTitle>
             <DialogDescription>
               {reasonDialogDate && format(reasonDialogDate, "EEEE, MMMM d, yyyy")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input
-              placeholder="Reason (optional)"
+              placeholder="Årsag (valgfrit)"
               value={reasonInput}
               onChange={(e) => setReasonInput(e.target.value)}
             />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setReasonDialogDate(null)}>
-                Cancel
+                Annuller
               </Button>
               <Button onClick={addClosedDateWithReason}>
-                Close Date
+                Luk dato
               </Button>
             </div>
           </div>

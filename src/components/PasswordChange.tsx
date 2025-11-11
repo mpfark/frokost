@@ -9,11 +9,11 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod";
 
 const passwordChangeSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
+  currentPassword: z.string().min(1, "Nuværende adgangskode er påkrævet"),
+  newPassword: z.string().min(6, "Adgangskoden skal være mindst 6 tegn"),
+  confirmPassword: z.string().min(1, "Bekræft venligst din adgangskode"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Adgangskoderne stemmer ikke overens",
   path: ["confirmPassword"],
 });
 
@@ -53,7 +53,7 @@ export const PasswordChange = () => {
       // Verify current password by attempting to sign in
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) {
-        toast.error("User email not found");
+        toast.error("Bruger e-mail ikke fundet");
         setIsLoading(false);
         return;
       }
@@ -64,7 +64,7 @@ export const PasswordChange = () => {
       });
 
       if (signInError) {
-        toast.error("Current password is incorrect");
+        toast.error("Nuværende adgangskode er forkert");
         setIsLoading(false);
         return;
       }
@@ -75,15 +75,15 @@ export const PasswordChange = () => {
       });
 
       if (error) {
-        toast.error("Failed to update password");
+        toast.error("Kunne ikke opdatere adgangskode");
       } else {
-        toast.success("Password updated successfully!");
+        toast.success("Adgangskode opdateret med succes!");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       }
     } catch (error) {
-      toast.error("An error occurred while updating password");
+      toast.error("Der opstod en fejl under opdatering af adgangskode");
     } finally {
       setIsLoading(false);
     }
@@ -92,12 +92,12 @@ export const PasswordChange = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Change Password</CardTitle>
-        <CardDescription>Update your account password</CardDescription>
+        <CardTitle>Skift adgangskode</CardTitle>
+        <CardDescription>Opdater din kontoadgangskode</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">E-mail</Label>
           <Input
             id="email"
             type="email"
@@ -109,37 +109,37 @@ export const PasswordChange = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="currentPassword">Current Password</Label>
+          <Label htmlFor="currentPassword">Nuværende adgangskode</Label>
           <Input
             id="currentPassword"
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Enter current password"
+            placeholder="Indtast nuværende adgangskode"
             autoComplete="current-password"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="newPassword">New Password</Label>
+          <Label htmlFor="newPassword">Ny adgangskode</Label>
           <Input
             id="newPassword"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password"
+            placeholder="Indtast ny adgangskode"
             autoComplete="new-password"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+          <Label htmlFor="confirmPassword">Bekræft ny adgangskode</Label>
           <Input
             id="confirmPassword"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirm new password"
+            placeholder="Bekræft ny adgangskode"
             autoComplete="new-password"
           />
         </div>
@@ -148,10 +148,10 @@ export const PasswordChange = () => {
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Updating...
+              Opdaterer...
             </>
           ) : (
-            "Update Password"
+            "Opdater adgangskode"
           )}
         </Button>
       </CardContent>

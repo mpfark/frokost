@@ -33,10 +33,10 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
       .eq("id", userId)
       .single();
 
-    if (error) {
-      toast.error("Failed to load profile");
-      return;
-    }
+      if (error) {
+        toast.error("Kunne ikke indlæse profil");
+        return;
+      }
 
     if (data) {
       setFullName(data.full_name || "");
@@ -77,12 +77,12 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
         .eq("id", userId);
 
       if (error) {
-        toast.error("Failed to update profile");
+        toast.error("Kunne ikke opdatere profil");
       } else {
-        toast.success("Profile updated successfully!");
+        toast.success("Profil opdateret med succes!");
       }
     } catch (error) {
-      toast.error("An error occurred while updating profile");
+      toast.error("Der opstod en fejl under opdatering af profil");
     } finally {
       setIsLoading(false);
     }
@@ -101,22 +101,22 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile Settings</CardTitle>
-        <CardDescription>Manage your name and dietary preferences</CardDescription>
+        <CardTitle>Profilindstillinger</CardTitle>
+        <CardDescription>Administrer dit navn og dine kostpræferencer</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="fullName">Full Name</Label>
+          <Label htmlFor="fullName">Fulde navn</Label>
           <Input
             id="fullName"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Your full name"
+            placeholder="Dit fulde navn"
           />
         </div>
 
         <div className="space-y-4">
-          <Label className="text-base font-semibold">Dietary Preferences</Label>
+          <Label className="text-base font-semibold">Kostpræferencer</Label>
           
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -128,7 +128,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
               htmlFor="gluten"
               className="text-sm font-normal cursor-pointer"
             >
-              Gluten-free
+              Glutenfri
             </Label>
           </div>
 
@@ -142,7 +142,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
               htmlFor="lactose"
               className="text-sm font-normal cursor-pointer"
             >
-              Lactose-free
+              Laktosefri
             </Label>
           </div>
 
@@ -156,7 +156,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
               htmlFor="vegetarian"
               className="text-sm font-normal cursor-pointer"
             >
-              Vegetarian
+              Vegetar
             </Label>
           </div>
         </div>
@@ -165,10 +165,10 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
+              Gemmer...
             </>
           ) : (
-            "Save Changes"
+            "Gem ændringer"
           )}
         </Button>
       </CardContent>

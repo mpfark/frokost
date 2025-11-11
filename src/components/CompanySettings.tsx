@@ -44,8 +44,8 @@ export const CompanySettings = () => {
   const handleSave = async () => {
     if (!allowedDomain.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a domain",
+        title: "Fejl",
+        description: "Indtast venligst et domæne",
         variant: "destructive",
       });
       return;
@@ -55,8 +55,8 @@ export const CompanySettings = () => {
     const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
     if (!domainRegex.test(allowedDomain)) {
       toast({
-        title: "Error",
-        description: "Please enter a valid domain (e.g., company.com)",
+        title: "Fejl",
+        description: "Indtast venligst et gyldigt domæne (f.eks. virksomhed.dk)",
         variant: "destructive",
       });
       return;
@@ -88,12 +88,12 @@ export const CompanySettings = () => {
       }
 
       toast({
-        title: "Success",
-        description: "Company settings saved successfully",
+        title: "Succes",
+        description: "Virksomhedsindstillinger gemt med succes",
       });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Fejl",
         description: error.message,
         variant: "destructive",
       });
@@ -103,7 +103,7 @@ export const CompanySettings = () => {
   };
 
   if (isFetching) {
-    return <div>Loading...</div>;
+    return <div>Indlæser...</div>;
   }
 
   return (
@@ -111,31 +111,31 @@ export const CompanySettings = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Building2 className="h-5 w-5" />
-          Company Settings
+          Virksomhedsindstillinger
         </CardTitle>
         <CardDescription>
-          Configure the allowed email domain for user signups
+          Konfigurer det tilladte e-mail-domæne for bruger-tilmeldinger
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="domain">Allowed Email Domain</Label>
+          <Label htmlFor="domain">Tilladt e-mail-domæne</Label>
           <div className="flex gap-2">
             <span className="flex items-center text-muted-foreground">@</span>
             <Input
               id="domain"
-              placeholder="company.com"
+              placeholder="virksomhed.dk"
               value={allowedDomain}
               onChange={(e) => setAllowedDomain(e.target.value)}
               disabled={isLoading}
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            Only users with email addresses from this domain will be able to sign up
+            Kun brugere med e-mailadresser fra dette domæne vil kunne tilmelde sig
           </p>
         </div>
         <Button onClick={handleSave} disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save Settings"}
+          {isLoading ? "Gemmer..." : "Gem indstillinger"}
         </Button>
       </CardContent>
     </Card>

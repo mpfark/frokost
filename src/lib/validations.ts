@@ -5,17 +5,17 @@ export const createDomainValidator = (allowedDomain: string) => {
   return z
     .string()
     .trim()
-    .email({ message: "Invalid email address" })
+    .email({ message: "Ugyldig e-mailadresse" })
     .refine(
       (email) => email.toLowerCase().endsWith(`@${allowedDomain.toLowerCase()}`),
-      { message: `Email must be from @${allowedDomain}` }
+      { message: `E-mail skal være fra @${allowedDomain}` }
     );
 };
 
 // Invite code validation
 export const inviteCodeSchema = z.object({
-  code: z.string().min(1, { message: "Invite code is required" }),
-  email: z.string().email({ message: "Invalid email address" }),
+  code: z.string().min(1, { message: "Invitationskode er påkrævet" }),
+  email: z.string().email({ message: "Ugyldig e-mailadresse" }),
 });
 
 // Authentication validation schemas
@@ -23,21 +23,21 @@ export const signUpSchema = z.object({
   email: z
     .string()
     .trim()
-    .email({ message: "Invalid email address" })
-    .max(255, { message: "Email must be less than 255 characters" }),
+    .email({ message: "Ugyldig e-mailadresse" })
+    .max(255, { message: "E-mail skal være mindre end 255 tegn" }),
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters" })
-    .max(128, { message: "Password must be less than 128 characters" })
-    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
-    .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
-    .regex(/[0-9]/, { message: "Password must contain at least one number" }),
+    .min(8, { message: "Adgangskoden skal være mindst 8 tegn" })
+    .max(128, { message: "Adgangskoden skal være mindre end 128 tegn" })
+    .regex(/[A-Z]/, { message: "Adgangskoden skal indeholde mindst ét stort bogstav" })
+    .regex(/[a-z]/, { message: "Adgangskoden skal indeholde mindst ét lille bogstav" })
+    .regex(/[0-9]/, { message: "Adgangskoden skal indeholde mindst ét tal" }),
   fullName: z
     .string()
     .trim()
-    .min(1, { message: "Full name is required" })
-    .max(100, { message: "Full name must be less than 100 characters" })
-    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
+    .min(1, { message: "Fulde navn er påkrævet" })
+    .max(100, { message: "Fulde navn skal være mindre end 100 tegn" })
+    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Fulde navn kan kun indeholde bogstaver, mellemrum, bindestreger og apostroffer" }),
   inviteCode: z.string().optional(),
 });
 
@@ -46,37 +46,37 @@ export const createSignUpWithInviteSchema = (allowedDomain: string) => z.object(
   email: z
     .string()
     .trim()
-    .email({ message: "Invalid email address" })
-    .max(255, { message: "Email must be less than 255 characters" })
+    .email({ message: "Ugyldig e-mailadresse" })
+    .max(255, { message: "E-mail skal være mindre end 255 tegn" })
     .refine(
       (email) => email.toLowerCase().endsWith(`@${allowedDomain.toLowerCase()}`),
-      { message: `Email must be from @${allowedDomain}` }
+      { message: `E-mail skal være fra @${allowedDomain}` }
     ),
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters" })
-    .max(128, { message: "Password must be less than 128 characters" })
-    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
-    .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
-    .regex(/[0-9]/, { message: "Password must contain at least one number" }),
+    .min(8, { message: "Adgangskoden skal være mindst 8 tegn" })
+    .max(128, { message: "Adgangskoden skal være mindre end 128 tegn" })
+    .regex(/[A-Z]/, { message: "Adgangskoden skal indeholde mindst ét stort bogstav" })
+    .regex(/[a-z]/, { message: "Adgangskoden skal indeholde mindst ét lille bogstav" })
+    .regex(/[0-9]/, { message: "Adgangskoden skal indeholde mindst ét tal" }),
   fullName: z
     .string()
     .trim()
-    .min(1, { message: "Full name is required" })
-    .max(100, { message: "Full name must be less than 100 characters" })
-    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
-  inviteCode: z.string().min(1, { message: "Invite code is required" }),
+    .min(1, { message: "Fulde navn er påkrævet" })
+    .max(100, { message: "Fulde navn skal være mindre end 100 tegn" })
+    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Fulde navn kan kun indeholde bogstaver, mellemrum, bindestreger og apostroffer" }),
+  inviteCode: z.string().min(1, { message: "Invitationskode er påkrævet" }),
 });
 
 export const signInSchema = z.object({
   email: z
     .string()
     .trim()
-    .email({ message: "Invalid email address" })
-    .max(255, { message: "Email must be less than 255 characters" }),
+    .email({ message: "Ugyldig e-mailadresse" })
+    .max(255, { message: "E-mail skal være mindre end 255 tegn" }),
   password: z
     .string()
-    .min(1, { message: "Password is required" }),
+    .min(1, { message: "Adgangskode er påkrævet" }),
 });
 
 // Profile validation schema
@@ -84,9 +84,9 @@ export const profileSchema = z.object({
   fullName: z
     .string()
     .trim()
-    .min(1, { message: "Full name is required" })
-    .max(100, { message: "Full name must be less than 100 characters" })
-    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
+    .min(1, { message: "Fulde navn er påkrævet" })
+    .max(100, { message: "Fulde navn skal være mindre end 100 tegn" })
+    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Fulde navn kan kun indeholde bogstaver, mellemrum, bindestreger og apostroffer" }),
   isGlutenFree: z.boolean(),
   isLactoseFree: z.boolean(),
   isVegetarian: z.boolean(),

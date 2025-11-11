@@ -10,10 +10,10 @@ import { Loader2, UtensilsCrossed } from "lucide-react";
 import { z } from "zod";
 
 const passwordResetSchema = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
+  password: z.string().min(6, "Adgangskoden skal være mindst 6 tegn"),
+  confirmPassword: z.string().min(1, "Bekræft venligst din adgangskode"),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Adgangskoderne stemmer ikke overens",
   path: ["confirmPassword"],
 });
 
@@ -34,7 +34,7 @@ const ResetPassword = () => {
       if (session) {
         setIsValidSession(true);
       } else {
-        toast.error("Invalid or expired password reset link");
+        toast.error("Ugyldigt eller udløbet link til nulstilling af adgangskode");
         setTimeout(() => navigate("/"), 2000);
       }
       setIsCheckingSession(false);
@@ -65,13 +65,13 @@ const ResetPassword = () => {
       });
 
       if (error) {
-        toast.error("Failed to reset password");
+        toast.error("Kunne ikke nulstille adgangskode");
       } else {
-        toast.success("Password reset successfully!");
+        toast.success("Adgangskode nulstillet med succes!");
         setTimeout(() => navigate("/"), 1500);
       }
     } catch (error) {
-      toast.error("An error occurred while resetting password");
+      toast.error("Der opstod en fejl under nulstilling af adgangskode");
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +80,7 @@ const ResetPassword = () => {
   if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Verifying reset link...</div>
+        <div className="animate-pulse text-muted-foreground">Verificerer nulstillingslink...</div>
       </div>
     );
   }
@@ -101,29 +101,29 @@ const ResetPassword = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Reset Your Password</CardTitle>
-            <CardDescription>Enter your new password below</CardDescription>
+            <CardTitle>Nulstil din adgangskode</CardTitle>
+            <CardDescription>Indtast din nye adgangskode nedenfor</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">Ny adgangskode</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder="Indtast ny adgangskode"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">Bekræft ny adgangskode</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
+                placeholder="Bekræft ny adgangskode"
               />
             </div>
 
@@ -131,10 +131,10 @@ const ResetPassword = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Resetting...
+                  Nulstiller...
                 </>
               ) : (
-                "Reset Password"
+                "Nulstil adgangskode"
               )}
             </Button>
           </CardContent>

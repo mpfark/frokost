@@ -101,6 +101,41 @@ export const AuthForm = () => {
       setInviteChecking(false);
     }
   };
+  
+  // Attempt to mark a pending invitation as accepted for the current user
+  const acceptPendingInvitation = async (userId: string, userEmail: string) => {
+    try {
+      // Find the most recent pending invite for this email
+      const { data: pendingInvite } = await supabase
+        .from("invitations")
+        .select("id, expires_at")
+        .eq("email", userEmail.toLowerCase())
+        .eq("status", "pending")
+        .order("invited_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!pendingInvite) return; // nothing to accept
+
+      // Skip expired
+      if (new Date(pendingInvite.expires_at) < new Date()) return;
+
+      const { error: updateError } = await supabase
+        .from("invitations")
+        .update({
+          status: "accepted",
+          accepted_at: new Date().toISOString(),
+          used_by: userId,
+        })
+        .eq("id", pendingInvite.id);
+
+      if (updateError) {
+        console.warn("Failed to mark invitation as accepted:", updateError);
+      }
+    } catch (err) {
+      console.warn("Error while accepting pending invitation:", err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,11 +150,18 @@ export const AuthForm = () => {
           return;
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
         if (error) throw error;
+
+        // On first successful login, accept any pending invitation for this email
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData?.user;
+        if (user?.email) {
+          await acceptPendingInvitation(user.id, user.email);
+        }
       } else {
         // Signup with invite validation
         if (!allowedDomain) {

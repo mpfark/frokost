@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,9 +19,19 @@ const passwordChangeSchema = z.object({
 
 export const PasswordChange = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Fetch user email on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    });
+  }, []);
 
   const handleChangePassword = async () => {
     setIsLoading(true);
@@ -87,6 +97,18 @@ export const PasswordChange = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={userEmail}
+            disabled
+            autoComplete="username"
+            className="bg-muted"
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="currentPassword">Current Password</Label>
           <Input
             id="currentPassword"
@@ -94,6 +116,7 @@ export const PasswordChange = () => {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="Enter current password"
+            autoComplete="current-password"
           />
         </div>
 
@@ -105,6 +128,7 @@ export const PasswordChange = () => {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="Enter new password"
+            autoComplete="new-password"
           />
         </div>
 
@@ -116,6 +140,7 @@ export const PasswordChange = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm new password"
+            autoComplete="new-password"
           />
         </div>
 

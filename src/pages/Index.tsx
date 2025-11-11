@@ -70,7 +70,7 @@ const Index = () => {
                 <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="text-left hidden sm:block">
-                <h1 className="text-xl font-bold">Office Lunch</h1>
+                <h1 className="text-xl font-bold">Plusfrokost</h1>
                 <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
               </div>
             </button>

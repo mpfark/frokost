@@ -96,7 +96,7 @@ const ResetPassword = () => {
           <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
             <UtensilsCrossed className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold">Office Lunch</h1>
+          <h1 className="text-2xl font-bold">Plusfrokost</h1>
         </div>
 
         <Card>

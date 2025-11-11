@@ -180,14 +180,14 @@ serve(async (req: Request) => {
         const inviteLink = `${appUrl}/?invite=${inviteCode}&email=${encodeURIComponent(email)}`;
         
         const { error: emailError } = await resend.emails.send({
-          from: "Office Lunch <onboarding@resend.dev>",
+          from: "Plusfrokost <onboarding@resend.dev>",
           to: [email],
-          subject: "You're invited to Office Lunch!",
+          subject: "Du er inviteret til Plusfrokost!",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #333;">You're invited to Office Lunch!</h1>
-              <p>Hi there,</p>
-              <p><strong>${adminName}</strong> has invited you to join the Office Lunch scheduling system.</p>
+              <h1 style="color: #333;">Du er inviteret til Plusfrokost!</h1>
+              <p>Hej,</p>
+              <p><strong>${adminName}</strong> har inviteret dig til Plusfrokost planlægningssystemet.</p>
               <p>Click the link below to create your account:</p>
               <div style="margin: 30px 0;">
                 <a href="${inviteLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>

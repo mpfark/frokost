@@ -264,7 +264,7 @@ export const AuthForm = () => {
               <UtensilsCrossed className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Office Lunch</CardTitle>
+          <CardTitle className="text-2xl">Plusfrokost</CardTitle>
           <CardDescription>
             {isLogin ? "Log ind på din konto" : "Opret en ny konto"}
           </CardDescription>
@@ -274,7 +274,7 @@ export const AuthForm = () => {
             <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Du er blevet inviteret til at deltage i Office Lunch!
+                Du er blevet inviteret til at deltage i Plusfrokost!
               </AlertDescription>
             </Alert>
           )}

@@ -21,6 +21,7 @@ export const AuthForm = () => {
   const [inviteValid, setInviteValid] = useState(false);
   const [inviteChecking, setInviteChecking] = useState(false);
   const [emailFromInvite, setEmailFromInvite] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
     // Parse URL parameters
@@ -58,6 +59,8 @@ export const AuthForm = () => {
       }
     } catch (error: any) {
       console.error("Error fetching company settings:", error);
+    } finally {
+      setSettingsLoading(false);
     }
   };
 
@@ -331,9 +334,9 @@ export const AuthForm = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading || (!isLogin && !inviteCode) || inviteChecking}
+              disabled={isLoading || (!isLogin && !inviteCode) || inviteChecking || (!isLogin && settingsLoading)}
             >
-              {isLoading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
+              {isLoading ? "Loading..." : settingsLoading && !isLogin ? "Loading settings..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
 

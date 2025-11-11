@@ -49,7 +49,7 @@ export const UserManagement = () => {
       .order("email");
 
     if (profilesError) {
-      toast.error("Failed to load users");
+      toast.error("Kunne ikke indlæse brugere");
       return;
     }
 
@@ -59,7 +59,7 @@ export const UserManagement = () => {
       .select("user_id, role");
 
     if (rolesError) {
-      toast.error("Failed to load user roles");
+      toast.error("Kunne ikke indlæse brugerroller");
       return;
     }
 
@@ -115,14 +115,14 @@ export const UserManagement = () => {
           .eq("role", "kitchen");
 
         if (error) throw error;
-        toast.success("Kitchen role removed");
+        toast.success("Køkkenrolle fjernet");
       } else {
         const { error } = await supabase
           .from("user_roles")
           .insert({ user_id: userId, role: "kitchen" });
 
         if (error) throw error;
-        toast.success("Kitchen role granted");
+        toast.success("Køkkenrolle tildelt");
       }
       await fetchUsers();
     } catch (error: any) {
@@ -143,14 +143,14 @@ export const UserManagement = () => {
           .eq("role", "admin");
 
         if (error) throw error;
-        toast.success("Admin role removed");
+        toast.success("Adminrolle fjernet");
       } else {
         const { error } = await supabase
           .from("user_roles")
           .insert({ user_id: userId, role: "admin" });
 
         if (error) throw error;
-        toast.success("Admin role granted");
+        toast.success("Adminrolle tildelt");
       }
       await fetchUsers();
     } catch (error: any) {
@@ -204,7 +204,7 @@ export const UserManagement = () => {
         .eq("id", userId);
 
       if (error) throw error;
-      toast.success("User updated successfully");
+      toast.success("Bruger opdateret");
       setEditingUser(null);
       setEditForm({});
       await fetchUsers();
@@ -223,9 +223,9 @@ export const UserManagement = () => {
       });
 
       if (error) throw error;
-      toast.success(`Password reset email sent to ${email}`);
+      toast.success(`Adgangskode nulstillings-email sendt til ${email}`);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send password reset email");
+      toast.error(error.message || "Kunne ikke sende adgangskode nulstillings-email");
     } finally {
       setIsLoading(false);
     }
@@ -246,12 +246,12 @@ export const UserManagement = () => {
       });
 
       if (error) throw error;
-      toast.success(`User ${userToDelete.email} deleted successfully`);
+      toast.success(`Bruger ${userToDelete.email} slettet`);
       setDeleteDialogOpen(false);
       setUserToDelete(null);
       await fetchUsers();
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete user");
+      toast.error(error.message || "Kunne ikke slette bruger");
     } finally {
       setIsLoading(false);
     }
@@ -260,7 +260,7 @@ export const UserManagement = () => {
   if (isLoading && users.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-pulse text-muted-foreground">Loading users...</div>
+        <div className="animate-pulse text-muted-foreground">Indlæser brugere...</div>
       </div>
     );
   }
@@ -269,7 +269,7 @@ export const UserManagement = () => {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>User Management</CardTitle>
+          <CardTitle>Brugerstyring</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -287,7 +287,7 @@ export const UserManagement = () => {
                         {isEditing ? (
                           <div className="space-y-2">
                             <div>
-                              <Label htmlFor="full_name">Full Name</Label>
+                              <Label htmlFor="full_name">Fulde navn</Label>
                               <Input
                                 id="full_name"
                                 value={editForm.full_name || ""}
@@ -300,7 +300,7 @@ export const UserManagement = () => {
                           </div>
                         ) : (
                           <>
-                            <div className="font-medium">{user.full_name || "No name"}</div>
+                            <div className="font-medium">{user.full_name || "Intet navn"}</div>
                             <div className="text-sm text-muted-foreground">{user.email}</div>
                           </>
                         )}
@@ -323,7 +323,7 @@ export const UserManagement = () => {
 
                     {isEditing ? (
                       <div className="space-y-2">
-                        <Label>Dietary Restrictions</Label>
+                        <Label>Kostbegrænsninger</Label>
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -333,7 +333,7 @@ export const UserManagement = () => {
                                 setEditForm({ ...editForm, is_gluten_free: checked as boolean })
                               }
                             />
-                            <Label htmlFor={`gluten-${user.id}`}>Gluten Free</Label>
+                            <Label htmlFor={`gluten-${user.id}`}>Glutenfri</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -343,7 +343,7 @@ export const UserManagement = () => {
                                 setEditForm({ ...editForm, is_lactose_free: checked as boolean })
                               }
                             />
-                            <Label htmlFor={`lactose-${user.id}`}>Lactose Free</Label>
+                            <Label htmlFor={`lactose-${user.id}`}>Laktosefri</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -353,16 +353,16 @@ export const UserManagement = () => {
                                 setEditForm({ ...editForm, is_vegetarian: checked as boolean })
                               }
                             />
-                            <Label htmlFor={`vegetarian-${user.id}`}>Vegetarian</Label>
+                            <Label htmlFor={`vegetarian-${user.id}`}>Vegetar</Label>
                           </div>
                         </div>
                       </div>
                     ) : (
                       user.is_gluten_free || user.is_lactose_free || user.is_vegetarian ? (
                         <div className="flex gap-2 flex-wrap">
-                          {user.is_gluten_free && <Badge variant="secondary">Gluten Free</Badge>}
-                          {user.is_lactose_free && <Badge variant="secondary">Lactose Free</Badge>}
-                          {user.is_vegetarian && <Badge variant="secondary">Vegetarian</Badge>}
+                          {user.is_gluten_free && <Badge variant="secondary">Glutenfri</Badge>}
+                          {user.is_lactose_free && <Badge variant="secondary">Laktosefri</Badge>}
+                          {user.is_vegetarian && <Badge variant="secondary">Vegetar</Badge>}
                         </div>
                       ) : null
                     )}
@@ -376,7 +376,7 @@ export const UserManagement = () => {
                             size="sm"
                           >
                             <Save className="w-4 h-4 mr-2" />
-                            Save
+                            Gem
                           </Button>
                           <Button
                             onClick={cancelEditing}
@@ -385,7 +385,7 @@ export const UserManagement = () => {
                             size="sm"
                           >
                             <X className="w-4 h-4 mr-2" />
-                            Cancel
+                            Annuller
                           </Button>
                         </>
                       ) : (
@@ -397,7 +397,7 @@ export const UserManagement = () => {
                             size="sm"
                           >
                             <Pencil className="w-4 h-4 mr-2" />
-                            Edit
+                            Rediger
                           </Button>
                           <Button
                             onClick={() => toggleAdminRole(user.id, isAdmin)}
@@ -408,12 +408,12 @@ export const UserManagement = () => {
                             {isAdmin ? (
                               <>
                                 <ShieldOff className="w-4 h-4 mr-2" />
-                                Remove Admin
+                                Fjern admin
                               </>
                             ) : (
                               <>
                                 <Shield className="w-4 h-4 mr-2" />
-                                Make Admin
+                                Gør til admin
                               </>
                             )}
                           </Button>
@@ -426,12 +426,12 @@ export const UserManagement = () => {
                             {isKitchen ? (
                               <>
                                 <ShieldOff className="w-4 h-4 mr-2" />
-                                Remove Kitchen
+                                Fjern køkken
                               </>
                             ) : (
                               <>
                                 <UtensilsCrossed className="w-4 h-4 mr-2" />
-                                Make Kitchen
+                                Gør til køkken
                               </>
                             )}
                           </Button>
@@ -442,7 +442,7 @@ export const UserManagement = () => {
                             size="sm"
                           >
                             <KeyRound className="w-4 h-4 mr-2" />
-                            Reset Password
+                            Nulstil adgangskode
                           </Button>
                           <Button
                             onClick={() => openDeleteDialog(user)}
@@ -451,7 +451,7 @@ export const UserManagement = () => {
                             size="sm"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Delete User
+                            Slet bruger
                           </Button>
                         </>
                       )}
@@ -467,20 +467,20 @@ export const UserManagement = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogTitle>Slet bruger</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{userToDelete?.email}</strong>? 
-              This action cannot be undone. All user data, signups, and associated records will be permanently deleted.
+              Er du sikker på, at du vil slette <strong>{userToDelete?.email}</strong>? 
+              Denne handling kan ikke fortrydes. Alle brugerdata, tilmeldinger og tilknyttede poster vil blive permanent slettet.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isLoading}>Annuller</AlertDialogCancel>
             <AlertDialogAction 
               onClick={deleteUser} 
               disabled={isLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoading ? "Deleting..." : "Delete User"}
+              {isLoading ? "Sletter..." : "Slet bruger"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

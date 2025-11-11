@@ -42,13 +42,13 @@ const Index = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    toast.success("Signed out successfully");
+    toast.success("Logget ud");
   };
 
   if (isLoading || isRoleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-muted-foreground">Indlæser...</div>
       </div>
     );
   }
@@ -71,7 +71,7 @@ const Index = () => {
               </div>
               <div className="text-left hidden sm:block">
                 <h1 className="text-xl font-bold">Plusfrokost</h1>
-                <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
+                <p className="text-sm text-muted-foreground">De næste 3 ugers plan</p>
               </div>
             </button>
 
@@ -84,7 +84,7 @@ const Index = () => {
                 className="md:w-auto md:px-4"
               >
                 <Calendar className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">My Schedule</span>
+                <span className="hidden md:inline ml-2">Min plan</span>
               </Button>
 
               {canAccessKitchen && (
@@ -95,7 +95,7 @@ const Index = () => {
                   className="md:w-auto md:px-4"
                 >
                   <ChefHat className="w-4 h-4" />
-                  <span className="hidden md:inline ml-2">Kitchen</span>
+                  <span className="hidden md:inline ml-2">Køkken</span>
                 </Button>
               )}
 

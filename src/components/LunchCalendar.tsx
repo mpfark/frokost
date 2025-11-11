@@ -70,7 +70,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       .lte("lunch_date", format(addDays(startDate, 20), "yyyy-MM-dd"));
 
     if (error) {
-      toast.error("Failed to load signups");
+      toast.error("Kunne ikke indlæse tilmeldinger");
       return;
     }
 
@@ -90,7 +90,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       .lte("date", format(addDays(startDate, 20), "yyyy-MM-dd"));
 
     if (error) {
-      toast.error("Failed to load closed dates");
+      toast.error("Kunne ikke indlæse lukkede dage");
       return;
     }
 
@@ -107,7 +107,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       .in("signup_id", signupIds);
 
     if (error) {
-      toast.error("Failed to load guests");
+      toast.error("Kunne ikke indlæse gæster");
       return;
     }
 
@@ -207,7 +207,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
         if (error) throw error;
         await fetchSignups();
-        toast.success("Cancelled lunch signup");
+        toast.success("Frokosttilmelding annulleret");
       } else {
         // Sign up with 0 guests initially
         const dateStr = format(date, "yyyy-MM-dd");
@@ -221,7 +221,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
         if (error) throw error;
         await fetchSignups();
-        toast.success("Signed up for lunch!");
+        toast.success("Tilmeldt til frokost!");
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -262,7 +262,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       if (updateError) throw updateError;
 
       await fetchSignups();
-      toast.success("Guest added");
+      toast.success("Gæst tilføjet");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -298,7 +298,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       if (updateError) throw updateError;
 
       await fetchSignups();
-      toast.success("Guest removed");
+      toast.success("Gæst fjernet");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -348,7 +348,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
             <div className="flex flex-col md:flex-row gap-4">
               {/* Week Number */}
               <div className="flex-shrink-0 flex flex-row md:flex-col items-center justify-center bg-muted rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Week</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Uge</div>
                 <div className="text-2xl md:text-4xl font-bold text-foreground">{weekNumber}</div>
               </div>
 
@@ -379,9 +379,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                             {format(date, "MMM d")}
                           </div>
                           {isClosed && (
-                            <div className="text-xs text-destructive font-medium mt-1">
-                              Closed
-                            </div>
+                          <div className="text-xs text-destructive font-medium mt-1">
+                            Lukket
+                          </div>
                           )}
                         </div>
 
@@ -394,7 +394,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                             </div>
                             {totalGuests > 0 && (
                               <div className="text-xs text-muted-foreground mt-0.5">
-                                {totalGuests} guest{totalGuests > 1 ? 's' : ''}
+                                {totalGuests} gæst{totalGuests > 1 ? 'er' : ''}
                               </div>
                             )}
                           </div>
@@ -410,9 +410,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                           variant={signedUp ? "default" : "outline"}
                           size="sm"
                           className="flex-1 h-9 text-xs"
-                          title={isClosed ? closedReason || "Office closed" : ""}
+                          title={isClosed ? closedReason || "Kontoret lukket" : ""}
                         >
-                          {signedUp ? "Signed Up" : isPast || isClosed ? "Closed" : "Sign Up"}
+                          {signedUp ? "Tilmeldt" : isPast || isClosed ? "Lukket" : "Tilmeld"}
                         </Button>
 
                         {/* Guest Management Dialog - Only show when signed up */}
@@ -432,9 +432,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                             </DialogTrigger>
                             <DialogContent className="max-w-md">
                               <DialogHeader>
-                                <DialogTitle>Manage Guests for {format(date, "MMM d")}</DialogTitle>
+                                <DialogTitle>Administrer gæster til {format(date, "d. MMM")}</DialogTitle>
                                 <DialogDescription>
-                                  Add guests and specify their dietary restrictions
+                                  Tilføj gæster og angiv deres kostbegrænsninger
                                 </DialogDescription>
                               </DialogHeader>
 
@@ -442,7 +442,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                 {getGuestsForSignup(userSignup.id).map((guest, index) => (
                                   <Card key={guest.id} className="p-4">
                                     <div className="flex justify-between items-start mb-3">
-                                      <h4 className="font-medium">Guest {index + 1}</h4>
+                                      <h4 className="font-medium">Gæst {index + 1}</h4>
                                       <Button
                                         variant="ghost"
                                         size="sm"
@@ -461,7 +461,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                             updateGuestRestrictions(guest.id, "is_gluten_free", checked as boolean)
                                           }
                                         />
-                                        <Label htmlFor={`gluten-${guest.id}`}>Gluten Free</Label>
+                                        <Label htmlFor={`gluten-${guest.id}`}>Glutenfri</Label>
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         <Checkbox
@@ -471,7 +471,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                             updateGuestRestrictions(guest.id, "is_lactose_free", checked as boolean)
                                           }
                                         />
-                                        <Label htmlFor={`lactose-${guest.id}`}>Lactose Free</Label>
+                                        <Label htmlFor={`lactose-${guest.id}`}>Laktosefri</Label>
                                       </div>
                                       <div className="flex items-center space-x-2">
                                         <Checkbox
@@ -481,7 +481,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                             updateGuestRestrictions(guest.id, "is_vegetarian", checked as boolean)
                                           }
                                         />
-                                        <Label htmlFor={`vegetarian-${guest.id}`}>Vegetarian</Label>
+                                        <Label htmlFor={`vegetarian-${guest.id}`}>Vegetar</Label>
                                       </div>
                                     </div>
                                   </Card>
@@ -494,7 +494,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                                   className="w-full"
                                 >
                                   <Plus className="w-4 h-4 mr-2" />
-                                  Add Guest
+                                  Tilføj gæst
                                 </Button>
                               </div>
                             </DialogContent>

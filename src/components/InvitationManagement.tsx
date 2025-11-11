@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Mail, Users, Copy, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { da } from "date-fns/locale";
 
 interface Invitation {
   id: string;
@@ -59,7 +60,7 @@ export const InvitationManagement = () => {
       setStats(stats);
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Fejl",
         description: error.message,
         variant: "destructive",
       });
@@ -82,8 +83,8 @@ export const InvitationManagement = () => {
       
       if (totalSent > 0) {
         toast({
-          title: "Success",
-          description: `${totalSent} invitation${totalSent > 1 ? "s" : ""} sent successfully${totalFailed > 0 ? ` (${totalFailed} failed)` : ""}`,
+          title: "Succes",
+          description: `${totalSent} invitation${totalSent > 1 ? "er" : ""} sendt${totalFailed > 0 ? ` (${totalFailed} fejlede)` : ""}`,
         });
       }
 
@@ -101,7 +102,7 @@ export const InvitationManagement = () => {
       fetchInvitations();
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Fejl",
         description: error.message,
         variant: "destructive",
       });
@@ -113,8 +114,8 @@ export const InvitationManagement = () => {
   const handleSendSingle = () => {
     if (!singleEmail.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter an email address",
+        title: "Fejl",
+        description: "Indtast venligst en e-mailadresse",
         variant: "destructive",
       });
       return;
@@ -123,8 +124,8 @@ export const InvitationManagement = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(singleEmail)) {
       toast({
-        title: "Error",
-        description: "Please enter a valid email address",
+        title: "Fejl",
+        description: "Indtast venligst en gyldig e-mailadresse",
         variant: "destructive",
       });
       return;
@@ -136,8 +137,8 @@ export const InvitationManagement = () => {
   const handleSendBatch = () => {
     if (!batchEmails.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter at least one email address",
+        title: "Fejl",
+        description: "Indtast venligst mindst én e-mailadresse",
         variant: "destructive",
       });
       return;
@@ -151,8 +152,8 @@ export const InvitationManagement = () => {
 
     if (emails.length === 0) {
       toast({
-        title: "Error",
-        description: "No valid email addresses found",
+        title: "Fejl",
+        description: "Ingen gyldige e-mailadresser fundet",
         variant: "destructive",
       });
       return;
@@ -164,8 +165,8 @@ export const InvitationManagement = () => {
     
     if (invalidEmails.length > 0) {
       toast({
-        title: "Error",
-        description: `Invalid email addresses: ${invalidEmails.join(", ")}`,
+        title: "Fejl",
+        description: `Ugyldige e-mailadresser: ${invalidEmails.join(", ")}`,
         variant: "destructive",
       });
       return;
@@ -178,19 +179,19 @@ export const InvitationManagement = () => {
     const link = `${window.location.origin}/?invite=${inviteCode}&email=${encodeURIComponent(email)}`;
     navigator.clipboard.writeText(link);
     toast({
-      title: "Copied",
-      description: "Invite link copied to clipboard",
+      title: "Kopieret",
+      description: "Invitationslink kopieret til udklipsholder",
     });
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
+        return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />Afventer</Badge>;
       case "accepted":
-        return <Badge className="gap-1 bg-green-500"><CheckCircle2 className="h-3 w-3" />Accepted</Badge>;
+        return <Badge className="gap-1 bg-green-500"><CheckCircle2 className="h-3 w-3" />Accepteret</Badge>;
       case "expired":
-        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Expired</Badge>;
+        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Udløbet</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -202,25 +203,25 @@ export const InvitationManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Invites</CardDescription>
+            <CardDescription>Samlede invitationer</CardDescription>
             <CardTitle className="text-3xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Pending</CardDescription>
+            <CardDescription>Afventer</CardDescription>
             <CardTitle className="text-3xl">{stats.pending}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Accepted</CardDescription>
+            <CardDescription>Accepteret</CardDescription>
             <CardTitle className="text-3xl">{stats.accepted}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Expired</CardDescription>
+            <CardDescription>Udløbet</CardDescription>
             <CardTitle className="text-3xl">{stats.expired}</CardTitle>
           </CardHeader>
         </Card>
@@ -229,66 +230,66 @@ export const InvitationManagement = () => {
       {/* Send Invitations */}
       <Card>
         <CardHeader>
-          <CardTitle>Send Invitations</CardTitle>
-          <CardDescription>Invite users to join the platform</CardDescription>
+          <CardTitle>Send invitationer</CardTitle>
+          <CardDescription>Inviter brugere til at deltage i platformen</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="single">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="single" className="gap-2">
                 <Mail className="h-4 w-4" />
-                Single Invite
+                Enkelt invitation
               </TabsTrigger>
               <TabsTrigger value="batch" className="gap-2">
                 <Users className="h-4 w-4" />
-                Batch Invite
+                Masseinvitation
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="single" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="single-email">Email Address</Label>
+                <Label htmlFor="single-email">E-mailadresse</Label>
                 <Input
                   id="single-email"
                   type="email"
-                  placeholder="user@company.com"
+                  placeholder="bruger@firma.dk"
                   value={singleEmail}
                   onChange={(e) => setSingleEmail(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
               <Button onClick={handleSendSingle} disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send Invitation"}
+                {isLoading ? "Sender..." : "Send invitation"}
               </Button>
             </TabsContent>
 
             <TabsContent value="batch" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="batch-emails">Email Addresses</Label>
+                <Label htmlFor="batch-emails">E-mailadresser</Label>
                 <Textarea
                   id="batch-emails"
-                  placeholder="Enter email addresses (one per line or comma-separated)&#10;user1@company.com&#10;user2@company.com"
+                  placeholder="Indtast e-mailadresser (én pr. linje eller kommasepareret)&#10;bruger1@firma.dk&#10;bruger2@firma.dk"
                   rows={6}
                   value={batchEmails}
                   onChange={(e) => setBatchEmails(e.target.value)}
                   disabled={isLoading}
                 />
                 <p className="text-sm text-muted-foreground">
-                  {batchEmails.split(/[\n,]/).filter(e => e.trim().length > 0).length} email(s)
+                  {batchEmails.split(/[\n,]/).filter(e => e.trim().length > 0).length} e-mail(s)
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="batch-description">Description (optional)</Label>
+                <Label htmlFor="batch-description">Beskrivelse (valgfri)</Label>
                 <Input
                   id="batch-description"
-                  placeholder="e.g., Marketing team invites"
+                  placeholder="f.eks. Marketing team invitationer"
                   value={batchDescription}
                   onChange={(e) => setBatchDescription(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
               <Button onClick={handleSendBatch} disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send Batch Invitations"}
+                {isLoading ? "Sender..." : "Send masseinvitationer"}
               </Button>
             </TabsContent>
           </Tabs>
@@ -298,14 +299,14 @@ export const InvitationManagement = () => {
       {/* Invitations List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Invitations</CardTitle>
-          <CardDescription>Manage and track sent invitations</CardDescription>
+          <CardTitle>Alle invitationer</CardTitle>
+          <CardDescription>Administrer og spor sendte invitationer</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {invitations.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No invitations sent yet
+                Ingen invitationer sendt endnu
               </p>
             ) : (
               invitations.map((invite) => (
@@ -316,12 +317,12 @@ export const InvitationManagement = () => {
                   <div className="space-y-1">
                     <p className="font-medium">{invite.email}</p>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Sent {formatDistanceToNow(new Date(invite.invited_at))} ago</span>
+                      <span>Sendt {formatDistanceToNow(new Date(invite.invited_at), { addSuffix: true, locale: da })}</span>
                       {invite.status === "pending" && (
-                        <span>• Expires {formatDistanceToNow(new Date(invite.expires_at))}</span>
+                        <span>• Udløber {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true, locale: da })}</span>
                       )}
                       {invite.accepted_at && (
-                        <span>• Accepted {formatDistanceToNow(new Date(invite.accepted_at))} ago</span>
+                        <span>• Accepteret {formatDistanceToNow(new Date(invite.accepted_at), { addSuffix: true, locale: da })}</span>
                       )}
                     </div>
                   </div>

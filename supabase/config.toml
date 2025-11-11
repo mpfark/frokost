@@ -1,4 +1,13 @@
 project_id = "gupglbmayvwwxwkunotk"
 
+[functions.send-invitations]
+verify_jwt = true
+
+[functions.send-password-reset]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
 [functions.validate-teams-token]
 verify_jwt = false

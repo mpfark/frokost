@@ -9,7 +9,7 @@ import { PasswordChange } from "@/components/PasswordChange";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, UtensilsCrossed, User as UserIcon } from "lucide-react";
+import { LogOut, UtensilsCrossed, User as UserIcon, Calendar, ChefHat, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -61,7 +61,7 @@ const Index = () => {
     <div className="min-h-screen bg-background overflow-y-scroll">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <button 
               onClick={() => setActiveTab("calendar")} 
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -69,13 +69,56 @@ const Index = () => {
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                 <UtensilsCrossed className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div className="text-left">
+              <div className="text-left hidden sm:block">
                 <h1 className="text-xl font-bold">Office Lunch</h1>
                 <p className="text-sm text-muted-foreground">Next 3 weeks schedule</p>
               </div>
             </button>
+
+            {/* Navigation */}
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant={activeTab === "calendar" ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setActiveTab("calendar")}
+                className="md:w-auto md:px-4"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">My Schedule</span>
+              </Button>
+
+              {canAccessKitchen && (
+                <Button
+                  variant={activeTab === "kitchen" ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => setActiveTab("kitchen")}
+                  className="md:w-auto md:px-4"
+                >
+                  <ChefHat className="w-4 h-4" />
+                  <span className="hidden md:inline ml-2">Kitchen</span>
+                </Button>
+              )}
+
+              {isAdmin && (
+                <Button
+                  variant={activeTab === "admin" ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => setActiveTab("admin")}
+                  className="md:w-auto md:px-4"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden md:inline ml-2">Admin</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Profile & Logout */}
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setActiveTab("profile")}>
+              <Button 
+                variant={activeTab === "profile" ? "default" : "ghost"}
+                size="icon" 
+                onClick={() => setActiveTab("profile")}
+              >
                 <UserIcon className="w-4 h-4" />
               </Button>
               <Button onClick={handleSignOut} variant="outline" size="icon">
@@ -89,11 +132,6 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {(isAdmin || canAccessKitchen) ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`grid w-full max-w-4xl mx-auto mb-8 h-auto ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <TabsTrigger value="calendar" className="text-xs sm:text-sm">My Schedule</TabsTrigger>
-              {canAccessKitchen && <TabsTrigger value="kitchen" className="text-xs sm:text-sm">Kitchen View</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="admin" className="text-xs sm:text-sm">Admin</TabsTrigger>}
-            </TabsList>
             <TabsContent value="calendar">
               <div className="max-w-7xl mx-auto">
                 <LunchCalendar userId={user.id} />

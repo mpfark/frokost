@@ -72,6 +72,42 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Create Supabase admin client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Check rate limit: max 10 password resets per hour per admin
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count: recentRequests } = await supabaseAdmin
+      .from("rate_limits")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("action", "password_reset")
+      .gte("timestamp", oneHourAgo);
+
+    if (recentRequests && recentRequests >= 10) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Maximum 10 password resets per hour." }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Record this request for rate limiting
+    await supabaseAdmin
+      .from("rate_limits")
+      .insert({ user_id: user.id, action: "password_reset" });
+
     // Parse request body
     const { email }: PasswordResetRequest = await req.json();
 
@@ -86,18 +122,6 @@ const handler = async (req: Request): Promise<Response> => {
         }
       );
     }
-
-    // Create Supabase admin client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
 
     // Get the current site URL for the redirect to password reset page
     const redirectUrl = `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovableproject.com') || ''}/reset-password`;

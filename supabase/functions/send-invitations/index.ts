@@ -26,7 +26,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseServiceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
@@ -35,23 +35,43 @@ serve(async (req: Request) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseServiceClient.auth.getUser(token);
 
     if (userError || !user) {
       throw new Error("Unauthorized");
     }
 
-    // Check if user is admin
-    const { data: roleData, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single();
+    // Check if user is admin using secure RPC function
+    const { data: isAdmin, error: roleError } = await supabaseServiceClient
+      .rpc("has_role", { _user_id: user.id, _role: "admin" });
 
-    if (roleError || !roleData) {
+    if (roleError || !isAdmin) {
       throw new Error("Admin access required");
     }
+
+    // Check rate limit: max 50 invitations per hour per admin
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count: recentRequests } = await supabaseServiceClient
+      .from("rate_limits")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("action", "send_invitations")
+      .gte("timestamp", oneHourAgo);
+
+    if (recentRequests && recentRequests >= 50) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Maximum 50 invitations per hour." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+        }
+      );
+    }
+
+    // Record this request for rate limiting
+    await supabaseServiceClient
+      .from("rate_limits")
+      .insert({ user_id: user.id, action: "send_invitations" });
 
     const { emails, batchDescription }: InviteRequest = await req.json();
 
@@ -62,7 +82,7 @@ serve(async (req: Request) => {
     }
 
     // Get admin profile for email
-    const { data: adminProfile } = await supabase
+    const { data: adminProfile } = await supabaseServiceClient
       .from("profiles")
       .select("full_name, email")
       .eq("id", user.id)
@@ -73,7 +93,7 @@ serve(async (req: Request) => {
     // Create batch if multiple invites
     let batchId = null;
     if (emails.length > 1) {
-      const { data: batch, error: batchError } = await supabase
+      const { data: batch, error: batchError } = await supabaseServiceClient
         .from("invitation_batches")
         .insert({
           created_by: user.id,
@@ -98,7 +118,7 @@ serve(async (req: Request) => {
       try {
         console.log("Request ID:", requestId, "Processing invitation");
         // Check if user already exists
-        const { data: existingProfile } = await supabase
+        const { data: existingProfile } = await supabaseServiceClient
           .from("profiles")
           .select("id")
           .eq("email", email.toLowerCase())
@@ -114,7 +134,7 @@ serve(async (req: Request) => {
         }
 
         // Check if active invitation exists
-        const { data: existingInvite } = await supabase
+        const { data: existingInvite } = await supabaseServiceClient
           .from("invitations")
           .select("id, status")
           .eq("email", email.toLowerCase())
@@ -136,7 +156,7 @@ serve(async (req: Request) => {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
         // Create invitation
-        const { error: inviteError } = await supabase
+        const { error: inviteError } = await supabaseServiceClient
           .from("invitations")
           .insert({
             email: email.toLowerCase(),

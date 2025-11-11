@@ -37,7 +37,7 @@ export const signUpSchema = z.object({
     .trim()
     .min(1, { message: "Full name is required" })
     .max(100, { message: "Full name must be less than 100 characters" })
-    .regex(/^[a-zA-Z\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
+    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
   inviteCode: z.string().optional(),
 });
 
@@ -64,7 +64,7 @@ export const createSignUpWithInviteSchema = (allowedDomain: string) => z.object(
     .trim()
     .min(1, { message: "Full name is required" })
     .max(100, { message: "Full name must be less than 100 characters" })
-    .regex(/^[a-zA-Z\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
+    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
   inviteCode: z.string().min(1, { message: "Invite code is required" }),
 });
 
@@ -86,7 +86,7 @@ export const profileSchema = z.object({
     .trim()
     .min(1, { message: "Full name is required" })
     .max(100, { message: "Full name must be less than 100 characters" })
-    .regex(/^[a-zA-Z\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
+    .regex(/^[a-zA-ZæøåÆØÅ\s'-]+$/, { message: "Full name can only contain letters, spaces, hyphens, and apostrophes" }),
   isGlutenFree: z.boolean(),
   isLactoseFree: z.boolean(),
   isVegetarian: z.boolean(),

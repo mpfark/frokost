@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth } from "date-fns";
+import { da } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -293,10 +294,10 @@ export const KitchenView = () => {
                     >
                       <div className="text-center mb-2">
                         <div className="text-xs text-muted-foreground font-medium">
-                          {format(date, "EEE")}
+                          {format(date, "EEEE", { locale: da })}
                         </div>
                         <div className="text-sm font-semibold">
-                          {format(date, "MMM d")}
+                          {format(date, "MMM d", { locale: da })}
                         </div>
                         {isClosed && (
                           <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1">
@@ -417,7 +418,7 @@ export const KitchenView = () => {
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>
-              {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
+              {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy", { locale: da })}
             </DrawerTitle>
             <DrawerDescription>
               {selectedDate && `${getTotalPeopleForDate(selectedDate)} personer i alt (${getSignupsForDate(selectedDate).length} tilmeldinger)`}

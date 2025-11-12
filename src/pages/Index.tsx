@@ -21,6 +21,24 @@ const Index = () => {
   const { isAdmin, isKitchen, isLoading: isRoleLoading } = useUserRole(user?.id);
   const canAccessKitchen = isAdmin || isKitchen;
 
+  // Defensive check: if user loses kitchen access while on kitchen tab, redirect to calendar
+  useEffect(() => {
+    if (!isRoleLoading && activeTab === "kitchen" && !canAccessKitchen) {
+      console.log("[Index] User lost kitchen access, switching to calendar");
+      setActiveTab("calendar");
+      toast.info("Du har ikke længere adgang til køkken-visningen");
+    }
+  }, [canAccessKitchen, activeTab, isRoleLoading]);
+
+  // Defensive check: if user loses admin access while on admin tab, redirect to calendar
+  useEffect(() => {
+    if (!isRoleLoading && activeTab === "admin" && !isAdmin) {
+      console.log("[Index] User lost admin access, switching to calendar");
+      setActiveTab("calendar");
+      toast.info("Du har ikke længere adgang til admin-panelet");
+    }
+  }, [isAdmin, activeTab, isRoleLoading]);
+
   useEffect(() => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -139,7 +157,7 @@ const Index = () => {
             </TabsContent>
             <TabsContent value="kitchen">
               <div className="max-w-7xl mx-auto">
-                {canAccessKitchen ? <KitchenView /> : null}
+                <KitchenView />
               </div>
             </TabsContent>
             <TabsContent value="admin">

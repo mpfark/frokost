@@ -374,7 +374,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         {/* Left: Day and Date */}
                         <div>
                           <div className="text-xs text-muted-foreground font-medium">
-                            {format(date, "EEE", { locale: da })}
+                            {format(date, "EEEE", { locale: da })}
                           </div>
                           <div className="text-sm font-semibold">
                             {format(date, "MMM d", { locale: da })}

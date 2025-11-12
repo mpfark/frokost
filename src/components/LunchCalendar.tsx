@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek } from "date-fns";
+import { da } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -373,10 +374,10 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         {/* Left: Day and Date */}
                         <div>
                           <div className="text-xs text-muted-foreground font-medium">
-                            {format(date, "EEE")}
+                            {format(date, "EEE", { locale: da })}
                           </div>
                           <div className="text-sm font-semibold">
-                            {format(date, "MMM d")}
+                            {format(date, "MMM d", { locale: da })}
                           </div>
                           {isClosed && (
                           <div className="text-xs text-destructive font-medium mt-1">

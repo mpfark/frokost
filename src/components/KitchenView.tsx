@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Drawer,
@@ -158,6 +158,38 @@ export const KitchenView = () => {
     setReasonDialogDate(null);
     setReasonInput("");
     fetchClosedDates();
+  };
+
+  const removeSignup = async (signupId: string) => {
+    const { error } = await supabase
+      .from("lunch_signups")
+      .delete()
+      .eq("id", signupId);
+
+    if (error) {
+      console.error("Error deleting signup:", error);
+      toast.error("Kunne ikke fjerne tilmelding");
+      return;
+    }
+
+    toast.success("Tilmelding fjernet");
+    fetchSignups();
+  };
+
+  const removeGuest = async (guestId: string) => {
+    const { error } = await supabase
+      .from("guests")
+      .delete()
+      .eq("id", guestId);
+
+    if (error) {
+      console.error("Error deleting guest:", error);
+      toast.error("Kunne ikke fjerne gæst");
+      return;
+    }
+
+    toast.success("Gæst fjernet");
+    fetchGuests();
   };
 
   useEffect(() => {
@@ -434,15 +466,16 @@ export const KitchenView = () => {
               
               return (
                 <div key={signup.id} className="py-3 border-b last:border-0">
-                  <div className="flex-1">
-                    <div className="font-medium flex items-center gap-2">
-                      {signup.profiles?.full_name || signup.profiles?.email || 'Unknown User'}
-                      {signup.guest_count > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{signup.guest_count} gæst{signup.guest_count > 1 ? 'er' : ''}
-                        </Badge>
-                      )}
-                    </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="font-medium flex items-center gap-2">
+                        {signup.profiles?.full_name || signup.profiles?.email || 'Unknown User'}
+                        {signup.guest_count > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{signup.guest_count} gæst{signup.guest_count > 1 ? 'er' : ''}
+                          </Badge>
+                        )}
+                      </div>
                     {dietaryInfo.length > 0 && (
                       <div className="flex gap-2 mt-1">
                         {signup.profiles?.is_gluten_free && (
@@ -466,45 +499,76 @@ export const KitchenView = () => {
                       </div>
                     )}
                     
-                    {/* Guest dietary restrictions */}
-                    {signupGuests.length > 0 && (
-                      <div className="ml-4 mt-2 space-y-1">
-                        {signupGuests.map((guest, index) => {
-                          const guestDietary = [];
-                          if (guest.is_gluten_free) guestDietary.push("GF");
-                          if (guest.is_lactose_free) guestDietary.push("LF");
-                          if (guest.is_vegetarian) guestDietary.push("V");
-                          
-                          if (guestDietary.length === 0) return null;
-                          
-                          return (
-                            <div key={guest.id} className="flex gap-2 items-center">
-                              <span className="text-xs text-muted-foreground">Guest {index + 1}:</span>
-                              <div className="flex gap-2">
-                                {guest.is_gluten_free && (
-                                  <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                    <Wheat className="w-3 h-3" />
-                                    GF
-                                  </Badge>
-                                )}
-                                {guest.is_lactose_free && (
-                                  <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                    <Milk className="w-3 h-3" />
-                                    LF
-                                  </Badge>
-                                )}
-                                {guest.is_vegetarian && (
-                                  <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                    <Leaf className="w-3 h-3" />
-                                    V
-                                  </Badge>
-                                )}
+                      {/* Guest dietary restrictions */}
+                      {signupGuests.length > 0 && (
+                        <div className="ml-4 mt-2 space-y-1">
+                          {signupGuests.map((guest, index) => {
+                            const guestDietary = [];
+                            if (guest.is_gluten_free) guestDietary.push("GF");
+                            if (guest.is_lactose_free) guestDietary.push("LF");
+                            if (guest.is_vegetarian) guestDietary.push("V");
+                            
+                            if (guestDietary.length === 0) return (
+                              <div key={guest.id} className="flex gap-2 items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Gæst {index + 1}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => removeGuest(guest.id)}
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                            
+                            return (
+                              <div key={guest.id} className="flex gap-2 items-center justify-between">
+                                <div className="flex gap-2 items-center">
+                                  <span className="text-xs text-muted-foreground">Gæst {index + 1}:</span>
+                                  <div className="flex gap-2">
+                                    {guest.is_gluten_free && (
+                                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                        <Wheat className="w-3 h-3" />
+                                        GF
+                                      </Badge>
+                                    )}
+                                    {guest.is_lactose_free && (
+                                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                        <Milk className="w-3 h-3" />
+                                        LF
+                                      </Badge>
+                                    )}
+                                    {guest.is_vegetarian && (
+                                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                        <Leaf className="w-3 h-3" />
+                                        V
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => removeGuest(guest.id)}
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeSignup(signup.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               );

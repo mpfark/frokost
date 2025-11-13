@@ -21,7 +21,19 @@ const Index = () => {
   const { isAdmin, isKitchen, isLoading: isRoleLoading } = useUserRole(user?.id);
   const canAccessKitchen = isAdmin || isKitchen;
 
+  // Log access state for debugging
+  useEffect(() => {
+    console.log("[Index] Access state:", { 
+      isAdmin, 
+      isKitchen, 
+      canAccessKitchen, 
+      activeTab, 
+      isRoleLoading 
+    });
+  }, [isAdmin, isKitchen, canAccessKitchen, activeTab, isRoleLoading]);
+
   // Defensive check: if user loses kitchen access while on kitchen tab, redirect to calendar
+  // Only redirect if roles are definitely loaded and access is lost
   useEffect(() => {
     if (!isRoleLoading && activeTab === "kitchen" && !canAccessKitchen) {
       console.log("[Index] User lost kitchen access, switching to calendar");

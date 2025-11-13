@@ -31,31 +31,38 @@ export const useUserRole = (userId: string | undefined) => {
           console.log("[useUserRole] Using previous roles due to error:", previousRolesRef.current);
           setIsAdmin(previousRolesRef.current.admin);
           setIsKitchen(previousRolesRef.current.kitchen);
+        } else {
+          // No previous roles, set to false
+          setIsAdmin(false);
+          setIsKitchen(false);
         }
         setIsLoading(false);
         return;
       }
 
-      if (data) {
-        const roles = data.map(r => r.role);
-        const newIsAdmin = roles.includes("admin");
-        const newIsKitchen = roles.includes("kitchen");
-        
-        console.log("[useUserRole] Roles fetched successfully:", { admin: newIsAdmin, kitchen: newIsKitchen });
-        
-        // Check if roles changed
-        const rolesChanged = previousRolesRef.current && 
-          (previousRolesRef.current.admin !== newIsAdmin || previousRolesRef.current.kitchen !== newIsKitchen);
-        
-        if (rolesChanged) {
-          console.log("[useUserRole] Roles changed from", previousRolesRef.current, "to", { admin: newIsAdmin, kitchen: newIsKitchen });
-          toast.info("Dine rettigheder er blevet opdateret");
-        }
-        
-        setIsAdmin(newIsAdmin);
-        setIsKitchen(newIsKitchen);
-        previousRolesRef.current = { admin: newIsAdmin, kitchen: newIsKitchen };
+      // Always update roles, even if data is empty array
+      const roles = data?.map(r => r.role) || [];
+      const newIsAdmin = roles.includes("admin");
+      const newIsKitchen = roles.includes("kitchen");
+      
+      console.log("[useUserRole] Roles fetched successfully:", { 
+        admin: newIsAdmin, 
+        kitchen: newIsKitchen,
+        rawData: data 
+      });
+      
+      // Check if roles changed
+      const rolesChanged = previousRolesRef.current && 
+        (previousRolesRef.current.admin !== newIsAdmin || previousRolesRef.current.kitchen !== newIsKitchen);
+      
+      if (rolesChanged) {
+        console.log("[useUserRole] Roles changed from", previousRolesRef.current, "to", { admin: newIsAdmin, kitchen: newIsKitchen });
+        toast.info("Dine rettigheder er blevet opdateret");
       }
+      
+      setIsAdmin(newIsAdmin);
+      setIsKitchen(newIsKitchen);
+      previousRolesRef.current = { admin: newIsAdmin, kitchen: newIsKitchen };
       setIsLoading(false);
     };
 

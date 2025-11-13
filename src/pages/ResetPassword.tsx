@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, UtensilsCrossed } from "lucide-react";
 import { z } from "zod";
+import { strongPasswordSchema } from "@/lib/validations";
 
 const passwordResetSchema = z.object({
-  password: z.string().min(6, "Adgangskoden skal være mindst 6 tegn"),
+  password: strongPasswordSchema,
   confirmPassword: z.string().min(1, "Bekræft venligst din adgangskode"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Adgangskoderne stemmer ikke overens",

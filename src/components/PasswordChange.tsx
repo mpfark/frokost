@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { strongPasswordSchema } from "@/lib/validations";
 
 const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1, "Nuværende adgangskode er påkrævet"),
-  newPassword: z.string().min(6, "Adgangskoden skal være mindst 6 tegn"),
+  newPassword: strongPasswordSchema,
   confirmPassword: z.string().min(1, "Bekræft venligst din adgangskode"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Adgangskoderne stemmer ikke overens",

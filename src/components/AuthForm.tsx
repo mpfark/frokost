@@ -69,29 +69,20 @@ export const AuthForm = () => {
 
     setInviteChecking(true);
     try {
-      const { data, error } = await supabase
-        .from("invitations")
-        .select("*")
-        .eq("invite_code", code)
-        .eq("status", "pending")
-        .single();
+      // Use secure edge function instead of direct database query
+      const { data, error } = await supabase.functions.invoke('validate-invitation', {
+        body: { inviteCode: code, email: emailToCheck },
+      });
 
-      if (error || !data) {
-        toast.error("Denne invitationskode er ugyldig eller udløbet");
+      if (error) {
+        console.error("Error calling validate-invitation:", error);
+        toast.error("Der opstod en fejl under validering af invitationen");
         setInviteValid(false);
         return;
       }
 
-      // Check if expired
-      if (new Date(data.expires_at) < new Date()) {
-        toast.error("Denne invitation er udløbet");
-        setInviteValid(false);
-        return;
-      }
-
-      // Check if email matches
-      if (emailToCheck && data.email.toLowerCase() !== emailToCheck.toLowerCase()) {
-        toast.error("Denne invitation blev sendt til en anden e-mailadresse");
+      if (!data.valid) {
+        toast.error(data.error || "Denne invitationskode er ugyldig eller udløbet");
         setInviteValid(false);
         return;
       }
@@ -194,28 +185,13 @@ export const AuthForm = () => {
           return;
         }
 
-        // Validate invite one more time
-        const { data: inviteData, error: inviteError } = await supabase
-          .from("invitations")
-          .select("*")
-          .eq("invite_code", inviteCode)
-          .eq("status", "pending")
-          .single();
+        // Validate invite one more time before signup using secure edge function
+        const { data: validateData, error: validateError } = await supabase.functions.invoke('validate-invitation', {
+          body: { inviteCode, email },
+        });
 
-        if (inviteError || !inviteData) {
-          toast.error("Denne invitationskode er ugyldig eller er allerede blevet brugt");
-          setIsLoading(false);
-          return;
-        }
-
-        if (inviteData.email.toLowerCase() !== email.toLowerCase()) {
-          toast.error("Denne invitation blev sendt til en anden e-mailadresse");
-          setIsLoading(false);
-          return;
-        }
-
-        if (new Date(inviteData.expires_at) < new Date()) {
-          toast.error("Denne invitation er udløbet");
+        if (validateError || !validateData.valid) {
+          toast.error(validateData?.error || "Denne invitationskode er ugyldig eller er allerede blevet brugt");
           setIsLoading(false);
           return;
         }
@@ -234,16 +210,27 @@ export const AuthForm = () => {
 
         if (error) throw error;
 
-        // Mark invitation as accepted
+        // Mark invitation as accepted - the database trigger will handle this
+        // or we can still mark it manually for explicit control
         if (authData.user) {
-          await supabase
+          const { data: inviteData } = await supabase
             .from("invitations")
-            .update({
-              status: "accepted",
-              accepted_at: new Date().toISOString(),
-              used_by: authData.user.id,
-            })
-            .eq("id", inviteData.id);
+            .select("id")
+            .eq("email", email.toLowerCase())
+            .eq("invite_code", inviteCode)
+            .eq("status", "pending")
+            .single();
+
+          if (inviteData) {
+            await supabase
+              .from("invitations")
+              .update({
+                status: "accepted",
+                accepted_at: new Date().toISOString(),
+                used_by: authData.user.id,
+              })
+              .eq("id", inviteData.id);
+          }
         }
 
         toast.success("Konto oprettet! Du kan nu logge ind.");

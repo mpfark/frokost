@@ -43,7 +43,7 @@ interface LunchSignup {
     is_gluten_free: boolean;
     is_lactose_free: boolean;
     is_vegetarian: boolean;
-  };
+  } | null;
 }
 
 interface ClosedDate {
@@ -254,11 +254,11 @@ export const KitchenView = () => {
     const dayGuests = getGuestsForSignups(signupIds);
 
     return {
-      glutenFree: daySignups.filter(s => s.profiles.is_gluten_free).length + 
+      glutenFree: daySignups.filter(s => s.profiles && s.profiles.is_gluten_free).length + 
                   dayGuests.filter(g => g.is_gluten_free).length,
-      lactoseFree: daySignups.filter(s => s.profiles.is_lactose_free).length + 
+      lactoseFree: daySignups.filter(s => s.profiles && s.profiles.is_lactose_free).length + 
                    dayGuests.filter(g => g.is_lactose_free).length,
-      vegetarian: daySignups.filter(s => s.profiles.is_vegetarian).length + 
+      vegetarian: daySignups.filter(s => s.profiles && s.profiles.is_vegetarian).length + 
                   dayGuests.filter(g => g.is_vegetarian).length,
     };
   };
@@ -428,15 +428,15 @@ export const KitchenView = () => {
             {selectedDate && getSignupsForDate(selectedDate).map((signup) => {
               const signupGuests = guests.filter(g => g.signup_id === signup.id);
               const dietaryInfo = [];
-              if (signup.profiles.is_gluten_free) dietaryInfo.push("GF");
-              if (signup.profiles.is_lactose_free) dietaryInfo.push("LF");
-              if (signup.profiles.is_vegetarian) dietaryInfo.push("V");
+              if (signup.profiles?.is_gluten_free) dietaryInfo.push("GF");
+              if (signup.profiles?.is_lactose_free) dietaryInfo.push("LF");
+              if (signup.profiles?.is_vegetarian) dietaryInfo.push("V");
               
               return (
                 <div key={signup.id} className="py-3 border-b last:border-0">
                   <div className="flex-1">
                     <div className="font-medium flex items-center gap-2">
-                      {signup.profiles.full_name || signup.profiles.email}
+                      {signup.profiles?.full_name || signup.profiles?.email || 'Unknown User'}
                       {signup.guest_count > 0 && (
                         <Badge variant="outline" className="text-xs">
                           +{signup.guest_count} gæst{signup.guest_count > 1 ? 'er' : ''}
@@ -445,19 +445,19 @@ export const KitchenView = () => {
                     </div>
                     {dietaryInfo.length > 0 && (
                       <div className="flex gap-2 mt-1">
-                        {signup.profiles.is_gluten_free && (
+                        {signup.profiles?.is_gluten_free && (
                           <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Wheat className="w-3 h-3" />
                             Glutenfri
                           </Badge>
                         )}
-                        {signup.profiles.is_lactose_free && (
+                        {signup.profiles?.is_lactose_free && (
                           <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Milk className="w-3 h-3" />
                             Laktosefri
                           </Badge>
                         )}
-                        {signup.profiles.is_vegetarian && (
+                        {signup.profiles?.is_vegetarian && (
                           <Badge variant="secondary" className="text-xs flex items-center gap-1">
                             <Leaf className="w-3 h-3" />
                             Vegetar

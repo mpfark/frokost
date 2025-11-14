@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Users, Copy, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Mail, Users, Copy, Clock, CheckCircle2, XCircle, Trash, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { da } from "date-fns/locale";
 
@@ -34,6 +35,10 @@ export const InvitationManagement = () => {
     accepted: 0,
     expired: 0,
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resendDialogOpen, setResendDialogOpen] = useState(false);
+  const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInvitations();
@@ -173,6 +178,84 @@ export const InvitationManagement = () => {
     }
 
     sendInvitation(emails);
+  };
+
+  const deleteInvitation = async () => {
+    if (!selectedInvitation) return;
+    
+    setActionLoading(selectedInvitation.id);
+    try {
+      const { error } = await supabase
+        .from("invitations")
+        .delete()
+        .eq("id", selectedInvitation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Slettet",
+        description: `Invitation til ${selectedInvitation.email} er slettet`,
+      });
+
+      fetchInvitations();
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+      setDeleteDialogOpen(false);
+      setSelectedInvitation(null);
+    }
+  };
+
+  const resendInvitation = async () => {
+    if (!selectedInvitation) return;
+    
+    setActionLoading(selectedInvitation.id);
+    try {
+      // First delete the old invitation
+      const { error: deleteError } = await supabase
+        .from("invitations")
+        .delete()
+        .eq("id", selectedInvitation.id);
+
+      if (deleteError) throw deleteError;
+
+      // Then send a new invitation
+      const { data, error: sendError } = await supabase.functions.invoke("send-invitations", {
+        body: { 
+          emails: [selectedInvitation.email],
+        },
+      });
+
+      if (sendError) throw sendError;
+
+      const { totalSent, totalFailed } = data;
+      
+      if (totalSent > 0) {
+        toast({
+          title: "Succes",
+          description: `Ny invitation sendt til ${selectedInvitation.email}`,
+        });
+      } else if (totalFailed > 0) {
+        throw new Error("Kunne ikke sende invitation");
+      }
+
+      fetchInvitations();
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+      setResendDialogOpen(false);
+      setSelectedInvitation(null);
+    }
   };
 
   const copyInviteLink = (inviteCode: string, email: string) => {
@@ -333,10 +416,35 @@ export const InvitationManagement = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => copyInviteLink(invite.invite_code, invite.email)}
+                        disabled={actionLoading === invite.id}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
                     )}
+                    {(invite.status === "accepted" || invite.status === "expired") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedInvitation(invite);
+                          setResendDialogOpen(true);
+                        }}
+                        disabled={actionLoading === invite.id}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        setSelectedInvitation(invite);
+                        setDeleteDialogOpen(true);
+                      }}
+                      disabled={actionLoading === invite.id}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))
@@ -344,6 +452,44 @@ export const InvitationManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Slet invitation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Er du sikker på, at du vil slette invitationen til <strong>{selectedInvitation?.email}</strong>? 
+              Denne handling kan ikke fortrydes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuller</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteInvitation} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Slet invitation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resend Confirmation Dialog */}
+      <AlertDialog open={resendDialogOpen} onOpenChange={setResendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gensend invitation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dette vil slette den gamle invitation og sende en ny invitation til <strong>{selectedInvitation?.email}</strong>.
+              Brugeren vil modtage en ny e-mail med et nyt invitationslink.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuller</AlertDialogCancel>
+            <AlertDialogAction onClick={resendInvitation}>
+              Gensend invitation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

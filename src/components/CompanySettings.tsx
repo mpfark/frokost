@@ -9,6 +9,7 @@ import { Building2 } from "lucide-react";
 
 export const CompanySettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
+  const [weeksToDisplay, setWeeksToDisplay] = useState(3);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -20,7 +21,7 @@ export const CompanySettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain")
+        .select("allowed_domain, weeks_to_display")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -29,6 +30,7 @@ export const CompanySettings = () => {
 
       if (data) {
         setAllowedDomain(data.allowed_domain);
+        setWeeksToDisplay(data.weeks_to_display || 3);
       }
     } catch (error: any) {
       toast({
@@ -62,6 +64,16 @@ export const CompanySettings = () => {
       return;
     }
 
+    // Validate weeks range
+    if (weeksToDisplay < 1 || weeksToDisplay > 8) {
+      toast({
+        title: "Fejl",
+        description: "Antal uger skal være mellem 1 og 8",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Check if settings exist
@@ -74,7 +86,10 @@ export const CompanySettings = () => {
         // Update existing
         const { error } = await supabase
           .from("company_settings")
-          .update({ allowed_domain: allowedDomain.toLowerCase() })
+          .update({ 
+            allowed_domain: allowedDomain.toLowerCase(),
+            weeks_to_display: weeksToDisplay 
+          })
           .eq("id", existing.id);
 
         if (error) throw error;
@@ -82,7 +97,10 @@ export const CompanySettings = () => {
         // Insert new
         const { error } = await supabase
           .from("company_settings")
-          .insert({ allowed_domain: allowedDomain.toLowerCase() });
+          .insert({ 
+            allowed_domain: allowedDomain.toLowerCase(),
+            weeks_to_display: weeksToDisplay
+          });
 
         if (error) throw error;
       }
@@ -134,6 +152,24 @@ export const CompanySettings = () => {
             Kun brugere med e-mailadresser fra dette domæne vil kunne tilmelde sig
           </p>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="weeks">Antal uger i kalender</Label>
+          <Input
+            id="weeks"
+            type="number"
+            min="1"
+            max="8"
+            placeholder="3"
+            value={weeksToDisplay}
+            onChange={(e) => setWeeksToDisplay(parseInt(e.target.value) || 3)}
+            disabled={isLoading}
+          />
+          <p className="text-sm text-muted-foreground">
+            Antallet af uger der vises i brugerens frokostkalender (1-8)
+          </p>
+        </div>
+
         <Button onClick={handleSave} disabled={isLoading}>
           {isLoading ? "Gemmer..." : "Gem indstillinger"}
         </Button>

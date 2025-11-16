@@ -41,18 +41,21 @@ export type Database = {
           created_at: string
           id: string
           updated_at: string
+          weeks_to_display: number
         }
         Insert: {
           allowed_domain: string
           created_at?: string
           id?: string
           updated_at?: string
+          weeks_to_display?: number
         }
         Update: {
           allowed_domain?: string
           created_at?: string
           id?: string
           updated_at?: string
+          weeks_to_display?: number
         }
         Relationships: []
       }

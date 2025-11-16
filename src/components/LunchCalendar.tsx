@@ -49,12 +49,13 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState<string | null>(null);
+  const [weeksToDisplay, setWeeksToDisplay] = useState(3);
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
 
-  // Create 3 weeks of data
-  const weeks = Array.from({ length: 3 }, (_, weekIndex) => {
+  // Create weeks of data based on company settings
+  const weeks = Array.from({ length: weeksToDisplay }, (_, weekIndex) => {
     const weekStart = addDays(startDate, weekIndex * 7);
     const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
     const days = Array.from({ length: 5 }, (_, dayIndex) => 
@@ -64,11 +65,12 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   });
 
   const fetchSignups = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
     const { data, error } = await supabase
       .from("lunch_signups")
       .select("*, profiles(full_name, email)")
       .gte("lunch_date", format(startDate, "yyyy-MM-dd"))
-      .lte("lunch_date", format(addDays(startDate, 20), "yyyy-MM-dd"));
+      .lte("lunch_date", format(endDate, "yyyy-MM-dd"));
 
     if (error) {
       toast.error("Kunne ikke indlæse tilmeldinger");
@@ -84,11 +86,12 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   };
 
   const fetchClosedDates = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
     const { data, error } = await supabase
       .from("closed_dates")
       .select("*")
       .gte("date", format(startDate, "yyyy-MM-dd"))
-      .lte("date", format(addDays(startDate, 20), "yyyy-MM-dd"));
+      .lte("date", format(endDate, "yyyy-MM-dd"));
 
     if (error) {
       toast.error("Kunne ikke indlæse lukkede dage");
@@ -115,10 +118,32 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     setGuests(data || []);
   };
 
+  const fetchCompanySettings = async () => {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("weeks_to_display")
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      console.error("Error fetching company settings:", error);
+      return;
+    }
+
+    if (data) {
+      setWeeksToDisplay(data.weeks_to_display || 3);
+    }
+  };
+
   useEffect(() => {
-    fetchSignups();
-    fetchClosedDates();
+    fetchCompanySettings();
   }, []);
+
+  useEffect(() => {
+    if (weeksToDisplay > 0) {
+      fetchSignups();
+      fetchClosedDates();
+    }
+  }, [weeksToDisplay]);
 
   useEffect(() => {
     if (signups.length > 0) {

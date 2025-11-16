@@ -60,12 +60,13 @@ export const KitchenView = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [reasonDialogDate, setReasonDialogDate] = useState<Date | null>(null);
   const [reasonInput, setReasonInput] = useState("");
+  const [weeksToDisplay, setWeeksToDisplay] = useState(3);
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
 
-  // Create 3 weeks of data
-  const weeks = Array.from({ length: 3 }, (_, weekIndex) => {
+  // Create weeks of data based on company settings
+  const weeks = Array.from({ length: weeksToDisplay }, (_, weekIndex) => {
     const weekStart = addDays(startDate, weekIndex * 7);
     const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
     const days = Array.from({ length: 5 }, (_, dayIndex) => 
@@ -75,11 +76,12 @@ export const KitchenView = () => {
   });
 
   const fetchSignups = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
     const { data, error } = await supabase
       .from("lunch_signups")
       .select("*, profiles(full_name, email, is_gluten_free, is_lactose_free, is_vegetarian)")
       .gte("lunch_date", format(startDate, "yyyy-MM-dd"))
-      .lte("lunch_date", format(addDays(startDate, 20), "yyyy-MM-dd"))
+      .lte("lunch_date", format(endDate, "yyyy-MM-dd"))
       .order("lunch_date", { ascending: true });
 
     if (error) {
@@ -116,6 +118,22 @@ export const KitchenView = () => {
     }
 
     setGuests(data || []);
+  };
+
+  const fetchCompanySettings = async () => {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("weeks_to_display")
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      console.error("Error fetching company settings:", error);
+      return;
+    }
+
+    if (data) {
+      setWeeksToDisplay(data.weeks_to_display || 3);
+    }
   };
 
   const toggleClosedDate = async (date: Date) => {
@@ -193,9 +211,15 @@ export const KitchenView = () => {
   };
 
   useEffect(() => {
-    fetchSignups();
-    fetchClosedDates();
+    fetchCompanySettings();
   }, []);
+
+  useEffect(() => {
+    if (weeksToDisplay > 0) {
+      fetchSignups();
+      fetchClosedDates();
+    }
+  }, [weeksToDisplay]);
 
   useEffect(() => {
     if (signups.length > 0) {

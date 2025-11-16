@@ -246,12 +246,20 @@ export const UserManagement = () => {
       });
 
       if (error) throw error;
+      
+      // Optimistically update the UI by removing the deleted user from state
+      setUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
+      
       toast.success(`Bruger ${userToDelete.email} slettet`);
       setDeleteDialogOpen(false);
       setUserToDelete(null);
+      
+      // Refetch to ensure data consistency
       await fetchUsers();
     } catch (error: any) {
       toast.error(error.message || "Kunne ikke slette bruger");
+      // On error, refetch to restore correct state
+      await fetchUsers();
     } finally {
       setIsLoading(false);
     }

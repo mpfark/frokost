@@ -101,7 +101,6 @@ const Index = () => {
               </div>
               <div className="text-left hidden sm:block">
                 <h1 className="text-xl font-bold">Plusfrokost</h1>
-                <p className="text-sm text-muted-foreground">De næste 3 ugers plan</p>
               </div>
             </button>
 

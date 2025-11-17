@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     const { data: { user: requestingUser }, error: authError } = await supabaseClient.auth.getUser(token)
 
     if (authError || !requestingUser) {
-      throw new Error('Unauthorized')
+      console.log('Delete user: Authentication failed')
+      throw new Error('Authorization failed')
     }
 
     // Check if requesting user is admin
@@ -40,26 +41,32 @@ Deno.serve(async (req) => {
       .single()
 
     if (!roles) {
-      throw new Error('Only admins can delete users')
+      console.log('Delete user: Non-admin user attempted deletion:', requestingUser.id)
+      throw new Error('Authorization failed')
     }
 
     const { userId } = await req.json()
 
     if (!userId) {
-      throw new Error('User ID is required')
+      console.log('Delete user: Missing userId in request')
+      throw new Error('Invalid request')
     }
 
     // Prevent deleting yourself
     if (userId === requestingUser.id) {
-      throw new Error('Cannot delete your own account')
+      console.log('Delete user: User attempted to delete own account:', userId)
+      throw new Error('Invalid operation')
     }
 
     // Delete the user using admin API
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId)
 
     if (deleteError) {
-      throw deleteError
+      console.log('Delete user: Failed to delete user:', userId, deleteError.message)
+      throw new Error('Operation failed')
     }
+    
+    console.log('Delete user: Successfully deleted user:', userId)
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -69,12 +76,19 @@ Deno.serve(async (req) => {
       }
     )
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+    // Log detailed error server-side only
+    console.log('Delete user error:', error instanceof Error ? error.message : 'Unknown error')
+    
+    // Return generic error message to client
+    const isAuthError = error instanceof Error && 
+                        (error.message.includes('Authorization') || error.message.includes('Invalid'));
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: isAuthError ? error.message : 'An error occurred while processing your request' 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: isAuthError ? 403 : 400
       }
     )
   }

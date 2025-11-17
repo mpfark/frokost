@@ -75,21 +75,20 @@ export const AuthForm = () => {
       });
 
       if (error) {
-        console.error("Error calling validate-invitation:", error);
         toast.error("Der opstod en fejl under validering af invitationen");
         setInviteValid(false);
         return;
       }
 
       if (!data.valid) {
-        toast.error(data.error || "Denne invitationskode er ugyldig eller udløbet");
+        toast.error(data.error || "Ugyldig eller udløbet invitation");
         setInviteValid(false);
         return;
       }
 
       setInviteValid(true);
     } catch (error: any) {
-      console.error("Error validating invite:", error);
+      toast.error("Der opstod en fejl under validering af invitationen");
       setInviteValid(false);
     } finally {
       setInviteChecking(false);

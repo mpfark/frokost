@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, ShieldOff, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2 } from "lucide-react";
+import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -319,11 +319,11 @@ export const UserManagement = () => {
                                 <Button
                                   onClick={() => toggleAdminRole(user.id, isAdmin)}
                                   disabled={isLoading}
-                                  variant="ghost"
+                                  variant={isAdmin ? "default" : "ghost"}
                                   size="icon"
                                   className="h-8 w-8"
                                 >
-                                  {isAdmin ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                                  {isAdmin ? <Shield className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{isAdmin ? "Fjern admin" : "Gør til admin"}</TooltipContent>
@@ -334,7 +334,7 @@ export const UserManagement = () => {
                                 <Button
                                   onClick={() => toggleKitchenRole(user.id, isKitchen)}
                                   disabled={isLoading}
-                                  variant="ghost"
+                                  variant={isKitchen ? "secondary" : "ghost"}
                                   size="icon"
                                   className="h-8 w-8"
                                 >
@@ -399,20 +399,6 @@ export const UserManagement = () => {
                           )}
                         </div>
                         
-                        <div className="flex gap-1">
-                          {isAdmin && (
-                            <Badge variant="default" className="flex items-center gap-1">
-                              <Shield className="w-3 h-3" />
-                              Admin
-                            </Badge>
-                          )}
-                          {isKitchen && (
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              <UtensilsCrossed className="w-3 h-3" />
-                              Kitchen
-                            </Badge>
-                          )}
-                        </div>
                       </div>
 
                       {isEditing ? (

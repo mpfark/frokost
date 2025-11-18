@@ -296,9 +296,32 @@ export const UserManagement = () => {
                 return (
                   <Card key={user.id} className="p-3">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
+                        <div className="flex-1 min-w-0 order-1 md:order-2">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <div>
+                                <Label htmlFor="full_name">Fulde navn</Label>
+                                <Input
+                                  id="full_name"
+                                  value={editForm.full_name || ""}
+                                  onChange={(e) =>
+                                    setEditForm({ ...editForm, full_name: e.target.value })
+                                  }
+                                />
+                              </div>
+                              <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="font-medium truncate">{user.full_name || "Intet navn"}</div>
+                              <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                            </>
+                          )}
+                        </div>
+                        
                         {!isEditing && (
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 order-2 md:order-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -375,30 +398,6 @@ export const UserManagement = () => {
                             </Tooltip>
                           </div>
                         )}
-                        
-                        <div className="flex-1 min-w-0">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <div>
-                                <Label htmlFor="full_name">Fulde navn</Label>
-                                <Input
-                                  id="full_name"
-                                  value={editForm.full_name || ""}
-                                  onChange={(e) =>
-                                    setEditForm({ ...editForm, full_name: e.target.value })
-                                  }
-                                />
-                              </div>
-                              <div className="text-sm text-muted-foreground">{user.email}</div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="font-medium truncate">{user.full_name || "Intet navn"}</div>
-                              <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                            </>
-                          )}
-                        </div>
-                        
                       </div>
 
                       {isEditing ? (

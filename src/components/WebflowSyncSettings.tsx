@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,12 @@ export const WebflowSyncSettings = () => {
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [formData, setFormData] = useState({
+    site_id: '',
+    collection_id: '',
+    sync_frequency: 'manual',
+    removal_policy: 'deactivate',
+  });
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['webflow-sync-settings'],
@@ -34,6 +40,17 @@ export const WebflowSyncSettings = () => {
     },
   });
 
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        site_id: settings.site_id,
+        collection_id: settings.collection_id,
+        sync_frequency: settings.sync_frequency,
+        removal_policy: settings.removal_policy,
+      });
+    }
+  }, [settings]);
+
   const { data: syncLogs } = useQuery({
     queryKey: ['sync-logs'],
     queryFn: async () => {
@@ -48,18 +65,22 @@ export const WebflowSyncSettings = () => {
     },
   });
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (updates: any) => {
+  const saveSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!formData.site_id || !formData.collection_id) {
+        throw new Error('Site ID og Collection ID er påkrævet');
+      }
+
       if (settings) {
         const { error } = await supabase
           .from('webflow_sync_settings')
-          .update(updates)
+          .update(formData)
           .eq('id', settings.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('webflow_sync_settings')
-          .insert(updates);
+          .insert(formData);
         if (error) throw error;
       }
     },
@@ -80,10 +101,10 @@ export const WebflowSyncSettings = () => {
   });
 
   const testConnection = async () => {
-    if (!settings?.collection_id) {
+    if (!formData.collection_id) {
       toast({
         title: "Mangler konfiguration",
-        description: "Indtast Collection ID først",
+        description: "Gem indstillinger først",
         variant: "destructive",
       });
       return;
@@ -95,7 +116,7 @@ export const WebflowSyncSettings = () => {
       if (!session) throw new Error('Not authenticated');
 
       const response = await fetch(
-        `https://api.webflow.com/v2/collections/${settings.collection_id}/items?limit=1`,
+        `https://api.webflow.com/v2/collections/${formData.collection_id}/items?limit=1`,
         {
           headers: {
             'Authorization': `Bearer ${(await supabase.functions.invoke('get-webflow-token')).data?.token || ''}`,
@@ -178,8 +199,8 @@ export const WebflowSyncSettings = () => {
               <Label htmlFor="site-id">Site ID</Label>
               <Input
                 id="site-id"
-                value={settings?.site_id || ''}
-                onChange={(e) => updateSettingsMutation.mutate({ site_id: e.target.value })}
+                value={formData.site_id}
+                onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
                 placeholder="Din Webflow Site ID"
               />
             </div>
@@ -188,8 +209,8 @@ export const WebflowSyncSettings = () => {
               <Label htmlFor="collection-id">Collection ID</Label>
               <Input
                 id="collection-id"
-                value={settings?.collection_id || ''}
-                onChange={(e) => updateSettingsMutation.mutate({ collection_id: e.target.value })}
+                value={formData.collection_id}
+                onChange={(e) => setFormData({ ...formData, collection_id: e.target.value })}
                 placeholder="Din Webflow Collection ID"
               />
             </div>
@@ -197,8 +218,8 @@ export const WebflowSyncSettings = () => {
             <div className="space-y-2">
               <Label htmlFor="sync-frequency">Synkroniseringsfrekvens</Label>
               <Select
-                value={settings?.sync_frequency || 'manual'}
-                onValueChange={(value) => updateSettingsMutation.mutate({ sync_frequency: value })}
+                value={formData.sync_frequency}
+                onValueChange={(value) => setFormData({ ...formData, sync_frequency: value })}
               >
                 <SelectTrigger id="sync-frequency">
                   <SelectValue />
@@ -214,8 +235,8 @@ export const WebflowSyncSettings = () => {
             <div className="space-y-2">
               <Label htmlFor="removal-policy">Fjernelsespolitik</Label>
               <Select
-                value={settings?.removal_policy || 'deactivate'}
-                onValueChange={(value) => updateSettingsMutation.mutate({ removal_policy: value })}
+                value={formData.removal_policy}
+                onValueChange={(value) => setFormData({ ...formData, removal_policy: value })}
               >
                 <SelectTrigger id="removal-policy">
                   <SelectValue />
@@ -231,10 +252,19 @@ export const WebflowSyncSettings = () => {
               </p>
             </div>
 
+            <Button
+              onClick={() => saveSettingsMutation.mutate()}
+              disabled={saveSettingsMutation.isPending || !formData.site_id || !formData.collection_id}
+              className="w-full"
+            >
+              {saveSettingsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Gem indstillinger
+            </Button>
+
             <div className="flex gap-2">
               <Button
                 onClick={testConnection}
-                disabled={isTestingConnection || !settings?.collection_id}
+                disabled={isTestingConnection || !settings}
                 variant="outline"
               >
                 {isTestingConnection && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -243,7 +273,7 @@ export const WebflowSyncSettings = () => {
 
               <Button
                 onClick={triggerSync}
-                disabled={isSyncing || !settings?.collection_id}
+                disabled={isSyncing || !settings}
               >
                 {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <RefreshCw className="mr-2 h-4 w-4" />

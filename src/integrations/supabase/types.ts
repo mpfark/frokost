@@ -203,30 +203,39 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_active: boolean
           is_gluten_free: boolean
           is_lactose_free: boolean
           is_vegetarian: boolean
           updated_at: string
+          webflow_id: string | null
+          webflow_synced: boolean
         }
         Insert: {
           created_at?: string
           email: string
           full_name?: string | null
           id: string
+          is_active?: boolean
           is_gluten_free?: boolean
           is_lactose_free?: boolean
           is_vegetarian?: boolean
           updated_at?: string
+          webflow_id?: string | null
+          webflow_synced?: boolean
         }
         Update: {
           created_at?: string
           email?: string
           full_name?: string | null
           id?: string
+          is_active?: boolean
           is_gluten_free?: boolean
           is_lactose_free?: boolean
           is_vegetarian?: boolean
           updated_at?: string
+          webflow_id?: string | null
+          webflow_synced?: boolean
         }
         Relationships: []
       }
@@ -254,6 +263,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          error_message: string | null
+          id: string
+          status: string
+          sync_completed_at: string | null
+          sync_started_at: string
+          users_added: number
+          users_removed: number
+          users_updated: number
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          status?: string
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          users_added?: number
+          users_removed?: number
+          users_updated?: number
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          status?: string
+          sync_completed_at?: string | null
+          sync_started_at?: string
+          users_added?: number
+          users_removed?: number
+          users_updated?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -272,6 +320,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webflow_sync_settings: {
+        Row: {
+          collection_id: string
+          created_at: string
+          field_mapping: Json
+          id: string
+          is_enabled: boolean
+          last_sync_at: string | null
+          removal_policy: string
+          site_id: string
+          sync_frequency: string
+          updated_at: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          field_mapping?: Json
+          id?: string
+          is_enabled?: boolean
+          last_sync_at?: string | null
+          removal_policy?: string
+          site_id: string
+          sync_frequency?: string
+          updated_at?: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          field_mapping?: Json
+          id?: string
+          is_enabled?: boolean
+          last_sync_at?: string | null
+          removal_policy?: string
+          site_id?: string
+          sync_frequency?: string
+          updated_at?: string
         }
         Relationships: []
       }

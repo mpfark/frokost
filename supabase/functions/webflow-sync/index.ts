@@ -149,12 +149,19 @@ serve(async (req) => {
       const fieldMapping = settings.field_mapping as { name: string; email: string };
       const webflowEmails = new Set<string>();
 
+      // Log first item's fieldData structure for debugging
+      if (webflowItems.length > 0) {
+        console.log('First Webflow item fieldData keys:', Object.keys(webflowItems[0].fieldData));
+        console.log('First Webflow item fieldData:', JSON.stringify(webflowItems[0].fieldData, null, 2));
+        console.log('Looking for mapping:', fieldMapping);
+      }
+
       for (const item of webflowItems) {
         const email = item.fieldData[fieldMapping.email]?.toLowerCase().trim();
         const name = item.fieldData[fieldMapping.name]?.trim();
 
         if (!email || !name) {
-          details.errors.push(`Skipped item ${item.id}: missing email or name`);
+          details.errors.push(`Skipped item ${item.id}: missing email or name (mapping: ${JSON.stringify(fieldMapping)}, available fields: ${Object.keys(item.fieldData).join(', ')})`);
           continue;
         }
 

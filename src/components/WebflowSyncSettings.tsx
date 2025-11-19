@@ -104,7 +104,7 @@ export const WebflowSyncSettings = () => {
     if (!formData.collection_id) {
       toast({
         title: "Mangler konfiguration",
-        description: "Gem indstillinger først",
+        description: "Angiv Collection ID først",
         variant: "destructive",
       });
       return;
@@ -115,28 +115,29 @@ export const WebflowSyncSettings = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch(
-        `https://api.webflow.com/v2/collections/${formData.collection_id}/items?limit=1`,
-        {
-          headers: {
-            'Authorization': `Bearer ${(await supabase.functions.invoke('get-webflow-token')).data?.token || ''}`,
-            'accept': 'application/json',
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('test-webflow-connection', {
+        body: { collectionId: formData.collection_id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      if (response.ok) {
+      if (error) {
+        throw new Error(error.message || 'Ukendt fejl ved test af forbindelse');
+      }
+
+      if (data && (data as any).success) {
         toast({
           title: "Forbindelse OK",
           description: "Kan forbinde til Webflow CMS",
         });
       } else {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error('Testforbindelsen lykkedes ikke');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Forbindelsesfejl",
-        description: `Kunne ikke forbinde til Webflow: ${error.message}`,
+        description: `Kunne ikke forbinde til Webflow: ${error?.message ?? 'Ukendt fejl'}`,
         variant: "destructive",
       });
     } finally {

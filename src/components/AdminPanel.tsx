@@ -11,7 +11,7 @@ export const AdminPanel = () => {
         <TabsTrigger value="users">Brugere</TabsTrigger>
         <TabsTrigger value="invitations">Invitationer</TabsTrigger>
         <TabsTrigger value="settings">Indstillinger</TabsTrigger>
-        <TabsTrigger value="webflow">Webflow</TabsTrigger>
+        <TabsTrigger value="webflow">Importer</TabsTrigger>
       </TabsList>
       
       <TabsContent value="users">

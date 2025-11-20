@@ -395,11 +395,11 @@ export const InvitationManagement = () => {
               invitations.map((invite) => (
                 <div
                   key={invite.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-3"
                 >
-                  <div className="space-y-1">
-                    <p className="font-medium">{invite.email}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <p className="font-medium truncate">{invite.email}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
                       <span>Sendt {formatDistanceToNow(new Date(invite.invited_at), { addSuffix: true, locale: da })}</span>
                       {invite.status === "pending" && (
                         <span>• Udløber {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true, locale: da })}</span>
@@ -409,7 +409,7 @@ export const InvitationManagement = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {getStatusBadge(invite.status)}
                     {invite.status === "pending" && (
                       <Button

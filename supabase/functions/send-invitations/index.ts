@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
@@ -16,7 +15,6 @@ interface InviteRequest {
 const emailSchema = z.string().trim().email().max(255);
 const emailArraySchema = z.array(emailSchema).min(1).max(50);
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -111,20 +109,18 @@ serve(async (req: Request) => {
     }
 
     const results = [];
-    const appUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "") || "";
+    const redirectUrl = `${supabaseUrl.replace(".supabase.co", "")}/set-password`;
 
     for (const email of emails) {
       const requestId = crypto.randomUUID();
       try {
-        console.log("Request ID:", requestId, "Processing invitation");
+        console.log("Request ID:", requestId, "Processing invitation for", email);
+        
         // Check if user already exists
-        const { data: existingProfile } = await supabaseServiceClient
-          .from("profiles")
-          .select("id")
-          .eq("email", email.toLowerCase())
-          .single();
+        const { data: existingUser } = await supabaseServiceClient.auth.admin.listUsers();
+        const userExists = existingUser.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
 
-        if (existingProfile) {
+        if (userExists) {
           results.push({
             email,
             success: false,
@@ -150,12 +146,12 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Generate invite code
+        // Generate invite code for tracking
         const inviteCode = crypto.randomUUID();
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
-        // Create invitation
+        // Create invitation record
         const { error: inviteError } = await supabaseServiceClient
           .from("invitations")
           .insert({
@@ -176,42 +172,31 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Send email
-        const inviteLink = `${appUrl}/?invite=${inviteCode}&email=${encodeURIComponent(email)}`;
-        
-        const { error: emailError } = await resend.emails.send({
-          from: "Plusfrokost <onboarding@resend.dev>",
-          to: [email],
-          subject: "Du er inviteret til Plusfrokost!",
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #333;">Du er inviteret til Plusfrokost!</h1>
-              <p>Hej,</p>
-              <p><strong>${adminName}</strong> har inviteret dig til Plusfrokost planlægningssystemet.</p>
-              <p>Click the link below to create your account:</p>
-              <div style="margin: 30px 0;">
-                <a href="${inviteLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>
-              </div>
-              <p style="color: #666; font-size: 14px;">This invitation expires in 7 days.</p>
-              <p style="color: #666; font-size: 14px;">If you didn't expect this invitation, you can safely ignore this email.</p>
-            </div>
-          `,
+        // Generate magic link using Supabase Auth
+        const { data: magicLinkData, error: magicLinkError } = await supabaseServiceClient.auth.admin.generateLink({
+          type: 'magiclink',
+          email: email.toLowerCase(),
+          options: {
+            redirectTo: redirectUrl,
+          }
         });
 
-        if (emailError) {
-          console.error("Email send error:", emailError);
+        if (magicLinkError || !magicLinkData) {
+          console.error("Magic link generation error:", magicLinkError);
           results.push({
             email,
             success: false,
-            error: "Failed to send email",
+            error: "Failed to generate magic link",
           });
-        } else {
-          results.push({
-            email,
-            success: true,
-            inviteCode,
-          });
+          continue;
         }
+
+        console.log(`Magic link invitation sent successfully to ${email}`);
+        results.push({
+          email,
+          success: true,
+          inviteCode,
+        });
       } catch (error: any) {
         console.error("Request ID:", requestId, "Error processing invitation:", error);
         results.push({
@@ -234,7 +219,7 @@ serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-invitations:", error);
+    console.error("Invitation function error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

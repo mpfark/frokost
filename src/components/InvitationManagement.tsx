@@ -433,7 +433,7 @@ export const InvitationManagement = () => {
                         <Copy className="h-4 w-4" />
                       </Button>
                     )}
-                    {(invite.status === "accepted" || invite.status === "expired") && (
+                    {invite.status === "pending" && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -442,6 +442,7 @@ export const InvitationManagement = () => {
                           setResendDialogOpen(true);
                         }}
                         disabled={actionLoading === invite.id}
+                        title="Send ny magic link"
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
@@ -490,8 +491,7 @@ export const InvitationManagement = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Gensend invitation?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dette vil slette den gamle invitation og sende en ny invitation til <strong>{selectedInvitation?.email}</strong>.
-              Brugeren vil modtage en ny e-mail med et nyt invitationslink.
+              Dette vil generere et nyt magic link og sende en ny e-mail til <strong>{selectedInvitation?.email}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

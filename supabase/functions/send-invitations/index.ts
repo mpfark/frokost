@@ -109,8 +109,9 @@ serve(async (req: Request) => {
     }
 
     const results = [];
-    // Use the frontend app URL for redirects
-    const redirectUrl = "https://frokost.lovable.app/set-password";
+    // Get the frontend URL from the request origin or use a fallback
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.lovable.app";
+    const redirectUrl = `${origin}/set-password`;
 
     for (const email of emails) {
       const requestId = crypto.randomUUID();

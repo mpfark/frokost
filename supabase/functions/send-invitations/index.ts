@@ -172,26 +172,8 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Generate magic link using Supabase Auth
-        const { data: magicLinkData, error: magicLinkError } = await supabaseServiceClient.auth.admin.generateLink({
-          type: 'magiclink',
-          email: email.toLowerCase(),
-          options: {
-            redirectTo: redirectUrl,
-          }
-        });
-
-        if (magicLinkError || !magicLinkData) {
-          console.error("Magic link generation error:", magicLinkError);
-          results.push({
-            email,
-            success: false,
-            error: "Failed to generate magic link",
-          });
-          continue;
-        }
-
-        console.log(`Magic link invitation sent successfully to ${email}`);
+        // Log successful invitation creation (no user created yet)
+        console.log(`Invitation created successfully for ${email}`);
         results.push({
           email,
           success: true,

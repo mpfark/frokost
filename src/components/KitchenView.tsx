@@ -309,14 +309,36 @@ export const KitchenView = () => {
     const signupIds = daySignups.map(s => s.id);
     const dayGuests = getGuestsForSignups(signupIds);
 
-    return {
-      glutenFree: daySignups.filter(s => s.profiles && s.profiles.is_gluten_free).length + 
-                  dayGuests.filter(g => g.is_gluten_free).length,
-      lactoseFree: daySignups.filter(s => s.profiles && s.profiles.is_lactose_free).length + 
-                   dayGuests.filter(g => g.is_lactose_free).length,
-      vegetarian: daySignups.filter(s => s.profiles && s.profiles.is_vegetarian).length + 
-                  dayGuests.filter(g => g.is_vegetarian).length,
-    };
+    // Collect all people with their dietary restrictions
+    const allPeople = [
+      ...daySignups.map(s => ({
+        isGlutenFree: s.profiles?.is_gluten_free || false,
+        isLactoseFree: s.profiles?.is_lactose_free || false,
+        isVegetarian: s.profiles?.is_vegetarian || false,
+      })),
+      ...dayGuests.map(g => ({
+        isGlutenFree: g.is_gluten_free,
+        isLactoseFree: g.is_lactose_free,
+        isVegetarian: g.is_vegetarian,
+      }))
+    ];
+
+    // Group by dietary restriction combinations
+    const combinations = new Map<string, number>();
+    
+    allPeople.forEach(person => {
+      if (person.isGlutenFree || person.isLactoseFree || person.isVegetarian) {
+        const key = [
+          person.isGlutenFree ? 'GF' : '',
+          person.isLactoseFree ? 'LF' : '',
+          person.isVegetarian ? 'V' : ''
+        ].filter(Boolean).join('+');
+        
+        combinations.set(key, (combinations.get(key) || 0) + 1);
+      }
+    });
+
+    return combinations;
   };
 
   return (
@@ -374,26 +396,18 @@ export const KitchenView = () => {
                         </Badge>
                       </div>
 
-                      {daySignups.length > 0 && (
+                      {daySignups.length > 0 && dietaryCounts.size > 0 && (
                         <div className="space-y-1 text-xs">
-                          {dietaryCounts.glutenFree > 0 && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Wheat className="w-3 h-3" />
-                              <span>{dietaryCounts.glutenFree} GF</span>
+                          {Array.from(dietaryCounts.entries()).map(([combo, count]) => (
+                            <div key={combo} className="flex items-center gap-1 text-muted-foreground">
+                              <div className="flex gap-0.5">
+                                {combo.includes('GF') && <Wheat className="w-3 h-3" />}
+                                {combo.includes('LF') && <Milk className="w-3 h-3" />}
+                                {combo.includes('V') && <Leaf className="w-3 h-3" />}
+                              </div>
+                              <span>{count} {combo}</span>
                             </div>
-                          )}
-                          {dietaryCounts.lactoseFree > 0 && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Milk className="w-3 h-3" />
-                              <span>{dietaryCounts.lactoseFree} LF</span>
-                            </div>
-                          )}
-                          {dietaryCounts.vegetarian > 0 && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Leaf className="w-3 h-3" />
-                              <span>{dietaryCounts.vegetarian} V</span>
-                            </div>
-                          )}
+                          ))}
                         </div>
                       )}
 

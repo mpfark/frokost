@@ -297,7 +297,7 @@ export const UserManagement = () => {
                   <Card key={user.id} className="p-3">
                     <div className="space-y-3">
                       <div className="flex flex-col md:flex-row md:items-center gap-3">
-                        <div className="flex-1 min-w-0 order-1 md:order-2">
+                        <div className="flex-1 min-w-0 order-1">
                           {isEditing ? (
                             <div className="space-y-2">
                               <div>
@@ -326,7 +326,7 @@ export const UserManagement = () => {
                         </div>
                         
                         {!isEditing && (
-                          <div className="flex gap-1 order-2 md:order-1">
+                          <div className="flex gap-1 order-2">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

@@ -71,23 +71,22 @@ export default function SetPassword() {
       // Mark the invitation as accepted AFTER successful sign-in with new credentials
       console.log("Attempting to update invitation for:", session.user.email?.toLowerCase());
       
-      const { data: inviteData, error: inviteError } = await supabase
+      const { error: inviteError } = await supabase
         .from("invitations")
-        .update({ 
-          status: "accepted", 
+        .update({
+          status: "accepted",
           accepted_at: new Date().toISOString(),
-          used_by: session.user.id 
+          used_by: session.user.id,
         })
-        .eq("email", session.user.email?.toLowerCase())
-        .eq("status", "pending")
-        .select();
+        .eq("email", session.user.email!)
+        .eq("status", "pending");
 
       if (inviteError) {
         console.error("Failed to update invitation:", inviteError);
         // Don't block the user from accessing the app, just log it
-        console.warn("User can still access the app, but invitation status wasn't updated");
+        console.warn("User kan stadig få adgang til appen, men invitationens status blev ikke opdateret");
       } else {
-        console.log("Invitation updated successfully:", inviteData);
+        console.log("Invitation updated successfully");
       }
 
       toast.success("Adgangskode sat! Du er nu logget ind.");

@@ -21,6 +21,7 @@ interface Invitation {
   invited_at: string;
   expires_at: string;
   accepted_at: string | null;
+  link_sent_at: string | null;
 }
 
 export const InvitationManagement = () => {
@@ -34,6 +35,7 @@ export const InvitationManagement = () => {
     pending: 0,
     accepted: 0,
     expired: 0,
+    linksSent: 0,
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resendDialogOpen, setResendDialogOpen] = useState(false);
@@ -61,6 +63,7 @@ export const InvitationManagement = () => {
         pending: data?.filter(i => i.status === "pending").length || 0,
         accepted: data?.filter(i => i.status === "accepted").length || 0,
         expired: data?.filter(i => i.status === "expired").length || 0,
+        linksSent: data?.filter(i => i.link_sent_at).length || 0,
       };
       setStats(stats);
     } catch (error: any) {
@@ -283,11 +286,17 @@ export const InvitationManagement = () => {
   return (
     <div className="space-y-6">
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Samlede invitationer</CardDescription>
             <CardTitle className="text-3xl">{stats.total}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Links sendt</CardDescription>
+            <CardTitle className="text-3xl">{stats.linksSent}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -401,6 +410,9 @@ export const InvitationManagement = () => {
                     <p className="font-medium truncate">{invite.email}</p>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
                       <span>Sendt {formatDistanceToNow(new Date(invite.invited_at), { addSuffix: true, locale: da })}</span>
+                      {invite.link_sent_at && (
+                        <span>• Link sendt {formatDistanceToNow(new Date(invite.link_sent_at), { addSuffix: true, locale: da })}</span>
+                      )}
                       {invite.status === "pending" && (
                         <span>• Udløber {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true, locale: da })}</span>
                       )}

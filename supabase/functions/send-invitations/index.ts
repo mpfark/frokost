@@ -152,7 +152,7 @@ serve(async (req: Request) => {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
         // Create invitation record
-        const { error: inviteError } = await supabaseServiceClient
+        const { data: invitationData, error: inviteError } = await supabaseServiceClient
           .from("invitations")
           .insert({
             email: email.toLowerCase(),
@@ -160,9 +160,11 @@ serve(async (req: Request) => {
             invited_by: user.id,
             expires_at: expiresAt.toISOString(),
             batch_id: batchId,
-          });
+          })
+          .select()
+          .single();
 
-        if (inviteError) {
+        if (inviteError || !invitationData) {
           console.error("Invitation creation error:", inviteError);
           results.push({
             email,
@@ -172,8 +174,36 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Log successful invitation creation (no user created yet)
-        console.log(`Invitation created successfully for ${email}`);
+        // Generate magic link - this creates the user and sends Supabase email
+        const { data: magicLinkData, error: magicLinkError } = await supabaseServiceClient.auth.admin.generateLink({
+          type: 'magiclink',
+          email: email.toLowerCase(),
+          options: {
+            redirectTo: `${redirectUrl}`,
+          }
+        });
+
+        if (magicLinkError) {
+          console.error("Magic link generation error:", magicLinkError);
+          results.push({
+            email,
+            success: false,
+            error: "Failed to generate magic link",
+          });
+          continue;
+        }
+
+        // Update invitation with link_sent_at timestamp
+        const { error: updateError } = await supabaseServiceClient
+          .from("invitations")
+          .update({ link_sent_at: new Date().toISOString() })
+          .eq("id", invitationData.id);
+
+        if (updateError) {
+          console.error("Failed to update link_sent_at:", updateError);
+        }
+
+        console.log(`Magic link invitation sent successfully to ${email}`);
         results.push({
           email,
           success: true,

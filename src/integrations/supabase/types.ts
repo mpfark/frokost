@@ -128,6 +128,7 @@ export type Database = {
           invite_code: string
           invited_at: string
           invited_by: string
+          link_sent_at: string | null
           status: string
           used_by: string | null
         }
@@ -140,6 +141,7 @@ export type Database = {
           invite_code: string
           invited_at?: string
           invited_by: string
+          link_sent_at?: string | null
           status?: string
           used_by?: string | null
         }
@@ -152,6 +154,7 @@ export type Database = {
           invite_code?: string
           invited_at?: string
           invited_by?: string
+          link_sent_at?: string | null
           status?: string
           used_by?: string | null
         }

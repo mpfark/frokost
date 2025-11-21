@@ -94,41 +94,6 @@ export const AuthForm = () => {
       setInviteChecking(false);
     }
   };
-  
-  // Attempt to mark a pending invitation as accepted for the current user
-  const acceptPendingInvitation = async (userId: string, userEmail: string) => {
-    try {
-      // Find the most recent pending invite for this email
-      const { data: pendingInvite } = await supabase
-        .from("invitations")
-        .select("id, expires_at")
-        .eq("email", userEmail.toLowerCase())
-        .eq("status", "pending")
-        .order("invited_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!pendingInvite) return; // nothing to accept
-
-      // Skip expired
-      if (new Date(pendingInvite.expires_at) < new Date()) return;
-
-      const { error: updateError } = await supabase
-        .from("invitations")
-        .update({
-          status: "accepted",
-          accepted_at: new Date().toISOString(),
-          used_by: userId,
-        })
-        .eq("id", pendingInvite.id);
-
-      if (updateError) {
-        console.warn("Failed to mark invitation as accepted:", updateError);
-      }
-    } catch (err) {
-      console.warn("Error while accepting pending invitation:", err);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,13 +113,6 @@ export const AuthForm = () => {
           password,
         });
         if (error) throw error;
-
-        // On first successful login, accept any pending invitation for this email
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
-        if (user?.email) {
-          await acceptPendingInvitation(user.id, user.email);
-        }
       } else {
         // Signup with invite validation
         if (!allowedDomain) {
@@ -208,29 +166,6 @@ export const AuthForm = () => {
         });
 
         if (error) throw error;
-
-        // Mark invitation as accepted - the database trigger will handle this
-        // or we can still mark it manually for explicit control
-        if (authData.user) {
-          const { data: inviteData } = await supabase
-            .from("invitations")
-            .select("id")
-            .eq("email", email.toLowerCase())
-            .eq("invite_code", inviteCode)
-            .eq("status", "pending")
-            .single();
-
-          if (inviteData) {
-            await supabase
-              .from("invitations")
-              .update({
-                status: "accepted",
-                accepted_at: new Date().toISOString(),
-                used_by: authData.user.id,
-              })
-              .eq("id", inviteData.id);
-          }
-        }
 
         toast.success("Konto oprettet! Du kan nu logge ind.");
       }

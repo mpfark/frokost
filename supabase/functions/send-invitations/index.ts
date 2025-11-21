@@ -135,18 +135,28 @@ serve(async (req: Request) => {
         // Check if active invitation exists
         const { data: existingInvite } = await supabaseServiceClient
           .from("invitations")
-          .select("id, status")
+          .select("id, status, used_by")
           .eq("email", email.toLowerCase())
           .in("status", ["pending", "accepted"])
-          .single();
+          .maybeSingle();
 
         if (existingInvite) {
-          results.push({
-            email,
-            success: false,
-            error: existingInvite.status === "accepted" ? "Invitation already accepted" : "Invitation already pending",
-          });
-          continue;
+          // If invitation is accepted but user was deleted (orphaned invitation), delete it and continue
+          if (existingInvite.status === "accepted" && !existingProfile) {
+            await supabaseServiceClient
+              .from("invitations")
+              .delete()
+              .eq("id", existingInvite.id);
+            console.log(`Cleaned up orphaned invitation for ${email}`);
+          } else {
+            // Otherwise, don't allow re-invitation
+            results.push({
+              email,
+              success: false,
+              error: existingInvite.status === "accepted" ? "Invitation already accepted" : "Invitation already pending",
+            });
+            continue;
+          }
         }
 
         // Generate invite code for tracking

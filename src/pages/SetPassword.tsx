@@ -72,7 +72,18 @@ export default function SetPassword() {
         console.error("Failed to update invitation:", inviteError);
       }
 
-      toast.success("Adgangskode sat! Du kan nu logge ind.");
+      // Sign out the magic link session
+      await supabase.auth.signOut();
+
+      // Sign in with the new password to establish a proper session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: session.user.email!,
+        password: password,
+      });
+
+      if (signInError) throw signInError;
+
+      toast.success("Adgangskode sat! Du er nu logget ind.");
       navigate("/");
     } catch (error: any) {
       if (error instanceof z.ZodError) {

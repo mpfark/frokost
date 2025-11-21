@@ -57,8 +57,19 @@ export default function SetPassword() {
 
       if (updateError) throw updateError;
 
-      // Mark the invitation as accepted after successful password setup
-      console.log("Attempting to update invitation for:", session.user.email?.toLowerCase(), "with user ID:", session.user.id);
+      // Sign out the magic link session
+      await supabase.auth.signOut();
+
+      // Sign in with the new password to establish a proper session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: session.user.email!,
+        password: password,
+      });
+
+      if (signInError) throw signInError;
+
+      // Mark the invitation as accepted AFTER successful sign-in with new credentials
+      console.log("Attempting to update invitation for:", session.user.email?.toLowerCase());
       
       const { data: inviteData, error: inviteError } = await supabase
         .from("invitations")
@@ -73,21 +84,11 @@ export default function SetPassword() {
 
       if (inviteError) {
         console.error("Failed to update invitation:", inviteError);
-        toast.error(`Advarsel: Kunne ikke opdatere invitation status (${inviteError.message})`);
+        // Don't block the user from accessing the app, just log it
+        console.warn("User can still access the app, but invitation status wasn't updated");
       } else {
         console.log("Invitation updated successfully:", inviteData);
       }
-
-      // Sign out the magic link session
-      await supabase.auth.signOut();
-
-      // Sign in with the new password to establish a proper session
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: session.user.email!,
-        password: password,
-      });
-
-      if (signInError) throw signInError;
 
       toast.success("Adgangskode sat! Du er nu logget ind.");
       navigate("/");

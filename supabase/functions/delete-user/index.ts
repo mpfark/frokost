@@ -58,6 +58,16 @@ Deno.serve(async (req) => {
       throw new Error('Invalid operation')
     }
 
+    // Delete associated invitations first
+    const { error: inviteDeleteError } = await supabaseClient
+      .from('invitations')
+      .delete()
+      .eq('used_by', userId)
+
+    if (inviteDeleteError) {
+      console.log('Delete user: Warning - failed to delete invitations for user:', userId, inviteDeleteError.message)
+    }
+
     // Delete the user using admin API
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId)
 

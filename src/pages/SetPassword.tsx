@@ -58,7 +58,9 @@ export default function SetPassword() {
       if (updateError) throw updateError;
 
       // Mark the invitation as accepted after successful password setup
-      const { error: inviteError } = await supabase
+      console.log("Attempting to update invitation for:", session.user.email?.toLowerCase(), "with user ID:", session.user.id);
+      
+      const { data: inviteData, error: inviteError } = await supabase
         .from("invitations")
         .update({ 
           status: "accepted", 
@@ -66,10 +68,14 @@ export default function SetPassword() {
           used_by: session.user.id 
         })
         .eq("email", session.user.email?.toLowerCase())
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .select();
 
       if (inviteError) {
         console.error("Failed to update invitation:", inviteError);
+        toast.error(`Advarsel: Kunne ikke opdatere invitation status (${inviteError.message})`);
+      } else {
+        console.log("Invitation updated successfully:", inviteData);
       }
 
       // Sign out the magic link session

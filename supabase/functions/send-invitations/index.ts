@@ -116,11 +116,14 @@ serve(async (req: Request) => {
       try {
         console.log("Request ID:", requestId, "Processing invitation for", email);
         
-        // Check if user already exists
-        const { data: existingUser } = await supabaseServiceClient.auth.admin.listUsers();
-        const userExists = existingUser.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
+        // Check if user already exists by querying profiles table
+        const { data: existingProfile } = await supabaseServiceClient
+          .from('profiles')
+          .select('id')
+          .eq('email', email.toLowerCase())
+          .maybeSingle();
 
-        if (userExists) {
+        if (existingProfile) {
           results.push({
             email,
             success: false,

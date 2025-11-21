@@ -116,23 +116,7 @@ serve(async (req: Request) => {
       try {
         console.log("Request ID:", requestId, "Processing invitation for", email);
         
-        // Check if user already exists by querying profiles table
-        const { data: existingProfile } = await supabaseServiceClient
-          .from('profiles')
-          .select('id')
-          .eq('email', email.toLowerCase())
-          .maybeSingle();
-
-        if (existingProfile) {
-          results.push({
-            email,
-            success: false,
-            error: "User already exists",
-          });
-          continue;
-        }
-
-        // Check if active invitation exists
+        // Check if active invitation exists (users won't exist until they accept)
         const { data: existingInvite } = await supabaseServiceClient
           .from("invitations")
           .select("id, status, used_by")
@@ -141,22 +125,12 @@ serve(async (req: Request) => {
           .maybeSingle();
 
         if (existingInvite) {
-          // If invitation is accepted but user was deleted (orphaned invitation), delete it and continue
-          if (existingInvite.status === "accepted" && !existingProfile) {
-            await supabaseServiceClient
-              .from("invitations")
-              .delete()
-              .eq("id", existingInvite.id);
-            console.log(`Cleaned up orphaned invitation for ${email}`);
-          } else {
-            // Otherwise, don't allow re-invitation
-            results.push({
-              email,
-              success: false,
-              error: existingInvite.status === "accepted" ? "Invitation already accepted" : "Invitation already pending",
-            });
-            continue;
-          }
+          results.push({
+            email,
+            success: false,
+            error: existingInvite.status === "accepted" ? "Invitation already accepted" : "Invitation already pending",
+          });
+          continue;
         }
 
         // Generate invite code for tracking
@@ -187,21 +161,24 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Generate magic link - this creates the user and sends Supabase email
-        const { data: magicLinkData, error: magicLinkError } = await supabaseServiceClient.auth.admin.generateLink({
-          type: 'magiclink',
-          email: email.toLowerCase(),
-          options: {
+        // Send invitation email - user will be created when they accept
+        const { data: inviteData, error: emailError } = await supabaseServiceClient.auth.admin.inviteUserByEmail(
+          email.toLowerCase(),
+          {
             redirectTo: `${redirectUrl}`,
+            data: {
+              invite_code: inviteCode,
+              full_name: email.split('@')[0], // Default name from email
+            }
           }
-        });
+        );
 
-        if (magicLinkError) {
-          console.error("Magic link generation error:", magicLinkError);
+        if (emailError) {
+          console.error("Invitation email error:", emailError);
           results.push({
             email,
             success: false,
-            error: "Failed to generate magic link",
+            error: "Failed to send invitation email",
           });
           continue;
         }
@@ -216,7 +193,7 @@ serve(async (req: Request) => {
           console.error("Failed to update link_sent_at:", updateError);
         }
 
-        console.log(`Magic link invitation sent successfully to ${email}`);
+        console.log(`Invitation email sent successfully to ${email}`);
         results.push({
           email,
           success: true,

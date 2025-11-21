@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, UtensilsCrossed } from "lucide-react";
+import { Loader2, UtensilsCrossed, Info } from "lucide-react";
 import { z } from "zod";
 import { strongPasswordSchema } from "@/lib/validations";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const passwordResetSchema = z.object({
   password: strongPasswordSchema,
@@ -107,7 +108,25 @@ const ResetPassword = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Ny adgangskode</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="password">Ny adgangskode</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-semibold mb-1">Adgangskoden skal indeholde:</p>
+                      <ul className="text-sm space-y-1">
+                        <li>• Mindst 8 tegn</li>
+                        <li>• Mindst ét stort bogstav</li>
+                        <li>• Mindst ét lille bogstav</li>
+                        <li>• Mindst ét tal</li>
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="password"
                 type="password"

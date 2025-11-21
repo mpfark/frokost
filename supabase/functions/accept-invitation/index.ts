@@ -30,11 +30,14 @@ serve(async (req) => {
       }
     );
 
-    // Get the current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
+    // Extract the access token from the Bearer header
+    const token = authHeader.replace('Bearer ', '').trim();
+
+    // Get the current user using the access token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
     if (userError || !user) {
-      console.error('Failed to get user:', userError);
+      console.error('Failed to get user from token:', userError);
       throw new Error('Unauthorized');
     }
 

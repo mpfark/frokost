@@ -287,35 +287,35 @@ export const InvitationManagement = () => {
   return (
     <div className="space-y-6">
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Samlede invitationer</CardDescription>
-            <CardTitle className="text-3xl">{stats.total}</CardTitle>
+          <CardHeader className="p-3">
+            <CardDescription className="text-xs">Samlede</CardDescription>
+            <CardTitle className="text-xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Links sendt</CardDescription>
-            <CardTitle className="text-3xl">{stats.linksSent}</CardTitle>
+          <CardHeader className="p-3">
+            <CardDescription className="text-xs">Links sendt</CardDescription>
+            <CardTitle className="text-xl">{stats.linksSent}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Afventer</CardDescription>
-            <CardTitle className="text-3xl">{stats.pending}</CardTitle>
+          <CardHeader className="p-3">
+            <CardDescription className="text-xs">Afventer</CardDescription>
+            <CardTitle className="text-xl">{stats.pending}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Accepteret</CardDescription>
-            <CardTitle className="text-3xl">{stats.accepted}</CardTitle>
+          <CardHeader className="p-3">
+            <CardDescription className="text-xs">Accepteret</CardDescription>
+            <CardTitle className="text-xl">{stats.accepted}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Udløbet</CardDescription>
-            <CardTitle className="text-3xl">{stats.expired}</CardTitle>
+          <CardHeader className="p-3">
+            <CardDescription className="text-xs">Udløbet</CardDescription>
+            <CardTitle className="text-xl">{stats.expired}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -405,59 +405,56 @@ export const InvitationManagement = () => {
               invitations.map((invite) => (
                 <div
                   key={invite.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-3"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 border rounded gap-2"
                 >
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <p className="font-medium truncate">{invite.email}</p>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
-                      <span>Sendt {formatDistanceToNow(new Date(invite.invited_at), { addSuffix: true, locale: da })}</span>
-                      {invite.link_sent_at && (
-                        <span>• Link sendt {formatDistanceToNow(new Date(invite.link_sent_at), { addSuffix: true, locale: da })}</span>
-                      )}
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{invite.email}</p>
+                    <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                      <span>{formatDistanceToNow(new Date(invite.invited_at), { addSuffix: true, locale: da })}</span>
                       {invite.status === "pending" && (
                         <span>• Udløber {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true, locale: da })}</span>
                       )}
-                      {invite.accepted_at && (
-                        <span>• Accepteret {formatDistanceToNow(new Date(invite.accepted_at), { addSuffix: true, locale: da })}</span>
-                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {getStatusBadge(invite.status)}
                     {invite.status === "pending" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => copyInviteLink(invite.invite_code, invite.email)}
-                        disabled={actionLoading === invite.id}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {invite.status === "pending" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedInvitation(invite);
-                          setResendDialogOpen(true);
-                        }}
-                        disabled={actionLoading === invite.id}
-                        title="Send ny magic link"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-7 w-7"
+                          onClick={() => copyInviteLink(invite.invite_code, invite.email)}
+                          disabled={actionLoading === invite.id}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setSelectedInvitation(invite);
+                            setResendDialogOpen(true);
+                          }}
+                          disabled={actionLoading === invite.id}
+                          title="Send ny magic link"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                        </Button>
+                      </>
                     )}
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="destructive"
+                      className="h-7 w-7"
                       onClick={() => {
                         setSelectedInvitation(invite);
                         setDeleteDialogOpen(true);
                       }}
                       disabled={actionLoading === invite.id}
                     >
-                      <Trash className="h-4 w-4" />
+                      <Trash className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>

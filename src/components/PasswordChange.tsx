@@ -51,32 +51,14 @@ export const PasswordChange = () => {
         return;
       }
 
-      // Verify current password by attempting to sign in
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
-        toast.error("Bruger e-mail ikke fundet");
-        setIsLoading(false);
-        return;
-      }
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword,
-      });
-
-      if (signInError) {
-        toast.error("Nuværende adgangskode er forkert");
-        setIsLoading(false);
-        return;
-      }
-
-      // Update password
+      // Update password - Supabase handles authentication
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (error) {
-        toast.error("Kunne ikke opdatere adgangskode");
+        toast.error(error.message || "Kunne ikke opdatere adgangskode");
+        console.error("Password update error:", error);
       } else {
         toast.success("Adgangskode opdateret med succes!");
         setCurrentPassword("");
@@ -85,6 +67,7 @@ export const PasswordChange = () => {
       }
     } catch (error) {
       toast.error("Der opstod en fejl under opdatering af adgangskode");
+      console.error("Password change error:", error);
     } finally {
       setIsLoading(false);
     }

@@ -57,15 +57,19 @@ export default function SetPassword() {
 
       if (updateError) throw updateError;
 
-      // Delete the invitation after successful password setup
+      // Mark the invitation as accepted after successful password setup
       const { error: inviteError } = await supabase
         .from("invitations")
-        .delete()
+        .update({ 
+          status: "accepted", 
+          accepted_at: new Date().toISOString(),
+          used_by: session.user.id 
+        })
         .eq("email", session.user.email?.toLowerCase())
         .eq("status", "pending");
 
       if (inviteError) {
-        console.error("Failed to delete invitation:", inviteError);
+        console.error("Failed to update invitation:", inviteError);
       }
 
       toast.success("Adgangskode sat! Du kan nu logge ind.");

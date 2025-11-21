@@ -51,6 +51,7 @@ export const InvitationManagement = () => {
       const { data, error } = await supabase
         .from("invitations")
         .select("*")
+        .neq("status", "accepted")
         .order("invited_at", { ascending: false });
 
       if (error) throw error;

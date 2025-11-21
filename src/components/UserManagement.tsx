@@ -314,7 +314,12 @@ export const UserManagement = () => {
                             </div>
                           ) : (
                             <>
-                              <div className="font-medium truncate">{user.full_name || "Intet navn"}</div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium truncate">{user.full_name || "Intet navn"}</span>
+                                {user.is_gluten_free && <Badge variant="secondary" className="text-xs">Glutenfri</Badge>}
+                                {user.is_lactose_free && <Badge variant="secondary" className="text-xs">Laktosefri</Badge>}
+                                {user.is_vegetarian && <Badge variant="secondary" className="text-xs">Vegetar</Badge>}
+                              </div>
                               <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                             </>
                           )}
@@ -456,15 +461,7 @@ export const UserManagement = () => {
                             </Button>
                           </div>
                         </div>
-                      ) : (
-                        user.is_gluten_free || user.is_lactose_free || user.is_vegetarian ? (
-                          <div className="flex gap-2 flex-wrap ml-11">
-                            {user.is_gluten_free && <Badge variant="secondary">Glutenfri</Badge>}
-                            {user.is_lactose_free && <Badge variant="secondary">Laktosefri</Badge>}
-                            {user.is_vegetarian && <Badge variant="secondary">Vegetar</Badge>}
-                          </div>
-                        ) : null
-                      )}
+                      ) : null}
                     </div>
                   </Card>
                 );

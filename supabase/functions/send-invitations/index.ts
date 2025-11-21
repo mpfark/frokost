@@ -109,7 +109,8 @@ serve(async (req: Request) => {
     }
 
     const results = [];
-    const redirectUrl = `${supabaseUrl.replace(".supabase.co", "")}/set-password`;
+    // Use the frontend app URL for redirects
+    const redirectUrl = "https://frokost.lovable.app/set-password";
 
     for (const email of emails) {
       const requestId = crypto.randomUUID();

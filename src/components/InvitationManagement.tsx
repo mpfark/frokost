@@ -55,17 +55,20 @@ export const InvitationManagement = () => {
 
       if (error) throw error;
 
-      setInvitations(data || []);
-      
-      // Calculate stats
+      // Calculate stats from all invitations
+      const allInvitations = data || [];
       const stats = {
-        total: data?.length || 0,
-        pending: data?.filter(i => i.status === "pending").length || 0,
-        accepted: data?.filter(i => i.status === "accepted").length || 0,
-        expired: data?.filter(i => i.status === "expired").length || 0,
-        linksSent: data?.filter(i => i.link_sent_at).length || 0,
+        total: allInvitations.length,
+        pending: allInvitations.filter(i => i.status === "pending").length,
+        accepted: allInvitations.filter(i => i.status === "accepted").length,
+        expired: allInvitations.filter(i => i.status === "expired").length,
+        linksSent: allInvitations.filter(i => i.link_sent_at).length,
       };
       setStats(stats);
+
+      // Only show non-accepted invitations in the list
+      const displayedInvitations = allInvitations.filter(i => i.status !== "accepted");
+      setInvitations(displayedInvitations);
     } catch (error: any) {
       toast({
         title: "Fejl",

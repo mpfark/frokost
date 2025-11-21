@@ -70,21 +70,52 @@ export default function SetPassword() {
 
       // Mark the invitation as accepted AFTER successful sign-in with new credentials
       console.log("Attempting to accept invitation for:", session.user.email);
-      
-      const { data: inviteData, error: inviteError } = await supabase.functions.invoke(
-        'accept-invitation'
-      );
 
-      if (inviteError) {
-        console.error("Failed to call accept-invitation function:", inviteError);
-        toast.error("Kunne ikke opdatere invitation. Kontakt en administrator.");
-      } else if (!inviteData?.success) {
-        console.warn("Invitation not found or already accepted:", inviteData);
-        // Don't show error to user if invitation doesn't exist - they can still use the app
-        console.warn("User kan stadig få adgang til appen");
-      } else {
-        console.log("Invitation accepted successfully:", inviteData.invitationId);
+      let invitationUpdated = false;
+
+      try {
+        const { data: inviteData, error: inviteError } = await supabase.functions.invoke(
+          "accept-invitation"
+        );
+
+        if (inviteError) {
+          console.error("Failed to call accept-invitation function:", inviteError);
+        } else if (!inviteData?.success) {
+          console.warn("Invitation not found or already accepted:", inviteData);
+          // Don't show error to user if invitation doesn't exist - they can still use the app
+          console.warn("User kan stadig få adgang til appen");
+        } else {
+          console.log("Invitation accepted successfully via function:", inviteData.invitationId);
+          invitationUpdated = true;
+        }
+      } catch (acceptError) {
+        console.error("Unexpected error when calling accept-invitation function:", acceptError);
       }
+
+      // Fallback: attempt to update the invitation directly from the client as the authenticated user
+      if (!invitationUpdated) {
+        console.log("Falling back to direct invitation update for:", session.user.email);
+        const { data, error } = await supabase
+          .from("invitations")
+          .update({
+            status: "accepted",
+            accepted_at: new Date().toISOString(),
+            used_by: session.user.id,
+          })
+          .eq("email", session.user.email!.toLowerCase())
+          .eq("status", "pending")
+          .select("id");
+
+        if (error) {
+          console.error("Fallback invitation update failed:", error);
+          toast.error("Kunne ikke opdatere invitation. Kontakt en administrator.");
+        } else if (!data || data.length === 0) {
+          console.warn("Fallback: No pending invitation found for this user.");
+        } else {
+          console.log("Fallback: Invitation accepted successfully:", data[0]?.id);
+        }
+      }
+
 
       toast.success("Adgangskode sat! Du er nu logget ind.");
       navigate("/");

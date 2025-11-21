@@ -102,7 +102,6 @@ export default function SetPassword() {
             accepted_at: new Date().toISOString(),
             used_by: session.user.id,
           })
-          .eq("email", session.user.email!.toLowerCase())
           .eq("status", "pending")
           .select("id");
 

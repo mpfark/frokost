@@ -27,6 +27,22 @@ serve(async (req) => {
         global: {
           headers: { Authorization: authHeader },
         },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Create Supabase admin client with service role key for privileged updates
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
       }
     );
 
@@ -43,8 +59,8 @@ serve(async (req) => {
 
     console.log('Accepting invitation for user:', user.email);
 
-    // Update the invitation to accepted
-    const { data, error } = await supabaseClient
+    // Update the invitation to accepted using the admin client (bypasses RLS but still scoped to this user)
+    const { data, error } = await supabaseAdmin
       .from('invitations')
       .update({
         status: 'accepted',

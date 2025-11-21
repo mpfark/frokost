@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,20 @@ interface WebflowItem {
     [key: string]: any;
   };
 }
+
+// Zod schema for validating Webflow item data
+const webflowUserSchema = z.object({
+  email: z.string()
+    .trim()
+    .toLowerCase()
+    .email({ message: "Invalid email format" })
+    .max(255, { message: "Email must be less than 255 characters" }),
+  name: z.string()
+    .trim()
+    .min(1, { message: "Name cannot be empty" })
+    .max(100, { message: "Name must be less than 100 characters" })
+    .regex(/^[a-zA-ZæøåÆØÅ\s\-'.]+$/, { message: "Name contains invalid characters" }),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -157,13 +172,30 @@ serve(async (req) => {
       }
 
       for (const item of webflowItems) {
-        const email = item.fieldData[fieldMapping.email]?.toLowerCase().trim();
-        const name = item.fieldData[fieldMapping.name]?.trim();
+        // Extract raw values from Webflow item
+        const rawEmail = item.fieldData[fieldMapping.email];
+        const rawName = item.fieldData[fieldMapping.name];
 
-        if (!email || !name) {
+        // Check if fields exist
+        if (!rawEmail || !rawName) {
           details.errors.push(`Skipped item ${item.id}: missing email or name (mapping: ${JSON.stringify(fieldMapping)}, available fields: ${Object.keys(item.fieldData).join(', ')})`);
           continue;
         }
+
+        // Validate using Zod schema
+        const validation = webflowUserSchema.safeParse({
+          email: rawEmail,
+          name: rawName,
+        });
+
+        if (!validation.success) {
+          const errors = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+          details.errors.push(`Skipped item ${item.id}: validation failed - ${errors}`);
+          console.error(`Validation failed for item ${item.id}:`, validation.error.errors);
+          continue;
+        }
+
+        const { email, name } = validation.data;
 
         // Validate domain if configured
         if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {

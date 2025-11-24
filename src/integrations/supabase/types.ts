@@ -40,6 +40,9 @@ export type Database = {
           allowed_domain: string
           created_at: string
           id: string
+          reminder_day: number
+          reminder_enabled: boolean
+          reminder_hour: number
           updated_at: string
           weeks_to_display: number
         }
@@ -47,6 +50,9 @@ export type Database = {
           allowed_domain: string
           created_at?: string
           id?: string
+          reminder_day?: number
+          reminder_enabled?: boolean
+          reminder_hour?: number
           updated_at?: string
           weeks_to_display?: number
         }
@@ -54,6 +60,9 @@ export type Database = {
           allowed_domain?: string
           created_at?: string
           id?: string
+          reminder_day?: number
+          reminder_enabled?: boolean
+          reminder_hour?: number
           updated_at?: string
           weeks_to_display?: number
         }

@@ -265,7 +265,7 @@ export const InvitationManagement = () => {
   };
 
   const copyInviteLink = (inviteCode: string, email: string) => {
-    const link = `${window.location.origin}/?invite=${inviteCode}&email=${encodeURIComponent(email)}`;
+    const link = `${window.location.origin}/#invite=${inviteCode}&email=${encodeURIComponent(email)}`;
     navigator.clipboard.writeText(link);
     toast({
       title: "Kopieret",

@@ -3,6 +3,9 @@ project_id = "gupglbmayvwwxwkunotk"
 [functions.send-invitations]
 verify_jwt = true
 
+[functions.send-weekly-lunch-reminder]
+verify_jwt = false
+
 [functions.send-password-reset]
 verify_jwt = true
 

@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Building2 } from "lucide-react";
+import { Building2, Bell } from "lucide-react";
 
 export const CompanySettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
+  const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [reminderDay, setReminderDay] = useState(1); // 1 = Monday
+  const [reminderHour, setReminderHour] = useState(8); // 08:00
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -21,7 +26,7 @@ export const CompanySettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain, weeks_to_display")
+        .select("allowed_domain, weeks_to_display, reminder_enabled, reminder_day, reminder_hour")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -31,6 +36,9 @@ export const CompanySettings = () => {
       if (data) {
         setAllowedDomain(data.allowed_domain);
         setWeeksToDisplay(data.weeks_to_display || 3);
+        setReminderEnabled(data.reminder_enabled ?? true);
+        setReminderDay(data.reminder_day ?? 1);
+        setReminderHour(data.reminder_hour ?? 8);
       }
     } catch (error: any) {
       toast({
@@ -88,7 +96,10 @@ export const CompanySettings = () => {
           .from("company_settings")
           .update({ 
             allowed_domain: allowedDomain.toLowerCase(),
-            weeks_to_display: weeksToDisplay 
+            weeks_to_display: weeksToDisplay,
+            reminder_enabled: reminderEnabled,
+            reminder_day: reminderDay,
+            reminder_hour: reminderHour
           })
           .eq("id", existing.id);
 
@@ -99,7 +110,10 @@ export const CompanySettings = () => {
           .from("company_settings")
           .insert({ 
             allowed_domain: allowedDomain.toLowerCase(),
-            weeks_to_display: weeksToDisplay
+            weeks_to_display: weeksToDisplay,
+            reminder_enabled: reminderEnabled,
+            reminder_day: reminderDay,
+            reminder_hour: reminderHour
           });
 
         if (error) throw error;
@@ -168,6 +182,82 @@ export const CompanySettings = () => {
           <p className="text-sm text-muted-foreground">
             Antallet af uger der vises i brugerens frokostkalender (1-8)
           </p>
+        </div>
+
+        <div className="pt-4 border-t">
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="h-5 w-5" />
+            <h3 className="text-lg font-semibold">Ugentlige påmindelser</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="reminder-enabled">Aktiver påmindelser</Label>
+                <p className="text-sm text-muted-foreground">
+                  Send automatiske emails til brugere uden frokost-tilmelding
+                </p>
+              </div>
+              <Switch
+                id="reminder-enabled"
+                checked={reminderEnabled}
+                onCheckedChange={setReminderEnabled}
+                disabled={isLoading}
+              />
+            </div>
+
+            {reminderEnabled && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="reminder-day">Dag</Label>
+                  <Select
+                    value={reminderDay.toString()}
+                    onValueChange={(value) => setReminderDay(parseInt(value))}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="reminder-day">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Søndag</SelectItem>
+                      <SelectItem value="1">Mandag</SelectItem>
+                      <SelectItem value="2">Tirsdag</SelectItem>
+                      <SelectItem value="3">Onsdag</SelectItem>
+                      <SelectItem value="4">Torsdag</SelectItem>
+                      <SelectItem value="5">Fredag</SelectItem>
+                      <SelectItem value="6">Lørdag</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Hvilken dag skal påmindelser sendes
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reminder-hour">Tidspunkt</Label>
+                  <Select
+                    value={reminderHour.toString()}
+                    onValueChange={(value) => setReminderHour(parseInt(value))}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="reminder-hour">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          {i.toString().padStart(2, '0')}:00
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Hvilket tidspunkt skal påmindelser sendes (24-timers format)
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <Button onClick={handleSave} disabled={isLoading}>

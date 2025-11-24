@@ -46,6 +46,34 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
+    // Check if reminders are enabled in company settings
+    const { data: settings, error: settingsError } = await supabaseAdmin
+      .from("company_settings")
+      .select("reminder_enabled")
+      .single();
+
+    if (settingsError) {
+      console.error("Error fetching company settings:", settingsError);
+    }
+
+    if (settings && !settings.reminder_enabled) {
+      console.log("Weekly reminders are disabled in company settings");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Reminders disabled",
+          remindersEnabled: false,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     // Calculate the upcoming week (Monday to Friday)
     const now = new Date();
     const currentDay = now.getDay();

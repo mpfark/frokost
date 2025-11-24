@@ -24,8 +24,9 @@ export const AuthForm = () => {
   const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
-    // Parse URL parameters
-    const params = new URLSearchParams(window.location.search);
+    // Parse URL fragment (hash) for invite parameters
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
     const invite = params.get("invite");
     const emailParam = params.get("email");
 

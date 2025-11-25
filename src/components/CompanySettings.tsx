@@ -138,9 +138,29 @@ export const CompanySettings = () => {
   const handleTestReminder = async () => {
     setIsTestingReminder(true);
     try {
-      const { data, error } = await supabase.functions.invoke('trigger-reminder-test');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Du skal være logget ind");
+      }
 
-      if (error) throw error;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-reminder-test`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Kunne ikke sende test-påmindelse');
+      }
+
+      const data = await response.json();
 
       toast({
         title: "Test-påmindelse sendt",

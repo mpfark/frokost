@@ -62,15 +62,12 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Check if user has admin role
-    const { data: roles, error: roleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
+    // Check if user has admin role using RPC to bypass RLS
+    const { data: isAdmin, error: roleError } = await supabaseClient
+      .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-    if (roleError || !roles) {
+    if (roleError || !isAdmin) {
+      console.error('Role check failed:', roleError);
       return new Response(
         JSON.stringify({ error: 'Forbidden - Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

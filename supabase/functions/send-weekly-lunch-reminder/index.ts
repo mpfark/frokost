@@ -27,6 +27,19 @@ interface ClosedDate {
   reason: string | null;
 }
 
+// Calculate ISO week number
+function getISOWeekNumber(date: Date): number {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+  }
+  return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -163,19 +176,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${usersWithoutSignup.length} users without signups`);
 
-    // Generate week dates for display
-    const weekDates = [];
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(nextMonday);
-      date.setDate(nextMonday.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      const isClosed = closedDatesSet.has(dateStr);
-      weekDates.push({
-        date: dateStr,
-        dayName: date.toLocaleDateString('da-DK', { weekday: 'long' }),
-        isClosed,
-      });
-    }
+    // Calculate ISO week number for the upcoming week
+    const weekNumber = getISOWeekNumber(nextMonday);
+    console.log(`Week number: ${weekNumber}`);
 
     // Send reminder emails
     let emailsSent = 0;
@@ -184,48 +187,24 @@ const handler = async (req: Request): Promise<Response> => {
     for (const user of usersWithoutSignup) {
       try {
         const userName = user.full_name || user.email.split('@')[0];
-        
-        // Build available days text
-        const availableDays = weekDates
-          .filter(d => !d.isClosed)
-          .map(d => `${d.dayName} (${d.date})`)
-          .join('<br>');
-
-        const closedDaysText = weekDates.filter(d => d.isClosed).length > 0
-          ? `<p style="color: #666; font-size: 14px; margin-top: 16px;"><strong>Bemærk:</strong> Følgende dage er lukket: ${weekDates.filter(d => d.isClosed).map(d => d.dayName).join(', ')}</p>`
-          : '';
 
         const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #333; font-size: 24px; margin-bottom: 16px;">Hej ${userName}!</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <p style="color: #333; font-size: 16px; margin-bottom: 16px;">Hej ${userName},</p>
             
-            <p style="color: #555; font-size: 16px; line-height: 1.6;">
-              Vi har bemærket at du endnu ikke har skrevet dig op til frokost i den kommende uge 
-              (${mondayStr} til ${fridayStr}).
+            <p style="color: #333; font-size: 16px; margin-bottom: 24px;">
+              Husk at skriv dig op til den kommende uges frokost (uge ${weekNumber}).
             </p>
             
-            <p style="color: #555; font-size: 16px; line-height: 1.6;">
-              Husk at tilmelde dig, så køkkenet kan planlægge indkøb og tilberedning.
-            </p>
-
-            <div style="background-color: #f5f5f5; padding: 16px; border-radius: 8px; margin: 24px 0;">
-              <h3 style="color: #333; font-size: 18px; margin-top: 0;">Ledige dage denne uge:</h3>
-              <p style="color: #555; font-size: 14px; line-height: 1.8; margin: 0;">
-                ${availableDays || 'Ingen ledige dage'}
-              </p>
-            </div>
-
-            ${closedDaysText}
-            
-            <div style="text-align: center; margin: 32px 0;">
-              <a href="${Deno.env.get("VITE_SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || 'https://your-app.lovable.app'}" 
-                 style="background-color: #4CAF50; color: white; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; display: inline-block;">
-                Tilmeld dig frokost
+            <p style="margin-bottom: 32px;">
+              <a href="https://frokost.pluskontoret.dk" 
+                 style="color: #4CAF50; font-size: 16px; text-decoration: underline;">
+                Tilmeld dig frokost her
               </a>
-            </div>
+            </p>
             
-            <p style="color: #999; font-size: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee;">
-              Dette er en automatisk påmindelse sendt hver mandag morgen.
+            <p style="color: #999; font-size: 12px; margin-top: 32px;">
+              Dette er en automatisk påmindelse.
             </p>
           </div>
         `;
@@ -233,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
         const emailResponse = await resend.emails.send({
           from: "Frokost Tilmelding <onboarding@resend.dev>",
           to: [user.email],
-          subject: "Påmindelse: Tilmeld dig frokost denne uge",
+          subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
           html: emailHtml,
         });
 

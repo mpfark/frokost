@@ -1,0 +1,120 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Create Supabase client with service role to access cron_settings
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Create regular client to verify user is admin
+    const authHeader = req.headers.get('Authorization')!;
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        },
+        global: {
+          headers: { Authorization: authHeader },
+        }
+      }
+    );
+
+    // Verify user is authenticated and is admin
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: roles, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (roleError || !roles) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch cron secret using service role
+    const { data: cronSecret, error: secretError } = await supabaseAdmin
+      .from('cron_settings')
+      .select('setting_value')
+      .eq('setting_key', 'cron_secret')
+      .single();
+
+    if (secretError || !cronSecret) {
+      console.error('Error fetching cron secret:', secretError);
+      return new Response(
+        JSON.stringify({ error: 'Could not fetch cron secret' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Call the send-weekly-lunch-reminder function
+    const reminderResponse = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-weekly-lunch-reminder`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-cron-secret': cronSecret.setting_value,
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    if (!reminderResponse.ok) {
+      const errorText = await reminderResponse.text();
+      console.error('Error calling reminder function:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'Failed to send reminders' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await reminderResponse.json();
+
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    console.error('Error in trigger-reminder-test:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

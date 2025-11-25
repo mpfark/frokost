@@ -138,35 +138,23 @@ export const CompanySettings = () => {
   const handleTestReminder = async () => {
     setIsTestingReminder(true);
     try {
-      const { data: cronSecret, error: secretError } = await supabase
-        .from("cron_settings")
-        .select("setting_value")
-        .eq("setting_key", "cron_secret")
-        .single();
-
-      if (secretError) throw new Error("Kunne ikke hente cron secret");
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-weekly-lunch-reminder`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-cron-secret": cronSecret.setting_value,
-          },
-          body: JSON.stringify({}),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Kunne ikke sende test-påmindelse");
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Ikke autentificeret");
       }
 
-      const result = await response.json();
+      const { data, error } = await supabase.functions.invoke('trigger-reminder-test', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
 
       toast({
         title: "Test-påmindelse sendt",
-        description: result.message || "Påmindelser sendt til brugere uden tilmelding",
+        description: data.message || "Påmindelser sendt til brugere uden tilmelding",
       });
     } catch (error: any) {
       toast({

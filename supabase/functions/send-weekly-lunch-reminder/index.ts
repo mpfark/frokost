@@ -135,7 +135,14 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`Test mode: Sending reminder to ${testEmail}`);
       
       try {
-        const userName = testEmail.split('@')[0];
+        // Try to find user in profiles to get full name
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("full_name")
+          .eq("email", testEmail)
+          .single();
+        
+        const userName = profile?.full_name || testEmail.split('@')[0];
         const weekNumber = getISOWeekNumber(nextMonday);
 
         const emailHtml = `

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Building2, Bell } from "lucide-react";
+import { Building2, Bell, Send } from "lucide-react";
 
 export const CompanySettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
@@ -17,6 +17,7 @@ export const CompanySettings = () => {
   const [reminderHour, setReminderHour] = useState(8); // 08:00
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [isTestingReminder, setIsTestingReminder] = useState(false);
 
   useEffect(() => {
     fetchCompanySettings();
@@ -131,6 +132,50 @@ export const CompanySettings = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTestReminder = async () => {
+    setIsTestingReminder(true);
+    try {
+      const { data: cronSecret, error: secretError } = await supabase
+        .from("cron_settings")
+        .select("setting_value")
+        .eq("setting_key", "cron_secret")
+        .single();
+
+      if (secretError) throw new Error("Kunne ikke hente cron secret");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-weekly-lunch-reminder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-cron-secret": cronSecret.setting_value,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Kunne ikke sende test-påmindelse");
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Test-påmindelse sendt",
+        description: result.message || "Påmindelser sendt til brugere uden tilmelding",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingReminder(false);
     }
   };
 
@@ -256,6 +301,26 @@ export const CompanySettings = () => {
                   </p>
                 </div>
               </>
+            )}
+
+            {reminderEnabled && (
+              <div className="pt-4 border-t">
+                <div className="space-y-2">
+                  <Label>Test påmindelse</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send påmindelse emails manuelt til alle brugere uden tilmelding for næste uge
+                  </p>
+                  <Button
+                    onClick={handleTestReminder}
+                    disabled={isTestingReminder}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isTestingReminder ? "Sender..." : "Send test-påmindelse nu"}
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </div>

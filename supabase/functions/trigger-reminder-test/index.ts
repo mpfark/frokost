@@ -13,6 +13,17 @@ serve(async (req) => {
   }
 
   try {
+    // Parse request body to get testEmail
+    const body = await req.text();
+    const { testEmail } = body ? JSON.parse(body) : {};
+    
+    if (!testEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Test email is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Get JWT token from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -89,7 +100,7 @@ serve(async (req) => {
       );
     }
 
-    // Call the send-weekly-lunch-reminder function
+    // Call the send-weekly-lunch-reminder function with test email
     const reminderResponse = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-weekly-lunch-reminder`,
       {
@@ -98,7 +109,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'x-cron-secret': cronSecret.setting_value,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ testEmail }),
       }
     );
 

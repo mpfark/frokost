@@ -111,7 +111,6 @@ serve(async (req: Request) => {
     const results = [];
     // Get the frontend URL from the request origin or use a fallback
     const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.lovable.app";
-    const redirectUrl = `${origin}/set-password`;
 
     for (const email of emails) {
       const requestId = crypto.randomUUID();
@@ -164,10 +163,13 @@ serve(async (req: Request) => {
         }
 
         // Send invitation email - user will be created when they accept
+        // Use URL fragment to keep invite_code out of referrer headers and server logs
+        const redirectUrl = `${origin}/set-password#invite_code=${inviteCode}&email=${email.toLowerCase()}`;
+        
         const { data: inviteData, error: emailError } = await supabaseServiceClient.auth.admin.inviteUserByEmail(
           email.toLowerCase(),
           {
-            redirectTo: `${redirectUrl}`,
+            redirectTo: redirectUrl,
             data: {
               invite_code: inviteCode,
               full_name: email.split('@')[0], // Default name from email

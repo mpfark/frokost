@@ -33,6 +33,15 @@ export default function SetPassword() {
         toast.error("Ugyldig session. Kontakt venligst en administrator.");
         navigate("/");
       } else {
+        // Read invite_code from URL fragment if present (more secure than query params)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const fragmentInviteCode = hashParams.get("invite_code");
+        
+        if (fragmentInviteCode && session.user.user_metadata) {
+          // Store in session metadata for use in invitation acceptance
+          session.user.user_metadata.invite_code = fragmentInviteCode;
+        }
+        
         setSession(session);
       }
     });

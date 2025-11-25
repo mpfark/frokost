@@ -46,6 +46,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Parse request body to check for test email
+    const body = await req.text();
+    const { testEmail } = body ? JSON.parse(body) : {};
+    
     // Verify cron secret to prevent unauthorized access
     const cronSecret = Deno.env.get('CRON_SECRET');
     const providedSecret = req.headers.get('x-cron-secret');
@@ -125,6 +129,76 @@ const handler = async (req: Request): Promise<Response> => {
     const fridayStr = nextFriday.toISOString().split('T')[0];
 
     console.log(`Checking signups for week: ${mondayStr} to ${fridayStr}`);
+
+    // If test email is provided, send only to that email
+    if (testEmail) {
+      console.log(`Test mode: Sending reminder to ${testEmail}`);
+      
+      try {
+        const userName = testEmail.split('@')[0];
+        const weekNumber = getISOWeekNumber(nextMonday);
+
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <p style="color: #333; font-size: 16px; margin-bottom: 16px;">Hej ${userName},</p>
+            
+            <p style="color: #333; font-size: 16px; margin-bottom: 24px;">
+              Husk at skriv dig op til den kommende uges frokost (uge ${weekNumber}).
+            </p>
+            
+            <p style="margin-bottom: 32px;">
+              <a href="https://frokost.pluskontoret.dk" 
+                 style="color: #4CAF50; font-size: 16px; text-decoration: underline;">
+                Tilmeld dig frokost her
+              </a>
+            </p>
+            
+            <p style="color: #999; font-size: 12px; margin-top: 32px;">
+              Dette er en automatisk påmindelse.
+            </p>
+          </div>
+        `;
+
+        const emailResponse = await resend.emails.send({
+          from: "Frokost Tilmelding <onboarding@resend.dev>",
+          to: [testEmail],
+          subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
+          html: emailHtml,
+        });
+
+        console.log(`Test email sent to ${testEmail}:`, emailResponse);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Test påmindelse sendt til ${testEmail}`,
+            emailsSent: 1,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      } catch (emailError) {
+        console.error(`Failed to send test email to ${testEmail}:`, emailError);
+        return new Response(
+          JSON.stringify({
+            error: `Kunne ikke sende email til ${testEmail}`,
+            success: false,
+          }),
+          {
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+    }
 
     // Get all active users
     const { data: profiles, error: profilesError } = await supabaseAdmin

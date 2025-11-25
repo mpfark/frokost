@@ -18,6 +18,7 @@ export const CompanySettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [isTestingReminder, setIsTestingReminder] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     fetchCompanySettings();
@@ -136,6 +137,26 @@ export const CompanySettings = () => {
   };
 
   const handleTestReminder = async () => {
+    if (!testEmail.trim()) {
+      toast({
+        title: "Fejl",
+        description: "Indtast venligst en email-adresse",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(testEmail)) {
+      toast({
+        title: "Fejl",
+        description: "Indtast venligst en gyldig email-adresse",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsTestingReminder(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -152,6 +173,7 @@ export const CompanySettings = () => {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ testEmail }),
         }
       );
 
@@ -304,10 +326,18 @@ export const CompanySettings = () => {
             {reminderEnabled && (
               <div className="pt-4 border-t">
                 <div className="space-y-2">
-                  <Label>Test påmindelse</Label>
+                  <Label htmlFor="test-email">Test påmindelse</Label>
                   <p className="text-sm text-muted-foreground">
-                    Send påmindelse emails manuelt til alle brugere uden tilmelding for næste uge
+                    Send en test-påmindelse til en specifik email-adresse
                   </p>
+                  <Input
+                    id="test-email"
+                    type="email"
+                    placeholder="navn@virksomhed.dk"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    disabled={isTestingReminder}
+                  />
                   <Button
                     onClick={handleTestReminder}
                     disabled={isTestingReminder}
@@ -315,7 +345,7 @@ export const CompanySettings = () => {
                     className="w-full"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {isTestingReminder ? "Sender..." : "Send test-påmindelse nu"}
+                    {isTestingReminder ? "Sender..." : "Send test-påmindelse"}
                   </Button>
                 </div>
               </div>

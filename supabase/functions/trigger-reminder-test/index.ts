@@ -13,6 +13,16 @@ serve(async (req) => {
   }
 
   try {
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - No token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create Supabase client with service role to access cron_settings
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -26,7 +36,6 @@ serve(async (req) => {
     );
 
     // Create regular client to verify user is admin
-    const authHeader = req.headers.get('Authorization')!;
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -45,11 +54,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
     if (userError || !user) {
+      console.error('User error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('User authenticated:', user.id);
 
     // Check if user has admin role
     const { data: roles, error: roleError } = await supabaseClient

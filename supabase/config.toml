@@ -12,9 +12,6 @@ verify_jwt = true
 [functions.delete-user]
 verify_jwt = true
 
-[functions.validate-teams-token]
-verify_jwt = false
-
 [functions.validate-invitation]
 verify_jwt = false
 

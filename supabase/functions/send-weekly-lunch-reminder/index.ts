@@ -247,6 +247,37 @@ const handler = async (req: Request): Promise<Response> => {
 
     const closedDatesSet = new Set((closedDates || []).map(d => d.date));
 
+    // Generate all weekdays (Monday-Friday) for the upcoming week
+    const weekdays: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const day = new Date(nextMonday);
+      day.setDate(nextMonday.getDate() + i);
+      weekdays.push(day.toISOString().split('T')[0]);
+    }
+
+    // Check if ALL weekdays are closed
+    const allDaysClosed = weekdays.every(day => closedDatesSet.has(day));
+
+    if (allDaysClosed) {
+      console.log("Kitchen is closed all week - skipping reminders");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Køkkenet er lukket hele ugen - ingen påmindelser sendt",
+          kitchenClosedAllWeek: true,
+          closedDates: closedDates,
+          week: `${mondayStr} to ${fridayStr}`,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     // Create a set of user IDs who have already signed up
     const signedUpUserIds = new Set(signups?.map(s => s.user_id) || []);
 

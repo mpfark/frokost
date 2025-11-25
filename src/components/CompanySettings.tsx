@@ -138,17 +138,7 @@ export const CompanySettings = () => {
   const handleTestReminder = async () => {
     setIsTestingReminder(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error("Ikke autentificeret");
-      }
-
-      const { data, error } = await supabase.functions.invoke('trigger-reminder-test', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke('trigger-reminder-test');
 
       if (error) throw error;
 

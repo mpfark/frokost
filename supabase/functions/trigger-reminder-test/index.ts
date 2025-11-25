@@ -23,6 +23,8 @@ serve(async (req) => {
       );
     }
 
+    const token = authHeader.replace('Bearer ', '');
+
     // Create Supabase client with service role to access cron_settings
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -43,15 +45,12 @@ serve(async (req) => {
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        },
-        global: {
-          headers: { Authorization: authHeader },
         }
       }
     );
 
     // Verify user is authenticated and is admin
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
       console.error('User error:', userError);

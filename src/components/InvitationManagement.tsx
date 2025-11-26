@@ -27,7 +27,6 @@ interface Invitation {
 export const InvitationManagement = () => {
   const [singleEmail, setSingleEmail] = useState("");
   const [batchEmails, setBatchEmails] = useState("");
-  const [batchDescription, setBatchDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [stats, setStats] = useState({
@@ -84,7 +83,6 @@ export const InvitationManagement = () => {
       const { data, error } = await supabase.functions.invoke("send-invitations", {
         body: { 
           emails,
-          batchDescription: emails.length > 1 ? batchDescription : undefined,
         },
       });
 
@@ -107,7 +105,6 @@ export const InvitationManagement = () => {
       // Clear form
       setSingleEmail("");
       setBatchEmails("");
-      setBatchDescription("");
       
       // Refresh invitations
       fetchInvitations();
@@ -372,16 +369,6 @@ export const InvitationManagement = () => {
                 <p className="text-sm text-muted-foreground">
                   {batchEmails.split(/[\n,]/).filter(e => e.trim().length > 0).length} e-mail(s)
                 </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="batch-description">Beskrivelse (valgfri)</Label>
-                <Input
-                  id="batch-description"
-                  placeholder="f.eks. Marketing team invitationer"
-                  value={batchDescription}
-                  onChange={(e) => setBatchDescription(e.target.value)}
-                  disabled={isLoading}
-                />
               </div>
               <Button onClick={handleSendBatch} disabled={isLoading}>
                 {isLoading ? "Sender..." : "Send masseinvitationer"}

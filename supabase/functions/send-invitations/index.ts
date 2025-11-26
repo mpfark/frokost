@@ -9,7 +9,6 @@ const corsHeaders = {
 
 interface InviteRequest {
   emails: string[];
-  batchDescription?: string;
 }
 
 const emailSchema = z.string().trim().email().max(255);
@@ -71,7 +70,7 @@ serve(async (req: Request) => {
       .from("rate_limits")
       .insert({ user_id: user.id, action: "send_invitations" });
 
-    const { emails, batchDescription }: InviteRequest = await req.json();
+    const { emails }: InviteRequest = await req.json();
 
     // Validate email array
     const emailsValidation = emailArraySchema.safeParse(emails);
@@ -96,7 +95,6 @@ serve(async (req: Request) => {
         .insert({
           created_by: user.id,
           total_invites: emails.length,
-          description: batchDescription,
         })
         .select()
         .single();

@@ -35,14 +35,6 @@ export default function SetPassword() {
       console.log("Auth state changed:", event, session?.user?.email);
       
       if (session) {
-        // Read invite_code from URL fragment if present
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const fragmentInviteCode = hashParams.get("invite_code");
-        
-        if (fragmentInviteCode && session.user.user_metadata) {
-          session.user.user_metadata.invite_code = fragmentInviteCode;
-        }
-        
         setSession(session);
         setIsCheckingSession(false);
       } else if (event === 'SIGNED_OUT') {
@@ -54,13 +46,6 @@ export default function SetPassword() {
     // Also check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const fragmentInviteCode = hashParams.get("invite_code");
-        
-        if (fragmentInviteCode && session.user.user_metadata) {
-          session.user.user_metadata.invite_code = fragmentInviteCode;
-        }
-        
         setSession(session);
         setIsCheckingSession(false);
       }

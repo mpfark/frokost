@@ -161,8 +161,8 @@ serve(async (req: Request) => {
         }
 
         // Send invitation email - user will be created when they accept
-        // Use URL fragment to keep invite_code out of referrer headers and server logs
-        const redirectUrl = `${origin}/set-password#invite_code=${inviteCode}&email=${email.toLowerCase()}`;
+        // Supabase will add auth tokens to URL fragment; invite_code is stored in user_metadata
+        const redirectUrl = `${origin}/set-password`;
         
         const { data: inviteData, error: emailError } = await supabaseServiceClient.auth.admin.inviteUserByEmail(
           email.toLowerCase(),

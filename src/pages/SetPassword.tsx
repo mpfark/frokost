@@ -24,28 +24,62 @@ export default function SetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<any>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is authenticated via magic link
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        toast.error("Ugyldig session. Kontakt venligst en administrator.");
-        navigate("/");
-      } else {
-        // Read invite_code from URL fragment if present (more secure than query params)
+    let timeoutId: NodeJS.Timeout;
+
+    // Listen for auth state changes (handles magic link authentication)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
+      
+      if (session) {
+        // Read invite_code from URL fragment if present
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const fragmentInviteCode = hashParams.get("invite_code");
         
         if (fragmentInviteCode && session.user.user_metadata) {
-          // Store in session metadata for use in invitation acceptance
           session.user.user_metadata.invite_code = fragmentInviteCode;
         }
         
         setSession(session);
+        setIsCheckingSession(false);
+      } else if (event === 'SIGNED_OUT') {
+        toast.error("Ugyldig session. Kontakt venligst en administrator.");
+        navigate("/");
       }
     });
-  }, [navigate]);
+
+    // Also check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const fragmentInviteCode = hashParams.get("invite_code");
+        
+        if (fragmentInviteCode && session.user.user_metadata) {
+          session.user.user_metadata.invite_code = fragmentInviteCode;
+        }
+        
+        setSession(session);
+        setIsCheckingSession(false);
+      }
+    });
+
+    // Timeout: if no session after 10 seconds, show error
+    timeoutId = setTimeout(() => {
+      if (!session) {
+        setIsCheckingSession(false);
+        toast.error("Ugyldig eller udløbet invitation link. Kontakt venligst en administrator.");
+        navigate("/");
+      }
+    }, 10000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
+  }, [navigate, session]);
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +171,19 @@ export default function SetPassword() {
       setIsLoading(false);
     }
   };
+
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Verificerer invitation...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!session) {
     return null;

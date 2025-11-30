@@ -1,0 +1,276 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { Bell, Send } from "lucide-react";
+
+export const ReminderSettings = () => {
+  const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [reminderDay, setReminderDay] = useState(1);
+  const [reminderHour, setReminderHour] = useState(8);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [isTestingReminder, setIsTestingReminder] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("reminder_enabled, reminder_day, reminder_hour")
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      if (data) {
+        setReminderEnabled(data.reminder_enabled ?? true);
+        setReminderDay(data.reminder_day ?? 1);
+        setReminderHour(data.reminder_hour ?? 8);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      const { data: existing } = await supabase
+        .from("company_settings")
+        .select("id")
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from("company_settings")
+          .update({ 
+            reminder_enabled: reminderEnabled,
+            reminder_day: reminderDay,
+            reminder_hour: reminderHour
+          })
+          .eq("id", existing.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("company_settings")
+          .insert({ 
+            reminder_enabled: reminderEnabled,
+            reminder_day: reminderDay,
+            reminder_hour: reminderHour,
+            allowed_domain: ''
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Succes",
+        description: "Påmindelsesindstillinger gemt",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTestReminder = async () => {
+    if (!testEmail.trim()) {
+      toast({
+        title: "Fejl",
+        description: "Indtast venligst en email-adresse",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(testEmail)) {
+      toast({
+        title: "Fejl",
+        description: "Indtast venligst en gyldig email-adresse",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestingReminder(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Du skal være logget ind");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trigger-reminder-test`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ testEmail }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Kunne ikke sende test-påmindelse');
+      }
+
+      const data = await response.json();
+
+      toast({
+        title: "Test-påmindelse sendt",
+        description: data.message || "Påmindelser sendt til brugere uden tilmelding",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingReminder(false);
+    }
+  };
+
+  if (isFetching) {
+    return <div>Indlæser...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="h-5 w-5" />
+          Ugentlige påmindelser
+        </CardTitle>
+        <CardDescription>
+          Konfigurer automatiske emails til brugere uden frokost-tilmelding
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="reminder-enabled">Aktiver påmindelser</Label>
+            <p className="text-sm text-muted-foreground">
+              Send automatiske emails til brugere uden frokost-tilmelding
+            </p>
+          </div>
+          <Switch
+            id="reminder-enabled"
+            checked={reminderEnabled}
+            onCheckedChange={setReminderEnabled}
+            disabled={isLoading}
+          />
+        </div>
+
+        {reminderEnabled && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="reminder-day">Dag</Label>
+              <Select
+                value={reminderDay.toString()}
+                onValueChange={(value) => setReminderDay(parseInt(value))}
+                disabled={isLoading}
+              >
+                <SelectTrigger id="reminder-day">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Søndag</SelectItem>
+                  <SelectItem value="1">Mandag</SelectItem>
+                  <SelectItem value="2">Tirsdag</SelectItem>
+                  <SelectItem value="3">Onsdag</SelectItem>
+                  <SelectItem value="4">Torsdag</SelectItem>
+                  <SelectItem value="5">Fredag</SelectItem>
+                  <SelectItem value="6">Lørdag</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Hvilken dag skal påmindelser sendes
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reminder-hour">Tidspunkt</Label>
+              <Select
+                value={reminderHour.toString()}
+                onValueChange={(value) => setReminderHour(parseInt(value))}
+                disabled={isLoading}
+              >
+                <SelectTrigger id="reminder-hour">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <SelectItem key={i} value={i.toString()}>
+                      {i.toString().padStart(2, '0')}:00
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Hvilket tidspunkt skal påmindelser sendes (24-timers format)
+              </p>
+            </div>
+
+            <div className="pt-4 border-t">
+              <div className="space-y-2">
+                <Label htmlFor="test-email">Test påmindelse</Label>
+                <p className="text-sm text-muted-foreground">
+                  Send en test-påmindelse til en specifik email-adresse
+                </p>
+                <Input
+                  id="test-email"
+                  type="email"
+                  placeholder="navn@virksomhed.dk"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  disabled={isTestingReminder}
+                />
+                <Button
+                  onClick={handleTestReminder}
+                  disabled={isTestingReminder}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isTestingReminder ? "Sender..." : "Send test-påmindelse"}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+
+        <Button onClick={handleSave} disabled={isLoading} className="w-full">
+          {isLoading ? "Gemmer..." : "Gem indstillinger"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};

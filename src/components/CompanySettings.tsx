@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Building2, Bell, Send } from "lucide-react";
+import { Building2, Bell, Send, Palette } from "lucide-react";
+import { ColorPicker } from "@/components/ColorPicker";
 
 export const CompanySettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
@@ -19,6 +20,9 @@ export const CompanySettings = () => {
   const [isFetching, setIsFetching] = useState(true);
   const [isTestingReminder, setIsTestingReminder] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("25 95% 37%");
+  const [secondaryColor, setSecondaryColor] = useState("35 40% 90%");
+  const [accentColor, setAccentColor] = useState("20 90% 48%");
 
   useEffect(() => {
     fetchCompanySettings();
@@ -28,7 +32,7 @@ export const CompanySettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain, weeks_to_display, reminder_enabled, reminder_day, reminder_hour")
+        .select("allowed_domain, weeks_to_display, reminder_enabled, reminder_day, reminder_hour, primary_color, secondary_color, accent_color")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -41,6 +45,9 @@ export const CompanySettings = () => {
         setReminderEnabled(data.reminder_enabled ?? true);
         setReminderDay(data.reminder_day ?? 1);
         setReminderHour(data.reminder_hour ?? 8);
+        setPrimaryColor(data.primary_color || "25 95% 37%");
+        setSecondaryColor(data.secondary_color || "35 40% 90%");
+        setAccentColor(data.accent_color || "20 90% 48%");
       }
     } catch (error: any) {
       toast({
@@ -101,7 +108,10 @@ export const CompanySettings = () => {
             weeks_to_display: weeksToDisplay,
             reminder_enabled: reminderEnabled,
             reminder_day: reminderDay,
-            reminder_hour: reminderHour
+            reminder_hour: reminderHour,
+            primary_color: primaryColor,
+            secondary_color: secondaryColor,
+            accent_color: accentColor
           })
           .eq("id", existing.id);
 
@@ -115,7 +125,10 @@ export const CompanySettings = () => {
             weeks_to_display: weeksToDisplay,
             reminder_enabled: reminderEnabled,
             reminder_day: reminderDay,
-            reminder_hour: reminderHour
+            reminder_hour: reminderHour,
+            primary_color: primaryColor,
+            secondary_color: secondaryColor,
+            accent_color: accentColor
           });
 
         if (error) throw error;
@@ -350,6 +363,37 @@ export const CompanySettings = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="pt-4 border-t">
+          <div className="flex items-center gap-2 mb-4">
+            <Palette className="h-5 w-5" />
+            <h3 className="text-lg font-semibold">Farvetema</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Tilpas farverne på hjemmesiden
+          </p>
+          
+          <div className="space-y-4">
+            <ColorPicker
+              label="Primær farve"
+              value={primaryColor}
+              onChange={setPrimaryColor}
+              disabled={isLoading}
+            />
+            <ColorPicker
+              label="Sekundær farve"
+              value={secondaryColor}
+              onChange={setSecondaryColor}
+              disabled={isLoading}
+            />
+            <ColorPicker
+              label="Accent farve"
+              value={accentColor}
+              onChange={setAccentColor}
+              disabled={isLoading}
+            />
           </div>
         </div>
 

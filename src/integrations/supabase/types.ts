@@ -37,32 +37,41 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          accent_color: string | null
           allowed_domain: string
           created_at: string
           id: string
+          primary_color: string | null
           reminder_day: number
           reminder_enabled: boolean
           reminder_hour: number
+          secondary_color: string | null
           updated_at: string
           weeks_to_display: number
         }
         Insert: {
+          accent_color?: string | null
           allowed_domain: string
           created_at?: string
           id?: string
+          primary_color?: string | null
           reminder_day?: number
           reminder_enabled?: boolean
           reminder_hour?: number
+          secondary_color?: string | null
           updated_at?: string
           weeks_to_display?: number
         }
         Update: {
+          accent_color?: string | null
           allowed_domain?: string
           created_at?: string
           id?: string
+          primary_color?: string | null
           reminder_day?: number
           reminder_enabled?: boolean
           reminder_hour?: number
+          secondary_color?: string | null
           updated_at?: string
           weeks_to_display?: number
         }

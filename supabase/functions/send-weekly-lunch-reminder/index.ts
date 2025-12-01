@@ -4,6 +4,9 @@ import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// Helper function for rate limiting
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -292,7 +295,8 @@ const handler = async (req: Request): Promise<Response> => {
     const weekNumber = getISOWeekNumber(nextMonday);
     console.log(`Week number: ${weekNumber}`);
 
-    // Send reminder emails
+    // Send reminder emails with rate limiting (2 emails/second for Resend)
+    console.log(`Sending ${usersWithoutSignup.length} emails with rate limiting (2/second)...`);
     let emailsSent = 0;
     let emailsFailed = 0;
 
@@ -330,9 +334,15 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`Email sent to ${user.email}:`, emailResponse);
         emailsSent++;
+        
+        // Rate limiting: wait 500ms between emails (max 2/second for Resend)
+        await delay(500);
       } catch (emailError) {
         console.error(`Failed to send email to ${user.email}:`, emailError);
         emailsFailed++;
+        
+        // Still add delay even on failure to maintain rate limit
+        await delay(500);
       }
     }
 

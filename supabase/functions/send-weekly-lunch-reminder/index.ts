@@ -170,7 +170,7 @@ const handler = async (req: Request): Promise<Response> => {
         `;
 
         const emailResponse = await resend.emails.send({
-          from: "Frokost Tilmelding <onboarding@resend.dev>",
+          from: "Frokost Tilmelding <frokost@pluskontoret.dk>",
           to: [testEmail],
           subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
           html: emailHtml,
@@ -326,7 +326,7 @@ const handler = async (req: Request): Promise<Response> => {
         `;
 
         const emailResponse = await resend.emails.send({
-          from: "Frokost Tilmelding <onboarding@resend.dev>",
+          from: "Frokost Tilmelding <frokost@pluskontoret.dk>",
           to: [user.email],
           subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
           html: emailHtml,

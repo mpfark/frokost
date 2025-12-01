@@ -5,7 +5,7 @@ import { Resend } from "https://esm.sh/resend@4.0.0";
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // Helper function for rate limiting
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +38,7 @@ function getISOWeekNumber(date: Date): number {
   const firstThursday = target.valueOf();
   target.setMonth(0, 1);
   if (target.getDay() !== 4) {
-    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
   }
   return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
 }
@@ -52,24 +52,21 @@ const handler = async (req: Request): Promise<Response> => {
     // Parse request body to check for test email
     const body = await req.text();
     const { testEmail } = body ? JSON.parse(body) : {};
-    
+
     // Verify cron secret to prevent unauthorized access
-    const cronSecret = Deno.env.get('CRON_SECRET');
-    const providedSecret = req.headers.get('x-cron-secret');
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSecret = req.headers.get("x-cron-secret");
 
     if (!providedSecret || cronSecret !== providedSecret) {
-      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
       console.error(`Unauthorized weekly reminder attempt from IP: ${ip}`);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }), 
-        { 
-          status: 401, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
-        }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
     }
 
     console.log("Starting weekly lunch reminder check...");
@@ -82,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
           autoRefreshToken: false,
           persistSession: false,
         },
-      }
+      },
     );
 
     // Check if reminders are enabled in company settings
@@ -109,34 +106,34 @@ const handler = async (req: Request): Promise<Response> => {
             "Content-Type": "application/json",
             ...corsHeaders,
           },
-        }
+        },
       );
     }
 
     // Calculate the upcoming week (Monday to Friday)
     const now = new Date();
     const currentDay = now.getDay();
-    
+
     // Calculate days until next Monday (if today is Monday, use today)
     const daysUntilMonday = currentDay === 1 ? 0 : (8 - currentDay) % 7;
-    
+
     const nextMonday = new Date(now);
     nextMonday.setDate(now.getDate() + daysUntilMonday);
     nextMonday.setHours(0, 0, 0, 0);
-    
+
     const nextFriday = new Date(nextMonday);
     nextFriday.setDate(nextMonday.getDate() + 4);
     nextFriday.setHours(23, 59, 59, 999);
 
-    const mondayStr = nextMonday.toISOString().split('T')[0];
-    const fridayStr = nextFriday.toISOString().split('T')[0];
+    const mondayStr = nextMonday.toISOString().split("T")[0];
+    const fridayStr = nextFriday.toISOString().split("T")[0];
 
     console.log(`Checking signups for week: ${mondayStr} to ${fridayStr}`);
 
     // If test email is provided, send only to that email
     if (testEmail) {
       console.log(`Test mode: Sending reminder to ${testEmail}`);
-      
+
       try {
         // Try to find user in profiles to get full name
         const { data: profile } = await supabaseAdmin
@@ -144,8 +141,8 @@ const handler = async (req: Request): Promise<Response> => {
           .select("full_name")
           .eq("email", testEmail)
           .single();
-        
-        const userName = profile?.full_name || testEmail.split('@')[0];
+
+        const userName = profile?.full_name || testEmail.split("@")[0];
         const weekNumber = getISOWeekNumber(nextMonday);
 
         const emailHtml = `
@@ -170,7 +167,7 @@ const handler = async (req: Request): Promise<Response> => {
         `;
 
         const emailResponse = await resend.emails.send({
-          from: "Frokost Tilmelding <frokost@pluskontoret.dk>",
+          from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
           to: [testEmail],
           subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
           html: emailHtml,
@@ -190,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
               "Content-Type": "application/json",
               ...corsHeaders,
             },
-          }
+          },
         );
       } catch (emailError) {
         console.error(`Failed to send test email to ${testEmail}:`, emailError);
@@ -205,7 +202,7 @@ const handler = async (req: Request): Promise<Response> => {
               "Content-Type": "application/json",
               ...corsHeaders,
             },
-          }
+          },
         );
       }
     }
@@ -248,18 +245,18 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching closed dates:", closedError);
     }
 
-    const closedDatesSet = new Set((closedDates || []).map(d => d.date));
+    const closedDatesSet = new Set((closedDates || []).map((d) => d.date));
 
     // Generate all weekdays (Monday-Friday) for the upcoming week
     const weekdays: string[] = [];
     for (let i = 0; i < 5; i++) {
       const day = new Date(nextMonday);
       day.setDate(nextMonday.getDate() + i);
-      weekdays.push(day.toISOString().split('T')[0]);
+      weekdays.push(day.toISOString().split("T")[0]);
     }
 
     // Check if ALL weekdays are closed
-    const allDaysClosed = weekdays.every(day => closedDatesSet.has(day));
+    const allDaysClosed = weekdays.every((day) => closedDatesSet.has(day));
 
     if (allDaysClosed) {
       console.log("Kitchen is closed all week - skipping reminders");
@@ -277,17 +274,15 @@ const handler = async (req: Request): Promise<Response> => {
             "Content-Type": "application/json",
             ...corsHeaders,
           },
-        }
+        },
       );
     }
 
     // Create a set of user IDs who have already signed up
-    const signedUpUserIds = new Set(signups?.map(s => s.user_id) || []);
+    const signedUpUserIds = new Set(signups?.map((s) => s.user_id) || []);
 
     // Find users who haven't signed up
-    const usersWithoutSignup = profiles?.filter(
-      (profile) => !signedUpUserIds.has(profile.id)
-    ) || [];
+    const usersWithoutSignup = profiles?.filter((profile) => !signedUpUserIds.has(profile.id)) || [];
 
     console.log(`Found ${usersWithoutSignup.length} users without signups`);
 
@@ -302,7 +297,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     for (const user of usersWithoutSignup) {
       try {
-        const userName = user.full_name || user.email.split('@')[0];
+        const userName = user.full_name || user.email.split("@")[0];
 
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -334,13 +329,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`Email sent to ${user.email}:`, emailResponse);
         emailsSent++;
-        
+
         // Rate limiting: wait 500ms between emails (max 2/second for Resend)
         await delay(500);
       } catch (emailError) {
         console.error(`Failed to send email to ${user.email}:`, emailError);
         emailsFailed++;
-        
+
         // Still add delay even on failure to maintain rate limit
         await delay(500);
       }
@@ -369,17 +364,17 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-weekly-lunch-reminder function:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
-        success: false 
+        success: false,
       }),
       {
         status: 500,
-        headers: { 
-          "Content-Type": "application/json", 
-          ...corsHeaders 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
         },
-      }
+      },
     );
   }
 };

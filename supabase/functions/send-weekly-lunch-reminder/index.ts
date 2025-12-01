@@ -321,7 +321,7 @@ const handler = async (req: Request): Promise<Response> => {
         `;
 
         const emailResponse = await resend.emails.send({
-          from: "Frokost Tilmelding <frokost@pluskontoret.dk>",
+          from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
           to: [user.email],
           subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
           html: emailHtml,

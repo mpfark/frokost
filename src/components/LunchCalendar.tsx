@@ -52,6 +52,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
 
   const today = new Date();
+  const currentWeekNumber = getWeek(today, { weekStartsOn: 1 });
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
 
   // Create weeks of data based on company settings
@@ -373,9 +374,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col md:flex-row gap-4">
               {/* Week Number */}
-              <div className="flex-shrink-0 flex flex-row md:flex-col items-center justify-center bg-muted rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Uge</div>
-                <div className="text-2xl md:text-4xl font-bold text-foreground">{weekNumber}</div>
+              <div className={`flex-shrink-0 flex flex-row md:flex-col items-center justify-center rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0 ${weekNumber === currentWeekNumber ? "bg-primary" : "bg-muted"}`}>
+                <div className={`text-xs uppercase tracking-wide ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-muted-foreground"}`}>Uge</div>
+                <div className={`text-2xl md:text-4xl font-bold ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-foreground"}`}>{weekNumber}</div>
               </div>
 
               {/* Days Grid */}

@@ -17,6 +17,9 @@ const emailArraySchema = z.array(emailSchema).min(1).max(50);
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Helper function for rate limiting between emails
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -201,6 +204,9 @@ serve(async (req: Request) => {
           success: true,
           inviteCode,
         });
+
+        // Rate limiting: wait 500ms between emails (max 2/second for Resend)
+        await delay(500);
       } catch (error: any) {
         console.error("Request ID:", requestId, "Error processing invitation:", error);
         results.push({

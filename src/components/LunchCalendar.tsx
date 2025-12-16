@@ -5,6 +5,7 @@ import { da } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Users, UserPlus, Plus, Trash2 } from "lucide-react";
 import {
@@ -43,13 +44,32 @@ interface ClosedDate {
   reason: string | null;
 }
 
+const SETTINGS_CACHE_KEY = "company_settings_cache";
+
 export const LunchCalendar = ({ userId }: { userId: string }) => {
+  // Try to get cached weeks setting for instant render
+  const getCachedWeeks = () => {
+    const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        return parsed.weeks_to_display || 4;
+      } catch {
+        return 4;
+      }
+    }
+    return null; // null means we need to load
+  };
+
+  const cachedWeeks = getCachedWeeks();
+  
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(cachedWeeks === null);
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const [weeksToDisplay, setWeeksToDisplay] = useState(3);
+  const [weeksToDisplay, setWeeksToDisplay] = useState(cachedWeeks || 4);
 
   const today = new Date();
   const currentWeekNumber = getWeek(today, { weekStartsOn: 1 });
@@ -120,18 +140,25 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   };
 
   const fetchCompanySettings = async () => {
-    const { data, error } = await supabase
-      .from("company_settings")
-      .select("weeks_to_display")
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("weeks_to_display")
+        .single();
 
-    if (error && error.code !== "PGRST116") {
-      console.error("Error fetching company settings:", error);
-      return;
-    }
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching company settings:", error);
+        return;
+      }
 
-    if (data) {
-      setWeeksToDisplay(data.weeks_to_display || 3);
+      if (data) {
+        const weeks = data.weeks_to_display || 4;
+        setWeeksToDisplay(weeks);
+        // Cache settings for next load
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ weeks_to_display: weeks }));
+      }
+    } finally {
+      setIsSettingsLoading(false);
     }
   };
 
@@ -366,6 +393,27 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return closedDates.find((cd) => cd.date === dateStr)?.reason;
   };
+
+  if (isSettingsLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <Skeleton className="h-20 w-20 rounded-lg" />
+                <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {[1, 2, 3, 4, 5].map((j) => (
+                    <Skeleton key={j} className="h-24 rounded-lg" />
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

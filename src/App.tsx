@@ -7,6 +7,7 @@ import { useCompanyColors } from "@/hooks/useCompanyColors";
 import Index from "./pages/Index";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/install" element={<Install />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

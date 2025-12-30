@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Smartphone } from "lucide-react";
 import { profileSchema } from "@/lib/validations";
 
 interface ProfileSettingsProps {
@@ -171,6 +172,15 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             "Gem ændringer"
           )}
         </Button>
+
+        <div className="pt-4 border-t">
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/install" className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              Installer appen på telefonen
+            </Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

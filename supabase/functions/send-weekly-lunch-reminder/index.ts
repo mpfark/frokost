@@ -2,8 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Declare EdgeRuntime for background tasks
+declare const EdgeRuntime: {
+  waitUntil(promise: Promise<unknown>): void;
+};
 
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 // Helper function for rate limiting
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,30 +47,14 @@ function getISOWeekNumber(date: Date): number {
   return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+// Main processing function - runs in background
+async function processReminders(req: Request, testEmail?: string, cronSecret?: string, providedSecret?: string): Promise<void> {
   try {
-    // Parse request body to check for test email
-    const body = await req.text();
-    const { testEmail } = body ? JSON.parse(body) : {};
-
     // Verify cron secret to prevent unauthorized access
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const providedSecret = req.headers.get("x-cron-secret");
-
     if (!providedSecret || cronSecret !== providedSecret) {
       const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
       console.error(`Unauthorized weekly reminder attempt from IP: ${ip}`);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      });
+      return;
     }
 
     console.log("Starting weekly lunch reminder check...");
@@ -94,20 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (settings && !settings.reminder_enabled) {
       console.log("Weekly reminders are disabled in company settings");
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "Reminders disabled",
-          remindersEnabled: false,
-        }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
+      return;
     }
 
     // Calculate the upcoming week (Monday to Friday)
@@ -174,37 +149,10 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         console.log(`Test email sent to ${testEmail}:`, emailResponse);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: `Test påmindelse sendt til ${testEmail}`,
-            emailsSent: 1,
-          }),
-          {
-            status: 200,
-            headers: {
-              "Content-Type": "application/json",
-              ...corsHeaders,
-            },
-          },
-        );
       } catch (emailError) {
         console.error(`Failed to send test email to ${testEmail}:`, emailError);
-        return new Response(
-          JSON.stringify({
-            error: `Kunne ikke sende email til ${testEmail}`,
-            success: false,
-          }),
-          {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json",
-              ...corsHeaders,
-            },
-          },
-        );
       }
+      return;
     }
 
     // Get all active users
@@ -260,22 +208,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (allDaysClosed) {
       console.log("Kitchen is closed all week - skipping reminders");
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "Køkkenet er lukket hele ugen - ingen påmindelser sendt",
-          kitchenClosedAllWeek: true,
-          closedDates: closedDates,
-          week: `${mondayStr} to ${fridayStr}`,
-        }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
+      return;
     }
 
     // Create a set of user IDs who have already signed up
@@ -353,14 +286,59 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     console.log("Weekly reminder completed:", result);
+  } catch (error: any) {
+    console.error("Error in send-weekly-lunch-reminder function:", error);
+  }
+}
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
+// Handle shutdown gracefully
+addEventListener('beforeunload', (ev) => {
+  console.log('Function shutdown:', (ev as any).detail?.reason);
+});
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Parse request body to check for test email
+    const body = await req.text();
+    const { testEmail } = body ? JSON.parse(body) : {};
+
+    // Verify cron secret
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSecret = req.headers.get("x-cron-secret");
+
+    if (!providedSecret || cronSecret !== providedSecret) {
+      const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+      console.error(`Unauthorized weekly reminder attempt from IP: ${ip}`);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // Start processing in background - this continues after response is sent
+    EdgeRuntime.waitUntil(processReminders(req, testEmail, cronSecret, providedSecret));
+
+    // Return immediately to avoid pg_net timeout
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Reminder processing started in background",
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Error in send-weekly-lunch-reminder function:", error);
     return new Response(
@@ -374,7 +352,7 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "application/json",
           ...corsHeaders,
         },
-      },
+      }
     );
   }
 };

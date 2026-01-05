@@ -85,9 +85,11 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
       return;
     }
 
-    // Calculate the upcoming week (Monday to Friday)
+// Calculate the upcoming week (Monday to Friday) using Danish local time
     const now = new Date();
-    const currentDay = now.getDay();
+    // Convert to Danish timezone to get the correct local day
+    const danishTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Copenhagen' }));
+    const currentDay = danishTime.getDay();
 
     // Calculate days until next Monday (if today is Monday, use today)
     const daysUntilMonday = currentDay === 1 ? 0 : (8 - currentDay) % 7;

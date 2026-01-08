@@ -89,7 +89,7 @@ const generateInvitationEmail = (inviteLink: string, adminName: string, primaryC
     
     <p>Hej!</p>
     
-    <p>${adminName} har inviteret dig til at bruge <strong>Plusfrokost</strong> - vores system til tilmelding af frokost.</p>
+    <p>${adminName} har inviteret dig til at bruge <strong>Plusfrokost</strong> - vores frokost tilmeldingssystem.</p>
     
     <p>Klik på knappen nedenfor for at acceptere invitationen og oprette din adgangskode:</p>
     

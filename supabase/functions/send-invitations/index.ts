@@ -19,11 +19,59 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// Default colors (HSL format matching the app defaults)
+const DEFAULT_COLORS = {
+  primary: "25 95% 37%",
+  secondary: "35 40% 90%",
+  accent: "20 90% 48%"
+};
+
+// Convert HSL string to hex for email compatibility
+const hslToHex = (hsl: string): string => {
+  const parts = hsl.split(' ');
+  if (parts.length !== 3) return '#b45309'; // Fallback amber color
+  
+  const h = parseFloat(parts[0]) / 360;
+  const s = parseFloat(parts[1]) / 100;
+  const l = parseFloat(parts[2]) / 100;
+
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  const toHex = (x: number) => {
+    const hex = Math.round(x * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
 // Helper function for rate limiting between emails
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Generate invitation email HTML
-const generateInvitationEmail = (inviteLink: string, adminName: string): string => `
+// Generate invitation email HTML with dynamic colors
+const generateInvitationEmail = (inviteLink: string, adminName: string, primaryColor: string, accentColor: string): string => {
+  const primaryHex = hslToHex(primaryColor);
+  const accentHex = hslToHex(accentColor);
+  
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -32,7 +80,7 @@ const generateInvitationEmail = (inviteLink: string, adminName: string): string 
   <title>Invitation til Plusfrokost</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+  <div style="background: ${primaryHex}; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 24px;">🍽️ Plusfrokost</h1>
   </div>
   
@@ -46,7 +94,7 @@ const generateInvitationEmail = (inviteLink: string, adminName: string): string 
     <p>Klik på knappen nedenfor for at acceptere invitationen og oprette din adgangskode:</p>
     
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${inviteLink}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+      <a href="${inviteLink}" style="background: ${accentHex}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
         Acceptér invitation
       </a>
     </div>
@@ -59,7 +107,7 @@ const generateInvitationEmail = (inviteLink: string, adminName: string): string 
     
     <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
       Hvis knappen ikke virker, kan du kopiere dette link og indsætte det i din browser:<br>
-      <a href="${inviteLink}" style="color: #667eea; word-break: break-all;">${inviteLink}</a>
+      <a href="${inviteLink}" style="color: ${primaryHex}; word-break: break-all;">${inviteLink}</a>
     </p>
   </div>
   
@@ -69,6 +117,7 @@ const generateInvitationEmail = (inviteLink: string, adminName: string): string 
 </body>
 </html>
 `;
+};
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -139,6 +188,15 @@ serve(async (req: Request) => {
       .single();
 
     const adminName = adminProfile?.full_name || adminProfile?.email || "En administrator";
+
+    // Fetch company colors
+    const { data: companySettings } = await supabaseServiceClient
+      .from("company_settings")
+      .select("primary_color, accent_color")
+      .single();
+
+    const primaryColor = companySettings?.primary_color || DEFAULT_COLORS.primary;
+    const accentColor = companySettings?.accent_color || DEFAULT_COLORS.accent;
 
     // Create batch if multiple invites
     let batchId = null;
@@ -240,8 +298,8 @@ serve(async (req: Request) => {
 
         const inviteLink = linkData.properties.action_link;
 
-        // Send custom email via Resend
-        const emailHtml = generateInvitationEmail(inviteLink, adminName);
+        // Send custom email via Resend with company colors
+        const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);
         
         const { error: emailError } = await resend.emails.send({
           from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",

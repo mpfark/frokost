@@ -219,7 +219,7 @@ serve(async (req: Request) => {
 
     const results = [];
     // Get the frontend URL from the request origin or use a fallback
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.lovable.app";
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.pluskontoret.dk";
 
     for (const email of emails) {
       const requestId = crypto.randomUUID();

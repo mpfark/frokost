@@ -143,7 +143,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get origin for redirect URL
-    const origin = req.headers.get("origin") || "https://frokost.lovable.app";
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.pluskontoret.dk";
 
     // Verify admin authorization
     const authHeader = req.headers.get('Authorization');

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
+import { Resend } from "https://esm.sh/resend@4.0.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
@@ -16,9 +17,58 @@ const emailArraySchema = z.array(emailSchema).min(1).max(50);
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // Helper function for rate limiting between emails
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Generate invitation email HTML
+const generateInvitationEmail = (inviteLink: string, adminName: string): string => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation til Plusfrokost</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">🍽️ Plusfrokost</h1>
+  </div>
+  
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <h2 style="color: #1f2937; margin-top: 0;">Du er inviteret!</h2>
+    
+    <p>Hej!</p>
+    
+    <p>${adminName} har inviteret dig til at bruge <strong>Plusfrokost</strong> - vores system til tilmelding af frokost.</p>
+    
+    <p>Klik på knappen nedenfor for at acceptere invitationen og oprette din adgangskode:</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${inviteLink}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+        Acceptér invitation
+      </a>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px;">
+      <strong>Bemærk:</strong> Dette link udløber om 7 dage. Hvis linket er udløbet, kan du kontakte en administrator for at få tilsendt et nyt.
+    </p>
+    
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+    
+    <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
+      Hvis knappen ikke virker, kan du kopiere dette link og indsætte det i din browser:<br>
+      <a href="${inviteLink}" style="color: #667eea; word-break: break-all;">${inviteLink}</a>
+    </p>
+  </div>
+  
+  <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 20px;">
+    Denne email blev sendt automatisk fra Plusfrokost-systemet.
+  </p>
+</body>
+</html>
+`;
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -88,7 +138,7 @@ serve(async (req: Request) => {
       .eq("id", user.id)
       .single();
 
-    const adminName = adminProfile?.full_name || adminProfile?.email || "Admin";
+    const adminName = adminProfile?.full_name || adminProfile?.email || "En administrator";
 
     // Create batch if multiple invites
     let batchId = null;
@@ -118,7 +168,7 @@ serve(async (req: Request) => {
       try {
         console.log("Request ID:", requestId, "Processing invitation for", email);
         
-        // Check if active invitation exists (users won't exist until they accept)
+        // Check if active invitation exists
         const { data: existingInvite } = await supabaseServiceClient
           .from("invitations")
           .select("id, status, used_by")
@@ -163,23 +213,45 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Send invitation email - user will be created when they accept
-        // Supabase will add auth tokens to URL fragment; invite_code is stored in user_metadata
+        // Generate magic link using Supabase Admin API (without sending email)
         const redirectUrl = `${origin}/set-password`;
         
-        const { data: inviteData, error: emailError } = await supabaseServiceClient.auth.admin.inviteUserByEmail(
-          email.toLowerCase(),
-          {
+        const { data: linkData, error: linkError } = await supabaseServiceClient.auth.admin.generateLink({
+          type: 'invite',
+          email: email.toLowerCase(),
+          options: {
             redirectTo: redirectUrl,
             data: {
               invite_code: inviteCode,
-              full_name: email.split('@')[0], // Default name from email
+              full_name: email.split('@')[0],
             }
           }
-        );
+        });
+
+        if (linkError || !linkData?.properties?.action_link) {
+          console.error("Generate link error:", linkError);
+          results.push({
+            email,
+            success: false,
+            error: "Failed to generate invitation link",
+          });
+          continue;
+        }
+
+        const inviteLink = linkData.properties.action_link;
+
+        // Send custom email via Resend
+        const emailHtml = generateInvitationEmail(inviteLink, adminName);
+        
+        const { error: emailError } = await resend.emails.send({
+          from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
+          to: [email.toLowerCase()],
+          subject: "Du er inviteret til Plusfrokost",
+          html: emailHtml,
+        });
 
         if (emailError) {
-          console.error("Invitation email error:", emailError);
+          console.error("Resend email error:", emailError);
           results.push({
             email,
             success: false,
@@ -198,7 +270,7 @@ serve(async (req: Request) => {
           console.error("Failed to update link_sent_at:", updateError);
         }
 
-        console.log(`Invitation email sent successfully to ${email}`);
+        console.log(`Invitation email sent successfully to ${email} via Resend`);
         results.push({
           email,
           success: true,

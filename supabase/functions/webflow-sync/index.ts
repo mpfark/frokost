@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,104 @@ interface WebflowItem {
     [key: string]: any;
   };
 }
+
+// Default colors (HSL format matching the app defaults)
+const DEFAULT_COLORS = {
+  primary: "25 95% 37%",
+  secondary: "35 40% 90%",
+  accent: "20 90% 48%"
+};
+
+// Convert HSL string to hex for email compatibility
+const hslToHex = (hsl: string): string => {
+  const parts = hsl.split(' ');
+  if (parts.length !== 3) return '#b45309'; // Fallback amber color
+  
+  const h = parseFloat(parts[0]) / 360;
+  const s = parseFloat(parts[1]) / 100;
+  const l = parseFloat(parts[2]) / 100;
+
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  const toHex = (x: number) => {
+    const hex = Math.round(x * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+// Helper function for rate limiting between emails
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Generate invitation email HTML with dynamic colors
+const generateInvitationEmail = (inviteLink: string, adminName: string, primaryColor: string, accentColor: string): string => {
+  const primaryHex = hslToHex(primaryColor);
+  const accentHex = hslToHex(accentColor);
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation til Plusfrokost</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: ${primaryHex}; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">🍽️ Plusfrokost</h1>
+  </div>
+  
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none;">
+    <h2 style="color: #1f2937; margin-top: 0;">Du er inviteret!</h2>
+    
+    <p>Hej!</p>
+    
+    <p><strong>${adminName}</strong> har inviteret dig til at bruge Plusfrokost - vores interne frokostbestillingssystem.</p>
+    
+    <p>Klik på knappen nedenfor for at acceptere invitationen og oprette din adgangskode:</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${inviteLink}" style="background: ${accentHex}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+        Acceptér invitation
+      </a>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px;">Linket udløber om 7 dage.</p>
+    
+    <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
+    
+    <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
+      Hvis knappen ikke virker, kan du kopiere dette link og indsætte det i din browser:<br>
+      <a href="${inviteLink}" style="color: ${primaryHex}; word-break: break-all;">${inviteLink}</a>
+    </p>
+  </div>
+  
+  <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+    <p>Denne email blev sendt automatisk via Plusfrokost</p>
+  </div>
+</body>
+</html>
+`;
+};
 
 // Zod schema for validating Webflow item data
 const webflowUserSchema = z.object({
@@ -39,8 +138,12 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const webflowApiToken = Deno.env.get('WEBFLOW_API_TOKEN')!;
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Get origin for redirect URL
+    const origin = req.headers.get("origin") || "https://frokost.lovable.app";
 
     // Verify admin authorization
     const authHeader = req.headers.get('Authorization');
@@ -152,13 +255,24 @@ serve(async (req) => {
         throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
       }
 
-      // Get company settings for domain validation
+      // Get company settings for domain validation and colors
       const { data: companySettings } = await supabase
         .from('company_settings')
-        .select('allowed_domain')
+        .select('allowed_domain, primary_color, accent_color')
         .single();
 
       const allowedDomain = companySettings?.allowed_domain;
+      const primaryColor = companySettings?.primary_color || DEFAULT_COLORS.primary;
+      const accentColor = companySettings?.accent_color || DEFAULT_COLORS.accent;
+
+      // Get admin profile for email sender name
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+
+      const adminName = adminProfile?.full_name || adminProfile?.email || "En administrator";
 
       // Map Webflow items to users
       const fieldMapping = settings.field_mapping as { name: string; email: string };
@@ -233,21 +347,83 @@ serve(async (req) => {
         } else {
           // Create invitation for new user
           const inviteCode = crypto.randomUUID();
-          const { error: inviteError } = await supabase
+          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          
+          const { data: invitation, error: inviteError } = await supabase
             .from('invitations')
             .insert({
               email,
               invite_code: inviteCode,
               invited_by: user.id,
-              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              expires_at: expiresAt,
               status: 'pending',
-            });
+            })
+            .select()
+            .single();
 
           if (inviteError) {
             details.errors.push(`Failed to create invitation for ${email}: ${inviteError.message}`);
-          } else {
+            continue;
+          }
+
+          // Generate magic link for the invitation
+          try {
+            const redirectUrl = `${origin}/set-password#invite_code=${inviteCode}`;
+            
+            const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+              type: 'invite',
+              email: email,
+              options: {
+                redirectTo: redirectUrl,
+                data: {
+                  invite_code: inviteCode,
+                  full_name: name,
+                },
+              },
+            });
+
+            if (linkError || !linkData?.properties?.action_link) {
+              console.error(`Failed to generate link for ${email}:`, linkError);
+              details.errors.push(`Failed to generate link for ${email}: ${linkError?.message || 'No action link'}`);
+              continue;
+            }
+
+            const inviteLink = linkData.properties.action_link;
+
+            // Send branded email via Resend
+            const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);
+            
+            const { error: emailError } = await resend.emails.send({
+              from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
+              to: [email],
+              subject: "Du er inviteret til Plusfrokost",
+              html: emailHtml,
+            });
+
+            if (emailError) {
+              console.error(`Failed to send email to ${email}:`, emailError);
+              details.errors.push(`Failed to send email to ${email}: ${emailError.message}`);
+            } else {
+              // Update invitation with link_sent_at timestamp
+              await supabase
+                .from('invitations')
+                .update({ link_sent_at: new Date().toISOString() })
+                .eq('id', invitation.id);
+              
+              console.log(`Invitation email sent to ${email}`);
+            }
+
             usersAdded++;
-            details.success.push(`Created invitation for ${email}`);
+            details.success.push(`Created invitation and sent email to ${email}`);
+
+            // Rate limiting: wait 500ms between emails
+            await delay(500);
+            
+          } catch (emailErr) {
+            console.error(`Error sending invitation to ${email}:`, emailErr);
+            details.errors.push(`Error sending invitation to ${email}: ${emailErr instanceof Error ? emailErr.message : 'Unknown error'}`);
+            usersAdded++;
+            details.success.push(`Created invitation for ${email} (email not sent)`);
           }
         }
       }

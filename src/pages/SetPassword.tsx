@@ -29,42 +29,69 @@ export default function SetPassword() {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    let mounted = true;
+    let sessionEstablished = false;
+
+    // Check if URL contains auth tokens (magic link)
+    const hasAuthFragment = window.location.hash.includes('access_token') || 
+                            window.location.hash.includes('type=');
+
+    console.log("SetPassword: Initializing, hasAuthFragment:", hasAuthFragment);
 
     // Listen for auth state changes (handles magic link authentication)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
+      console.log("SetPassword: Auth state changed:", event, session?.user?.email);
       
-      if (session) {
-        setSession(session);
-        setIsCheckingSession(false);
-      } else if (event === 'SIGNED_OUT') {
-        toast.error("Ugyldig session. Kontakt venligst en administrator.");
-        navigate("/");
+      // Handle successful authentication
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
+        if (mounted && !sessionEstablished) {
+          sessionEstablished = true;
+          setSession(session);
+          setIsCheckingSession(false);
+          clearTimeout(timeoutId);
+          console.log("SetPassword: Session established successfully");
+        }
+      } else if (event === 'SIGNED_OUT' && sessionEstablished) {
+        // Only redirect if we previously had a session
+        if (mounted) {
+          toast.error("Session udløbet. Prøv at klikke på linket i emailen igen.");
+          navigate("/");
+        }
       }
     });
 
-    // Also check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-        setIsCheckingSession(false);
-      }
-    });
+    // If no auth fragment in URL, check for existing session
+    if (!hasAuthFragment) {
+      console.log("SetPassword: No auth fragment, checking existing session");
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session && mounted && !sessionEstablished) {
+          sessionEstablished = true;
+          setSession(session);
+          setIsCheckingSession(false);
+          clearTimeout(timeoutId);
+          console.log("SetPassword: Found existing session");
+        }
+      });
+    } else {
+      console.log("SetPassword: Auth fragment detected, waiting for Supabase to process...");
+    }
 
-    // Timeout: if no session after 10 seconds, show error
+    // Generous timeout (30 seconds) - give Supabase time to process the magic link
     timeoutId = setTimeout(() => {
-      if (!session) {
+      if (!sessionEstablished && mounted) {
+        console.log("SetPassword: Timeout reached without session");
         setIsCheckingSession(false);
-        toast.error("Ugyldig eller udløbet invitation link. Kontakt venligst en administrator.");
+        toast.error("Kunne ikke verificere invitation. Prøv at klikke på linket i emailen igen.");
         navigate("/");
       }
-    }, 10000);
+    }, 30000);
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       clearTimeout(timeoutId);
     };
-  }, [navigate, session]);
+  }, [navigate]);
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();

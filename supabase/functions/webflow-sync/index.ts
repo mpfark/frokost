@@ -255,6 +255,12 @@ serve(async (req) => {
         throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
       }
 
+      // Get existing pending invitations to avoid duplicates
+      const { data: existingInvitations } = await supabase
+        .from('invitations')
+        .select('id, email, status, invite_code')
+        .eq('status', 'pending');
+
       // Get company settings for domain validation and colors
       const { data: companySettings } = await supabase
         .from('company_settings')
@@ -345,6 +351,17 @@ serve(async (req) => {
             }
           }
         } else {
+          // Check if there's already a pending invitation for this email
+          const existingInvitation = existingInvitations?.find(
+            inv => inv.email === email
+          );
+
+          if (existingInvitation) {
+            // Skip - invitation already exists, avoid duplicate emails
+            details.success.push(`Skipped ${email}: pending invitation already exists`);
+            continue;
+          }
+
           // Create invitation for new user
           const inviteCode = crypto.randomUUID();
           const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();

@@ -660,7 +660,13 @@ export const KitchenView = () => {
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
-            {selectedDate && getSignupsForDate(selectedDate).map((signup) => {
+            {selectedDate && getSignupsForDate(selectedDate)
+              .sort((a, b) => {
+                const aDietary = (a.profiles?.is_gluten_free ? 1 : 0) + (a.profiles?.is_lactose_free ? 1 : 0) + (a.profiles?.is_vegetarian ? 1 : 0);
+                const bDietary = (b.profiles?.is_gluten_free ? 1 : 0) + (b.profiles?.is_lactose_free ? 1 : 0) + (b.profiles?.is_vegetarian ? 1 : 0);
+                return bDietary - aDietary; // Higher count comes first
+              })
+              .map((signup) => {
               const signupGuests = guests.filter(g => g.signup_id === signup.id);
               const dietaryInfo = [];
               if (signup.profiles?.is_gluten_free) dietaryInfo.push("GF");

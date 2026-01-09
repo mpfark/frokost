@@ -29,6 +29,12 @@ interface LunchSignup {
   lunch_date: string;
 }
 
+interface LunchOptout {
+  id: string;
+  user_id: string;
+  lunch_date: string;
+}
+
 interface ClosedDate {
   date: string;
   reason: string | null;
@@ -184,6 +190,19 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
 
     console.log(`Found ${signups?.length || 0} signups for the upcoming week`);
 
+    // Get all optouts for the upcoming week
+    const { data: optouts, error: optoutsError } = await supabaseAdmin
+      .from("lunch_optouts")
+      .select("id, user_id, lunch_date")
+      .gte("lunch_date", mondayStr)
+      .lte("lunch_date", fridayStr);
+
+    if (optoutsError) {
+      console.error("Error fetching optouts:", optoutsError);
+    }
+
+    console.log(`Found ${optouts?.length || 0} optouts for the upcoming week`);
+
     // Get closed dates for the upcoming week
     const { data: closedDates, error: closedError } = await supabaseAdmin
       .from("closed_dates")
@@ -213,24 +232,28 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
       return;
     }
 
-    // Create a set of user IDs who have already signed up
+    // Create sets of user IDs who have already taken action (signup OR optout)
     const signedUpUserIds = new Set(signups?.map((s) => s.user_id) || []);
+    const optedOutUserIds = new Set(optouts?.map((o) => o.user_id) || []);
+    
+    // Combine both sets - users who have made any decision
+    const usersWithDecision = new Set([...signedUpUserIds, ...optedOutUserIds]);
 
-    // Find users who haven't signed up
-    const usersWithoutSignup = profiles?.filter((profile) => !signedUpUserIds.has(profile.id)) || [];
+    // Find users who haven't made any decision (neither signed up nor opted out)
+    const usersWithoutDecision = profiles?.filter((profile) => !usersWithDecision.has(profile.id)) || [];
 
-    console.log(`Found ${usersWithoutSignup.length} users without signups`);
+    console.log(`Found ${usersWithoutDecision.length} users without any decision (no signup or optout)`);
 
     // Calculate ISO week number for the upcoming week
     const weekNumber = getISOWeekNumber(nextMonday);
     console.log(`Week number: ${weekNumber}`);
 
     // Send reminder emails with rate limiting (2 emails/second for Resend)
-    console.log(`Sending ${usersWithoutSignup.length} emails with rate limiting (2/second)...`);
+    console.log(`Sending ${usersWithoutDecision.length} emails with rate limiting (2/second)...`);
     let emailsSent = 0;
     let emailsFailed = 0;
 
-    for (const user of usersWithoutSignup) {
+    for (const user of usersWithoutDecision) {
       try {
         const userName = user.full_name || user.email.split("@")[0];
 
@@ -281,7 +304,8 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
       week: `${mondayStr} to ${fridayStr}`,
       totalActiveUsers: profiles?.length || 0,
       usersWithSignups: signedUpUserIds.size,
-      usersWithoutSignups: usersWithoutSignup.length,
+      usersWithOptouts: optedOutUserIds.size,
+      usersWithoutDecision: usersWithoutDecision.length,
       emailsSent,
       emailsFailed,
       closedDates: closedDates?.length || 0,

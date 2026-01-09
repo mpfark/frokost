@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.get-webflow-token]
 verify_jwt = true
+
+[functions.resend-pending-invitations]
+verify_jwt = true

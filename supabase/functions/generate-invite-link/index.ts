@@ -38,24 +38,34 @@ serve(async (req) => {
         .single();
 
       if (inviteError || !invitation) {
-        return new Response(JSON.stringify({ error: "Invitation not found" }), {
-          status: 404,
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "not_found" 
+        }), {
+          status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
-      // Check if invitation is still valid
+      // Check if invitation is already accepted
       if (invitation.status === "accepted") {
-        return new Response(JSON.stringify({ error: "Invitation already accepted" }), {
-          status: 400,
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "already_accepted" 
+        }), {
+          status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
+      // Check if invitation is expired
       const expiresAt = new Date(invitation.expires_at);
       if (new Date() > expiresAt) {
-        return new Response(JSON.stringify({ error: "Invitation expired" }), {
-          status: 400,
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "expired" 
+        }), {
+          status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
@@ -182,6 +192,7 @@ async function generateMagicLink(supabaseServiceClient: any, invitation: any) {
   }
 
   return new Response(JSON.stringify({ 
+    success: true,
     link: linkData.properties.action_link 
   }), {
     status: 200,

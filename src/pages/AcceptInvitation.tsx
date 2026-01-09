@@ -23,48 +23,41 @@ const AcceptInvitation = () => {
 
   const validateAndRedirect = async () => {
     try {
-      // Check if invitation exists and is valid
-      const { data: invitation, error } = await supabase
-        .from("invitations")
-        .select("*")
-        .eq("id", invitationId)
-        .single();
-
-      if (error || !invitation) {
-        setStatus("error");
-        setErrorMessage("Invitationen blev ikke fundet");
-        return;
-      }
-
-      // Check if already accepted
-      if (invitation.status === "accepted") {
-        setStatus("error");
-        setErrorMessage("Denne invitation er allerede blevet accepteret. Log ind med din email og adgangskode.");
-        return;
-      }
-
-      // Check if expired (7 days from invited_at)
-      const expiresAt = new Date(invitation.expires_at);
-      if (new Date() > expiresAt) {
-        setStatus("expired");
-        return;
-      }
-
-      // Generate fresh magic link and redirect
-      setStatus("generating");
-      
-      const { data, error: linkError } = await supabase.functions.invoke("generate-invite-link", {
-        body: { invitationId: invitation.id },
+      // Call edge function to validate and generate magic link
+      const { data, error } = await supabase.functions.invoke("generate-invite-link", {
+        body: { invitationId },
       });
 
-      if (linkError || !data?.link) {
-        console.error("Failed to generate link:", linkError);
+      if (error) {
+        console.error("Network error:", error);
         setStatus("error");
-        setErrorMessage("Kunne ikke generere login-link. Prøv igen eller kontakt en administrator.");
+        setErrorMessage("Netværksfejl. Prøv igen.");
+        return;
+      }
+
+      // Handle response from edge function
+      if (!data.success) {
+        switch (data.error) {
+          case "not_found":
+            setStatus("error");
+            setErrorMessage("Invitationen blev ikke fundet");
+            break;
+          case "already_accepted":
+            setStatus("error");
+            setErrorMessage("Denne invitation er allerede blevet accepteret. Log ind med din email og adgangskode.");
+            break;
+          case "expired":
+            setStatus("expired");
+            break;
+          default:
+            setStatus("error");
+            setErrorMessage("Kunne ikke generere login-link. Prøv igen eller kontakt en administrator.");
+        }
         return;
       }
 
       // Redirect to the magic link
+      setStatus("generating");
       window.location.href = data.link;
     } catch (err: any) {
       console.error("Error validating invitation:", err);

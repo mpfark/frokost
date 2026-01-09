@@ -580,13 +580,13 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                       </div>
 
                       {/* Bottom Row: Action Buttons */}
-                      <div className="flex gap-1.5 mt-auto min-w-0">
+                      <div className="flex gap-1 mt-auto min-w-0">
                         {isPast || isClosed ? (
                           <Button
                             disabled
                             variant="outline"
                             size="sm"
-                            className="flex-1 h-9 text-xs"
+                            className="flex-1 w-0 h-9 text-xs justify-center"
                             title={isClosed ? closedReason || "Kontoret lukket" : ""}
                           >
                             Lukket
@@ -598,7 +598,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled
                               variant="default"
                               size="sm"
-                              className="flex-1 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center"
                               title="Tilmeldt"
                             >
                               <Check className="w-3 h-3" />
@@ -608,7 +608,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center"
                               title="Afmeld"
                             >
                               <X className="w-3 h-3" />
@@ -622,7 +622,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center"
                               title="Tilmeld"
                             >
                               <Check className="w-3 h-3" />
@@ -631,7 +631,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled
                               variant="secondary"
                               size="sm"
-                              className="flex-1 h-9 text-xs text-muted-foreground justify-center"
+                              className="flex-1 w-0 h-9 text-xs text-muted-foreground justify-center"
                               title="Frameldt"
                             >
                               <X className="w-3 h-3" />
@@ -645,7 +645,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center"
                             >
                               Tilmeld
                             </Button>
@@ -654,7 +654,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center"
                               title="Afmeld"
                             >
                               <X className="w-3 h-3" />
@@ -672,7 +672,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 h-9 text-xs justify-center"
+                                className="flex-1 w-0 h-9 text-xs justify-center"
                               >
                                 <UserPlus className="w-3 h-3" />
                               </Button>

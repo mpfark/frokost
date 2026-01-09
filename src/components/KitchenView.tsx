@@ -396,8 +396,8 @@ export const KitchenView = () => {
   };
 
   return (
-    <Tabs defaultValue="signups" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-2 max-w-md">
+    <Tabs defaultValue="signups" className="w-full">
+      <TabsList className="grid w-full max-w-2xl mx-auto mb-8 grid-cols-2 h-auto">
         <TabsTrigger value="signups" className="flex items-center gap-2">
           <UtensilsCrossed className="w-4 h-4" />
           Tilmeldinger

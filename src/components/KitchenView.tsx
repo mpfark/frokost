@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth } from "date-fns";
 import { da } from "date-fns/locale";
@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { getUpcomingDanishHolidays, filterAlreadyClosedHolidays, type DanishHoliday } from "@/lib/danishHolidays";
 import {
   Drawer,
   DrawerContent,
@@ -61,6 +62,16 @@ export const KitchenView = () => {
   const [reasonDialogDate, setReasonDialogDate] = useState<Date | null>(null);
   const [reasonInput, setReasonInput] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
+  const [isAddingHolidays, setIsAddingHolidays] = useState(false);
+
+  // Get upcoming holidays filtered by already closed dates
+  const suggestedHolidays = useMemo(() => {
+    const allHolidays = getUpcomingDanishHolidays();
+    return filterAlreadyClosedHolidays(allHolidays, closedDates);
+  }, [closedDates]);
+
+  const officialHolidays = suggestedHolidays.filter(h => h.official);
+  const optionalHolidays = suggestedHolidays.filter(h => !h.official);
 
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -175,6 +186,48 @@ export const KitchenView = () => {
     toast.success("Dato markeret som lukket");
     setReasonDialogDate(null);
     setReasonInput("");
+    fetchClosedDates();
+  };
+
+  const addHolidayAsClosedDate = async (holiday: DanishHoliday) => {
+    const { error } = await supabase
+      .from("closed_dates")
+      .insert({ date: format(holiday.date, "yyyy-MM-dd"), reason: holiday.name });
+
+    if (error) {
+      toast.error("Kunne ikke tilføje helligdag");
+      return;
+    }
+
+    toast.success(`${holiday.name} tilføjet som lukket dag`);
+    fetchClosedDates();
+  };
+
+  const addAllOfficialHolidays = async () => {
+    if (officialHolidays.length === 0) {
+      toast.info("Alle officielle helligdage er allerede tilføjet");
+      return;
+    }
+
+    setIsAddingHolidays(true);
+    
+    const holidaysToAdd = officialHolidays.map(h => ({
+      date: format(h.date, "yyyy-MM-dd"),
+      reason: h.name
+    }));
+
+    const { error } = await supabase
+      .from("closed_dates")
+      .insert(holidaysToAdd);
+
+    setIsAddingHolidays(false);
+
+    if (error) {
+      toast.error("Kunne ikke tilføje helligdage");
+      return;
+    }
+
+    toast.success(`${holidaysToAdd.length} officielle helligdage tilføjet`);
     fetchClosedDates();
   };
 
@@ -481,6 +534,102 @@ export const KitchenView = () => {
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Suggested Holidays */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5" />
+            Foreslåede lukkedage (Danske helligdage)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {suggestedHolidays.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Alle kommende helligdage er allerede tilføjet som lukkede dage
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {officialHolidays.length > 0 && (
+                <Button
+                  onClick={addAllOfficialHolidays}
+                  disabled={isAddingHolidays}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tilføj alle officielle helligdage ({officialHolidays.length})
+                </Button>
+              )}
+
+              {/* Official holidays */}
+              {officialHolidays.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Officielle helligdage</h4>
+                  <div className="grid gap-2">
+                    {officialHolidays.map((holiday) => (
+                      <div
+                        key={holiday.date.toISOString()}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="default" className="text-xs">
+                            {format(holiday.date, "d. MMM yyyy", { locale: da })}
+                          </Badge>
+                          <span className="font-medium">{holiday.name}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addHolidayAsClosedDate(holiday)}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Tilføj
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Optional holidays */}
+              {optionalHolidays.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-muted-foreground">Valgfrie lukkedage</h4>
+                    <Sparkles className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Disse dage er ikke officielle helligdage, men mange arbejdspladser holder lukket
+                  </p>
+                  <div className="grid gap-2">
+                    {optionalHolidays.map((holiday) => (
+                      <div
+                        key={holiday.date.toISOString()}
+                        className="flex items-center justify-between p-3 border border-dashed rounded-lg hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary" className="text-xs">
+                            {format(holiday.date, "d. MMM yyyy", { locale: da })}
+                          </Badge>
+                          <span className="font-medium text-muted-foreground">{holiday.name}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => addHolidayAsClosedDate(holiday)}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Tilføj
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -544,7 +544,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                   return (
                     <div
                       key={date.toISOString()}
-                      className={`border rounded-lg p-3 flex flex-col gap-2 ${isPast || isClosed ? "opacity-60 bg-muted/50" : "bg-card"}`}
+                      className={`border rounded-lg p-3 flex flex-col gap-2 min-w-0 overflow-hidden ${isPast || isClosed ? "opacity-60 bg-muted/50" : "bg-card"}`}
                     >
                       {/* Top Row: Date and Stats */}
                       <div className="flex justify-between items-start">
@@ -580,7 +580,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                       </div>
 
                       {/* Bottom Row: Action Buttons */}
-                      <div className="flex gap-1.5 mt-auto">
+                      <div className="flex gap-1.5 mt-auto min-w-0">
                         {isPast || isClosed ? (
                           <Button
                             disabled

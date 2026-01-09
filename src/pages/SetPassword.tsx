@@ -25,6 +25,7 @@ export default function SetPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [linkExpired, setLinkExpired] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,8 +82,8 @@ export default function SetPassword() {
       if (!sessionEstablished && mounted) {
         console.log("SetPassword: Timeout reached without session");
         setIsCheckingSession(false);
-        toast.error("Kunne ikke verificere invitation. Prøv at klikke på linket i emailen igen.");
-        navigate("/");
+        // Show expired link page instead of redirecting
+        setLinkExpired(true);
       }
     }, 30000);
 
@@ -198,6 +199,31 @@ export default function SetPassword() {
   }
 
   if (!session) {
+    if (linkExpired) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="space-y-1 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="bg-destructive/10 p-3 rounded-full">
+                  <Info className="h-8 w-8 text-destructive" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold">Linket er udløbet</CardTitle>
+              <CardDescription>
+                Dit invitationslink er desværre udløbet eller allerede brugt. 
+                Kontakt venligst din administrator for at få tilsendt et nyt link.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4">
+              <Button onClick={() => navigate("/")} variant="outline" className="w-full">
+                Gå til login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return null;
   }
 

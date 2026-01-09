@@ -7,6 +7,7 @@ import { useCompanyColors } from "@/hooks/useCompanyColors";
 import Index from "./pages/Index";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
+import AcceptInvitation from "./pages/AcceptInvitation";
 import Install from "./pages/Install";
 import Guide from "./pages/Guide";
 import NotFound from "./pages/NotFound";
@@ -22,6 +23,7 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/accept-invitation/:invitationId" element={<AcceptInvitation />} />
         <Route path="/install" element={<Install />} />
         <Route path="/guide" element={<Guide />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

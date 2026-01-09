@@ -383,57 +383,11 @@ serve(async (req) => {
             continue;
           }
 
-          // Generate magic link for the invitation
+          // Generate invitation link that points to the accept-invitation page
+          // This page will generate a fresh magic link on-demand, allowing the invitation to stay valid for 7 days
           try {
-            // Always use production URL to avoid preview domain issues
             const productionUrl = "https://frokost.pluskontoret.dk";
-            const redirectUrl = `${productionUrl}/set-password`;
-            
-            let actionLink: string | null = null;
-            
-            // Try invite link first
-            const inviteResult = await supabase.auth.admin.generateLink({
-              type: 'invite',
-              email: email,
-              options: {
-                redirectTo: redirectUrl,
-                data: {
-                  invite_code: inviteCode,
-                  full_name: name,
-                },
-              },
-            });
-            
-            if (inviteResult.data?.properties?.action_link) {
-              actionLink = inviteResult.data.properties.action_link;
-            } else if (inviteResult.error && (inviteResult.error as any).code === 'email_exists') {
-              // Fallback to magiclink if user already exists
-              console.log(`User ${email} already exists, using magiclink instead`);
-              const magicResult = await supabase.auth.admin.generateLink({
-                type: 'magiclink',
-                email: email,
-                options: {
-                  redirectTo: redirectUrl,
-                  data: {
-                    invite_code: inviteCode,
-                    full_name: name,
-                  },
-                },
-              });
-              if (magicResult.data?.properties?.action_link) {
-                actionLink = magicResult.data.properties.action_link;
-              } else {
-                console.error(`Failed to generate magiclink for ${email}:`, magicResult.error);
-                details.errors.push(`Failed to generate link for ${email}: ${magicResult.error?.message || 'No action link'}`);
-                continue;
-              }
-            } else {
-              console.error(`Failed to generate invite link for ${email}:`, inviteResult.error);
-              details.errors.push(`Failed to generate link for ${email}: ${inviteResult.error?.message || 'No action link'}`);
-              continue;
-            }
-
-            const inviteLink = actionLink;
+            const inviteLink = `${productionUrl}/accept-invitation/${invitation.id}`;
 
             // Send branded email via Resend
             const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);

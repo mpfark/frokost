@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Users, Copy, Clock, CheckCircle2, XCircle, Trash, RefreshCw } from "lucide-react";
+import { Mail, Users, Copy, Clock, CheckCircle2, XCircle, Trash, RefreshCw, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
@@ -38,8 +38,10 @@ export const InvitationManagement = () => {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resendDialogOpen, setResendDialogOpen] = useState(false);
+  const [resendAllDialogOpen, setResendAllDialogOpen] = useState(false);
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [resendAllLoading, setResendAllLoading] = useState(false);
 
   useEffect(() => {
     fetchInvitations();
@@ -261,6 +263,46 @@ export const InvitationManagement = () => {
     }
   };
 
+  const resendAllPending = async () => {
+    setResendAllLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-pending-invitations");
+
+      if (error) throw error;
+
+      const { totalResent, totalFailed } = data;
+      
+      if (totalResent > 0) {
+        toast({
+          title: "Succes",
+          description: `${totalResent} invitation${totalResent > 1 ? "er" : ""} gensendt${totalFailed > 0 ? ` (${totalFailed} fejlede)` : ""}`,
+        });
+      } else if (totalFailed > 0) {
+        toast({
+          title: "Fejl",
+          description: `Alle ${totalFailed} invitationer fejlede`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Info",
+          description: "Ingen pending invitationer at gensende",
+        });
+      }
+
+      fetchInvitations();
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setResendAllLoading(false);
+      setResendAllDialogOpen(false);
+    }
+  };
+
   const copyInviteLink = (inviteCode: string, email: string) => {
     const link = `${window.location.origin}/#invite=${inviteCode}&email=${encodeURIComponent(email)}`;
     navigator.clipboard.writeText(link);
@@ -318,6 +360,30 @@ export const InvitationManagement = () => {
           </CardHeader>
         </Card>
       </div>
+
+      {/* Resend All Pending Button */}
+      {stats.pending > 0 && (
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
+          <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4">
+            <div className="space-y-1">
+              <p className="font-medium text-amber-800 dark:text-amber-200">
+                {stats.pending} afventende invitation{stats.pending > 1 ? "er" : ""} med potentielt ugyldige links
+              </p>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Klik for at sende nye magic links til alle pending invitationer
+              </p>
+            </div>
+            <Button 
+              onClick={() => setResendAllDialogOpen(true)}
+              disabled={resendAllLoading}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              <Send className="h-4 w-4" />
+              {resendAllLoading ? "Sender..." : "Gensend alle"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Send Invitations */}
       <Card>
@@ -485,6 +551,26 @@ export const InvitationManagement = () => {
             <AlertDialogCancel>Annuller</AlertDialogCancel>
             <AlertDialogAction onClick={resendInvitation}>
               Gensend invitation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resend All Pending Confirmation Dialog */}
+      <AlertDialog open={resendAllDialogOpen} onOpenChange={setResendAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gensend alle pending invitationer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dette vil sende nye invitations-emails med gyldige magic links til alle <strong>{stats.pending}</strong> afventende invitationer.
+              <br /><br />
+              Eksisterende invitationer bevares, men får nye links og forlænget udløbsdato.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resendAllLoading}>Annuller</AlertDialogCancel>
+            <AlertDialogAction onClick={resendAllPending} disabled={resendAllLoading}>
+              {resendAllLoading ? "Sender..." : `Gensend ${stats.pending} invitation${stats.pending > 1 ? "er" : ""}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

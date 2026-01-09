@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getUpcomingDanishHolidays, filterAlreadyClosedHolidays, type DanishHoliday } from "@/lib/danishHolidays";
@@ -395,7 +396,19 @@ export const KitchenView = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <Tabs defaultValue="signups" className="space-y-4">
+      <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsTrigger value="signups" className="flex items-center gap-2">
+          <UtensilsCrossed className="w-4 h-4" />
+          Tilmeldinger
+        </TabsTrigger>
+        <TabsTrigger value="closed" className="flex items-center gap-2">
+          <Lock className="w-4 h-4" />
+          Lukkede dage
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="signups" className="space-y-4">
       {weeks.map(({ weekNumber, days }) => (
         <Card key={weekNumber}>
           <CardContent className="p-4 md:p-6">
@@ -472,7 +485,9 @@ export const KitchenView = () => {
           </CardContent>
         </Card>
       ))}
+      </TabsContent>
 
+      <TabsContent value="closed" className="space-y-4">
       {/* Manage Closed Dates - Calendar */}
       <Card>
         <CardHeader>
@@ -632,6 +647,7 @@ export const KitchenView = () => {
           )}
         </CardContent>
       </Card>
+      </TabsContent>
 
       <Drawer open={selectedDate !== null} onOpenChange={(open) => !open && setSelectedDate(null)}>
         <DrawerContent>
@@ -790,6 +806,6 @@ export const KitchenView = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </Tabs>
   );
 };

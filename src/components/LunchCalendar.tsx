@@ -598,7 +598,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled
                               variant="default"
                               size="sm"
-                              className="h-9 px-2 text-xs"
+                              className="flex-1 h-9 text-xs"
                               title="Tilmeldt"
                             >
                               <Check className="w-3 h-3" />
@@ -608,7 +608,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="h-9 px-2 text-xs"
+                              className="flex-1 h-9 text-xs"
                               title="Afmeld"
                             >
                               <X className="w-3 h-3" />
@@ -672,7 +672,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-9 px-3 text-xs"
+                                className="flex-1 h-9 text-xs"
                               >
                                 <UserPlus className="w-3 h-3" />
                               </Button>

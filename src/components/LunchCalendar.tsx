@@ -598,10 +598,10 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled
                               variant="default"
                               size="sm"
-                              className="flex-1 h-9 text-xs"
+                              className="h-9 px-2 text-xs"
+                              title="Tilmeldt"
                             >
-                              <Check className="w-3 h-3 mr-1" />
-                              Tilmeldt
+                              <Check className="w-3 h-3" />
                             </Button>
                             <Button
                               onClick={() => toggleOptout(date)}

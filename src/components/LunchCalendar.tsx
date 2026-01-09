@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Users, UserPlus, Plus, Trash2 } from "lucide-react";
+import { Users, UserPlus, Plus, Trash2, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,12 @@ interface ClosedDate {
   reason: string | null;
 }
 
+interface LunchOptout {
+  id: string;
+  user_id: string;
+  lunch_date: string;
+}
+
 const SETTINGS_CACHE_KEY = "company_settings_cache";
 
 export const LunchCalendar = ({ userId }: { userId: string }) => {
@@ -66,6 +72,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [optouts, setOptouts] = useState<LunchOptout[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(cachedWeeks === null);
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -122,6 +129,23 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     setClosedDates(data || []);
   };
 
+  const fetchOptouts = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
+    const { data, error } = await supabase
+      .from("lunch_optouts")
+      .select("*")
+      .eq("user_id", userId)
+      .gte("lunch_date", format(startDate, "yyyy-MM-dd"))
+      .lte("lunch_date", format(endDate, "yyyy-MM-dd"));
+
+    if (error) {
+      console.error("Kunne ikke indlæse frameldinger:", error);
+      return;
+    }
+
+    setOptouts(data || []);
+  };
+
   const fetchGuests = async () => {
     const signupIds = signups.map(s => s.id);
     if (signupIds.length === 0) return;
@@ -170,6 +194,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     if (weeksToDisplay > 0) {
       fetchSignups();
       fetchClosedDates();
+      fetchOptouts();
     }
   }, [weeksToDisplay]);
 
@@ -226,15 +251,36 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       )
       .subscribe();
 
+    const optoutsChannel = supabase
+      .channel("lunch_optouts_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "lunch_optouts",
+        },
+        () => {
+          fetchOptouts();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
+      supabase.removeChannel(optoutsChannel);
     };
   }, []);
 
   const isSignedUp = (date: Date) => {
     return getUserSignup(date) !== undefined;
+  };
+
+  const isOptedOut = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return optouts.some((o) => o.lunch_date === dateStr);
   };
 
   const getSignupsForDate = (date: Date) => {
@@ -263,8 +309,17 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         await fetchSignups();
         toast.success("Frokosttilmelding annulleret");
       } else {
-        // Sign up with 0 guests initially
+        // Remove any optout first if exists
         const dateStr = format(date, "yyyy-MM-dd");
+        if (isOptedOut(date)) {
+          await supabase
+            .from("lunch_optouts")
+            .delete()
+            .eq("user_id", userId)
+            .eq("lunch_date", dateStr);
+        }
+        
+        // Sign up with 0 guests initially
         const { error } = await supabase
           .from("lunch_signups")
           .insert({ 
@@ -275,7 +330,54 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
         if (error) throw error;
         await fetchSignups();
+        await fetchOptouts();
         toast.success("Tilmeldt til frokost!");
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleOptout = async (date: Date) => {
+    setIsLoading(true);
+    const dateStr = format(date, "yyyy-MM-dd");
+    
+    try {
+      if (isOptedOut(date)) {
+        // Remove optout
+        const { error } = await supabase
+          .from("lunch_optouts")
+          .delete()
+          .eq("user_id", userId)
+          .eq("lunch_date", dateStr);
+
+        if (error) throw error;
+        await fetchOptouts();
+        toast.success("Framelding fjernet");
+      } else {
+        // First remove any signup if exists
+        const userSignup = getUserSignup(date);
+        if (userSignup) {
+          await supabase
+            .from("lunch_signups")
+            .delete()
+            .eq("id", userSignup.id);
+        }
+        
+        // Add optout
+        const { error } = await supabase
+          .from("lunch_optouts")
+          .insert({ 
+            user_id: userId, 
+            lunch_date: dateStr
+          });
+
+        if (error) throw error;
+        await fetchSignups();
+        await fetchOptouts();
+        toast.success("Frameldt til frokost");
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -429,8 +531,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
               {/* Days Grid */}
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {days.map((date) => {
+              {days.map((date) => {
                   const signedUp = isSignedUp(date);
+                  const optedOut = isOptedOut(date);
                   const userSignup = getUserSignup(date);
                   const totalPeople = getTotalPeopleForDate(date);
                   const totalGuests = getSignupsForDate(date).reduce((sum, s) => sum + s.guest_count, 0);
@@ -476,19 +579,88 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                         )}
                       </div>
 
-                      {/* Bottom Row: Signup Button and Guest Button */}
-                      <div className="flex gap-2 mt-auto">
-                        {/* Signup Button - Half Width */}
-                        <Button
-                          onClick={() => toggleSignup(date)}
-                          disabled={isLoading || isPast || isClosed}
-                          variant={signedUp ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1 h-9 text-xs"
-                          title={isClosed ? closedReason || "Kontoret lukket" : ""}
-                        >
-                          {signedUp ? "Tilmeldt" : isPast || isClosed ? "Lukket" : "Tilmeld"}
-                        </Button>
+                      {/* Bottom Row: Action Buttons */}
+                      <div className="flex gap-1.5 mt-auto">
+                        {isPast || isClosed ? (
+                          <Button
+                            disabled
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-9 text-xs"
+                            title={isClosed ? closedReason || "Kontoret lukket" : ""}
+                          >
+                            Lukket
+                          </Button>
+                        ) : signedUp ? (
+                          <>
+                            {/* Signed up state */}
+                            <Button
+                              disabled
+                              variant="default"
+                              size="sm"
+                              className="flex-1 h-9 text-xs"
+                            >
+                              <Check className="w-3 h-3 mr-1" />
+                              Tilmeldt
+                            </Button>
+                            <Button
+                              onClick={() => toggleOptout(date)}
+                              disabled={isLoading}
+                              variant="outline"
+                              size="sm"
+                              className="h-9 px-2 text-xs"
+                              title="Afmeld"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
+                        ) : optedOut ? (
+                          <>
+                            {/* Opted out state */}
+                            <Button
+                              onClick={() => toggleSignup(date)}
+                              disabled={isLoading}
+                              variant="outline"
+                              size="sm"
+                              className="h-9 px-2 text-xs"
+                              title="Tilmeld"
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              disabled
+                              variant="secondary"
+                              size="sm"
+                              className="flex-1 h-9 text-xs text-muted-foreground"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Frameldt
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            {/* Neutral state */}
+                            <Button
+                              onClick={() => toggleSignup(date)}
+                              disabled={isLoading}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-9 text-xs"
+                            >
+                              Tilmeld
+                            </Button>
+                            <Button
+                              onClick={() => toggleOptout(date)}
+                              disabled={isLoading}
+                              variant="outline"
+                              size="sm"
+                              className="h-9 px-2 text-xs"
+                              title="Afmeld"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
 
                         {/* Guest Management Dialog - Only show when signed up */}
                         {signedUp && !isPast && !isClosed && userSignup && (

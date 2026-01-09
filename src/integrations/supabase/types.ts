@@ -207,6 +207,27 @@ export type Database = {
           },
         ]
       }
+      lunch_optouts: {
+        Row: {
+          created_at: string | null
+          id: string
+          lunch_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lunch_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lunch_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lunch_signups: {
         Row: {
           created_at: string

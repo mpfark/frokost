@@ -303,13 +303,33 @@ export const InvitationManagement = () => {
     }
   };
 
-  const copyInviteLink = (inviteCode: string, email: string) => {
-    const link = `${window.location.origin}/#invite=${inviteCode}&email=${encodeURIComponent(email)}`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "Kopieret",
-      description: "Invitationslink kopieret til udklipsholder",
-    });
+  const copyInviteLink = async (inviteCode: string, email: string) => {
+    setActionLoading(inviteCode);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-invite-link", {
+        body: { inviteCode },
+      });
+
+      if (error) throw error;
+
+      if (!data?.link) {
+        throw new Error("Kunne ikke generere link");
+      }
+
+      await navigator.clipboard.writeText(data.link);
+      toast({
+        title: "Kopieret",
+        description: "Magic link kopieret til udklipsholder",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message || "Kunne ikke generere link",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {

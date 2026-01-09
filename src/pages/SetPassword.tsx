@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export default function SetPassword() {
   const [session, setSession] = useState<any>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [linkExpired, setLinkExpired] = useState(false);
+  const isIntentionalSignOut = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,6 +67,10 @@ export default function SetPassword() {
           console.log("SetPassword: Session established successfully");
         }
       } else if (event === 'SIGNED_OUT' && sessionEstablished) {
+        // Ignore sign-out if it's part of the password setting flow
+        if (isIntentionalSignOut.current) {
+          return;
+        }
         // Only redirect if we previously had a session
         if (mounted) {
           toast.error("Session udløbet. Prøv at klikke på linket i emailen igen.");
@@ -127,6 +132,7 @@ export default function SetPassword() {
       if (updateError) throw updateError;
 
       // Sign out the magic link session
+      isIntentionalSignOut.current = true;
       await supabase.auth.signOut();
 
       // Sign in with the new password to establish a proper session

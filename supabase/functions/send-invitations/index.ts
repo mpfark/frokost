@@ -271,58 +271,10 @@ serve(async (req: Request) => {
           continue;
         }
 
-        // Generate magic link using Supabase Admin API (without sending email)
-        // Always use production URL to avoid preview domain issues
+        // Generate invitation link that points to the accept-invitation page
+        // This page will generate a fresh magic link on-demand, allowing the invitation to stay valid for 7 days
         const productionUrl = "https://frokost.pluskontoret.dk";
-        const redirectUrl = `${productionUrl}/set-password`;
-        
-        // First try 'invite' type, if user exists use 'magiclink' instead
-        let linkData;
-        let linkError;
-        
-        const generateResult = await supabaseServiceClient.auth.admin.generateLink({
-          type: 'invite',
-          email: email.toLowerCase(),
-          options: {
-            redirectTo: redirectUrl,
-            data: {
-              invite_code: inviteCode,
-              full_name: email.split('@')[0],
-            }
-          }
-        });
-        
-        linkData = generateResult.data;
-        linkError = generateResult.error;
-        
-        // If user already exists, use magiclink instead
-        if (linkError?.code === 'email_exists') {
-          console.log(`User ${email} already exists, using magiclink instead`);
-          const magicResult = await supabaseServiceClient.auth.admin.generateLink({
-            type: 'magiclink',
-            email: email.toLowerCase(),
-            options: {
-              redirectTo: redirectUrl,
-              data: {
-                invite_code: inviteCode,
-              }
-            }
-          });
-          linkData = magicResult.data;
-          linkError = magicResult.error;
-        }
-
-        if (linkError || !linkData?.properties?.action_link) {
-          console.error("Generate link error:", linkError);
-          results.push({
-            email,
-            success: false,
-            error: "Failed to generate invitation link",
-          });
-          continue;
-        }
-
-        const inviteLink = linkData.properties.action_link;
+        const inviteLink = `${productionUrl}/accept-invitation/${invitationData.id}`;
 
         // Send custom email via Resend with company colors
         const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);

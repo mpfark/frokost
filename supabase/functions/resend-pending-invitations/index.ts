@@ -187,56 +187,9 @@ serve(async (req: Request) => {
       try {
         console.log(`Resending invitation to ${invitation.email}`);
 
-        // Generate new magic link
-        const redirectUrl = `${productionUrl}/set-password`;
-        
-        // First try 'invite' type, if user exists use 'magiclink' instead
-        let linkData;
-        let linkError;
-        
-        const generateResult = await supabaseServiceClient.auth.admin.generateLink({
-          type: 'invite',
-          email: invitation.email.toLowerCase(),
-          options: {
-            redirectTo: redirectUrl,
-            data: {
-              invite_code: invitation.invite_code,
-              full_name: invitation.email.split('@')[0],
-            }
-          }
-        });
-        
-        linkData = generateResult.data;
-        linkError = generateResult.error;
-        
-        // If user already exists, use magiclink instead
-        if (linkError?.code === 'email_exists') {
-          console.log(`User ${invitation.email} already exists, using magiclink instead`);
-          const magicResult = await supabaseServiceClient.auth.admin.generateLink({
-            type: 'magiclink',
-            email: invitation.email.toLowerCase(),
-            options: {
-              redirectTo: redirectUrl,
-              data: {
-                invite_code: invitation.invite_code,
-              }
-            }
-          });
-          linkData = magicResult.data;
-          linkError = magicResult.error;
-        }
-
-        if (linkError || !linkData?.properties?.action_link) {
-          console.error("Generate link error for", invitation.email, ":", linkError);
-          results.push({
-            email: invitation.email,
-            success: false,
-            error: "Failed to generate invitation link",
-          });
-          continue;
-        }
-
-        const inviteLink = linkData.properties.action_link;
+        // Generate invitation link that points to the accept-invitation page
+        // This page will generate a fresh magic link on-demand
+        const inviteLink = `${productionUrl}/accept-invitation/${invitation.id}`;
 
         // Send email via Resend
         const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);

@@ -385,7 +385,9 @@ serve(async (req) => {
 
           // Generate magic link for the invitation
           try {
-            const redirectUrl = `${origin}/set-password#invite_code=${inviteCode}`;
+            // Always use production URL to avoid preview domain issues
+            const productionUrl = "https://frokost.pluskontoret.dk";
+            const redirectUrl = `${productionUrl}/set-password#invite_code=${inviteCode}`;
             
             const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
               type: 'invite',

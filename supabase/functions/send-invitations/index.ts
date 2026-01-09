@@ -272,7 +272,9 @@ serve(async (req: Request) => {
         }
 
         // Generate magic link using Supabase Admin API (without sending email)
-        const redirectUrl = `${origin}/set-password`;
+        // Always use production URL to avoid preview domain issues
+        const productionUrl = "https://frokost.pluskontoret.dk";
+        const redirectUrl = `${productionUrl}/set-password`;
         
         const { data: linkData, error: linkError } = await supabaseServiceClient.auth.admin.generateLink({
           type: 'invite',

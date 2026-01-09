@@ -662,9 +662,14 @@ export const KitchenView = () => {
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
             {selectedDate && getSignupsForDate(selectedDate)
               .sort((a, b) => {
+                // First priority: guests (more guests = higher priority)
+                if (b.guest_count !== a.guest_count) {
+                  return b.guest_count - a.guest_count;
+                }
+                // Second priority: dietary restrictions
                 const aDietary = (a.profiles?.is_gluten_free ? 1 : 0) + (a.profiles?.is_lactose_free ? 1 : 0) + (a.profiles?.is_vegetarian ? 1 : 0);
                 const bDietary = (b.profiles?.is_gluten_free ? 1 : 0) + (b.profiles?.is_lactose_free ? 1 : 0) + (b.profiles?.is_vegetarian ? 1 : 0);
-                return bDietary - aDietary; // Higher count comes first
+                return bDietary - aDietary;
               })
               .map((signup) => {
               const signupGuests = guests.filter(g => g.signup_id === signup.id);

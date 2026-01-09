@@ -598,7 +598,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled
                               variant="default"
                               size="sm"
-                              className="flex-1 h-9 text-xs"
+                              className="flex-1 h-9 text-xs justify-center"
                               title="Tilmeldt"
                             >
                               <Check className="w-3 h-3" />
@@ -608,7 +608,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs"
+                              className="flex-1 h-9 text-xs justify-center"
                               title="Afmeld"
                             >
                               <X className="w-3 h-3" />
@@ -622,7 +622,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                            className="flex-1 h-9 text-xs"
+                              className="flex-1 h-9 text-xs justify-center"
                               title="Tilmeld"
                             >
                               <Check className="w-3 h-3" />
@@ -631,10 +631,10 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled
                               variant="secondary"
                               size="sm"
-                              className="flex-1 h-9 text-xs text-muted-foreground"
+                              className="flex-1 h-9 text-xs text-muted-foreground justify-center"
+                              title="Frameldt"
                             >
-                              <X className="w-3 h-3 mr-1" />
-                              Frameldt
+                              <X className="w-3 h-3" />
                             </Button>
                           </>
                         ) : (
@@ -645,7 +645,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs"
+                              className="flex-1 h-9 text-xs justify-center"
                             >
                               Tilmeld
                             </Button>
@@ -654,7 +654,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               disabled={isLoading}
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-9 text-xs"
+                              className="flex-1 h-9 text-xs justify-center"
                               title="Afmeld"
                             >
                               <X className="w-3 h-3" />

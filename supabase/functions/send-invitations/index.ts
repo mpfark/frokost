@@ -276,7 +276,11 @@ serve(async (req: Request) => {
         const productionUrl = "https://frokost.pluskontoret.dk";
         const redirectUrl = `${productionUrl}/set-password`;
         
-        const { data: linkData, error: linkError } = await supabaseServiceClient.auth.admin.generateLink({
+        // First try 'invite' type, if user exists use 'magiclink' instead
+        let linkData;
+        let linkError;
+        
+        const generateResult = await supabaseServiceClient.auth.admin.generateLink({
           type: 'invite',
           email: email.toLowerCase(),
           options: {
@@ -287,6 +291,26 @@ serve(async (req: Request) => {
             }
           }
         });
+        
+        linkData = generateResult.data;
+        linkError = generateResult.error;
+        
+        // If user already exists, use magiclink instead
+        if (linkError?.code === 'email_exists') {
+          console.log(`User ${email} already exists, using magiclink instead`);
+          const magicResult = await supabaseServiceClient.auth.admin.generateLink({
+            type: 'magiclink',
+            email: email.toLowerCase(),
+            options: {
+              redirectTo: redirectUrl,
+              data: {
+                invite_code: inviteCode,
+              }
+            }
+          });
+          linkData = magicResult.data;
+          linkError = magicResult.error;
+        }
 
         if (linkError || !linkData?.properties?.action_link) {
           console.error("Generate link error:", linkError);

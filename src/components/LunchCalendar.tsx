@@ -629,9 +629,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                             </Button>
                             <Button
                               disabled
-                              variant="secondary"
+                              variant="default"
                               size="sm"
-                              className="flex-1 w-0 h-9 text-xs text-muted-foreground justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center"
                               title="Frameldt"
                             >
                               <X className="w-3 h-3" />
@@ -670,7 +670,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                           >
                             <DialogTrigger asChild>
                               <Button
-                                variant="outline"
+                                variant={userSignup.guest_count > 0 ? "default" : "outline"}
                                 size="sm"
                                 className="flex-1 w-0 h-9 text-xs justify-center"
                               >

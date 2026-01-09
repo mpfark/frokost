@@ -672,7 +672,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 h-9 text-xs"
+                                className="flex-1 h-9 text-xs justify-center"
                               >
                                 <UserPlus className="w-3 h-3" />
                               </Button>

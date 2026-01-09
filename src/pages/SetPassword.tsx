@@ -33,6 +33,19 @@ export default function SetPassword() {
     let mounted = true;
     let sessionEstablished = false;
 
+    // Check for error in URL fragment (e.g., OTP expired)
+    const hash = window.location.hash.substring(1);
+    const hashParams = new URLSearchParams(hash);
+    const error = hashParams.get('error');
+    const errorCode = hashParams.get('error_code');
+    
+    if (error === 'access_denied' && errorCode === 'otp_expired') {
+      console.log("SetPassword: OTP expired error detected in URL");
+      setLinkExpired(true);
+      setIsCheckingSession(false);
+      return; // Stop further processing
+    }
+
     // Check if URL contains auth tokens (magic link)
     const hasAuthFragment = window.location.hash.includes('access_token') || 
                             window.location.hash.includes('type=');

@@ -26,3 +26,9 @@ verify_jwt = true
 
 [functions.generate-invite-link]
 verify_jwt = true
+
+[functions.accept-invitation]
+verify_jwt = true
+
+[functions.trigger-reminder-test]
+verify_jwt = true

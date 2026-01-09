@@ -595,10 +595,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                           <>
                             {/* Signed up state */}
                             <Button
-                              disabled
                               variant="default"
                               size="sm"
-                              className="flex-1 w-0 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center pointer-events-none"
                               title="Tilmeldt"
                             >
                               <Check className="w-3 h-3" />
@@ -628,10 +627,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               <Check className="w-3 h-3" />
                             </Button>
                             <Button
-                              disabled
                               variant="default"
                               size="sm"
-                              className="flex-1 w-0 h-9 text-xs justify-center"
+                              className="flex-1 w-0 h-9 text-xs justify-center pointer-events-none"
                               title="Frameldt"
                             >
                               <X className="w-3 h-3" />

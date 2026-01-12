@@ -625,18 +625,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
               {/* Days Grid - including "Hele ugen" as first card */}
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Hele ugen card */}
-                <div className={`border rounded-lg p-3 flex flex-col gap-2 min-w-0 overflow-hidden ${!hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"}`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="text-xs text-muted-foreground font-medium">
-                        Hele
-                      </div>
-                      <div className="text-sm font-semibold">
-                        Ugen
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1 mt-auto min-w-0">
+                <div className={`border rounded-lg p-3 flex flex-col justify-center min-w-0 overflow-hidden ${!hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"}`}>
+                  <div className="flex flex-col gap-1 min-w-0">
                     <Button
                       onClick={() => signupForWeek(days)}
                       disabled={isLoading || !hasAvailableDays(days)}

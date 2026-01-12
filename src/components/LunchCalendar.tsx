@@ -496,6 +496,99 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return closedDates.find((cd) => cd.date === dateStr)?.reason;
   };
 
+  const hasAvailableDays = (days: Date[]) => {
+    return days.some(date => !isPastDate(date) && !isDateClosed(date));
+  };
+
+  const signupForWeek = async (days: Date[]) => {
+    setIsLoading(true);
+    try {
+      const eligibleDays = days.filter(date => 
+        !isPastDate(date) && 
+        !isDateClosed(date) && 
+        !isSignedUp(date)
+      );
+      
+      if (eligibleDays.length === 0) {
+        toast.info("Du er allerede tilmeldt alle tilgængelige dage");
+        return;
+      }
+
+      for (const date of eligibleDays) {
+        const dateStr = format(date, "yyyy-MM-dd");
+        
+        // Remove any optout first if exists
+        if (isOptedOut(date)) {
+          await supabase
+            .from("lunch_optouts")
+            .delete()
+            .eq("user_id", userId)
+            .eq("lunch_date", dateStr);
+        }
+        
+        await supabase
+          .from("lunch_signups")
+          .insert({ 
+            user_id: userId, 
+            lunch_date: dateStr,
+            guest_count: 0
+          });
+      }
+      
+      await fetchSignups();
+      await fetchOptouts();
+      toast.success(`Tilmeldt til ${eligibleDays.length} dag${eligibleDays.length > 1 ? 'e' : ''}`);
+    } catch (error: any) {
+      toast.error("Kunne ikke tilmelde hele ugen");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const optoutForWeek = async (days: Date[]) => {
+    setIsLoading(true);
+    try {
+      const eligibleDays = days.filter(date => 
+        !isPastDate(date) && 
+        !isDateClosed(date) && 
+        !isOptedOut(date)
+      );
+      
+      if (eligibleDays.length === 0) {
+        toast.info("Du er allerede frameldt alle tilgængelige dage");
+        return;
+      }
+
+      for (const date of eligibleDays) {
+        const dateStr = format(date, "yyyy-MM-dd");
+        
+        // First remove any signup if exists
+        const userSignup = getUserSignup(date);
+        if (userSignup) {
+          await supabase
+            .from("lunch_signups")
+            .delete()
+            .eq("id", userSignup.id);
+        }
+        
+        await supabase
+          .from("lunch_optouts")
+          .insert({ 
+            user_id: userId, 
+            lunch_date: dateStr
+          });
+      }
+      
+      await fetchSignups();
+      await fetchOptouts();
+      toast.success(`Frameldt ${eligibleDays.length} dag${eligibleDays.length > 1 ? 'e' : ''}`);
+    } catch (error: any) {
+      toast.error("Kunne ikke framelde hele ugen");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isSettingsLoading) {
     return (
       <div className="space-y-4">
@@ -504,6 +597,10 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
             <CardContent className="p-4 md:p-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <Skeleton className="h-20 w-20 rounded-lg" />
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-9 w-32 rounded-md" />
+                  <Skeleton className="h-9 w-32 rounded-md" />
+                </div>
                 <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {[1, 2, 3, 4, 5].map((j) => (
                     <Skeleton key={j} className="h-24 rounded-lg" />
@@ -527,6 +624,30 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
               <div className={`flex-shrink-0 flex flex-row md:flex-col items-center justify-center rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0 ${weekNumber === currentWeekNumber ? "bg-primary" : "bg-muted"}`}>
                 <div className={`text-xs uppercase tracking-wide ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-muted-foreground"}`}>Uge</div>
                 <div className={`text-2xl md:text-4xl font-bold ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-foreground"}`}>{weekNumber}</div>
+              </div>
+
+              {/* Week Actions */}
+              <div className="flex-shrink-0 flex flex-row md:flex-col gap-2 justify-center">
+                <Button
+                  onClick={() => signupForWeek(days)}
+                  disabled={isLoading || !hasAvailableDays(days)}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs whitespace-nowrap"
+                >
+                  <Check className="w-3 h-3 mr-1" />
+                  Tilmeld hele ugen
+                </Button>
+                <Button
+                  onClick={() => optoutForWeek(days)}
+                  disabled={isLoading || !hasAvailableDays(days)}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs whitespace-nowrap"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Frameld hele ugen
+                </Button>
               </div>
 
               {/* Days Grid */}

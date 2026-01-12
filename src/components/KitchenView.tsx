@@ -462,22 +462,21 @@ export const KitchenView = () => {
                               Lukket
                             </div>
                           )}
+                          {/* Kostrestriktioner stablet vertikalt */}
+                          {daySignups.length > 0 && dietaryCounts.size > 0 && (
+                            <div className="flex flex-col items-end gap-0.5 text-xs text-muted-foreground">
+                              {Array.from(dietaryCounts.entries()).map(([combo, count]) => (
+                                <div key={combo} className="flex items-center gap-0.5">
+                                  {combo.includes('GF') && <Wheat className="w-3 h-3" />}
+                                  {combo.includes('LF') && <Milk className="w-3 h-3" />}
+                                  {combo.includes('V') && <Leaf className="w-3 h-3" />}
+                                  <span>{count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
-
-                      {/* Kostrestriktioner på én linje */}
-                      {daySignups.length > 0 && dietaryCounts.size > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
-                          {Array.from(dietaryCounts.entries()).map(([combo, count]) => (
-                            <div key={combo} className="flex items-center gap-0.5">
-                              {combo.includes('GF') && <Wheat className="w-3 h-3" />}
-                              {combo.includes('LF') && <Milk className="w-3 h-3" />}
-                              {combo.includes('V') && <Leaf className="w-3 h-3" />}
-                              <span>{count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}

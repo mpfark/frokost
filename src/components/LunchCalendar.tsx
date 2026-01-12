@@ -597,12 +597,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
             <CardContent className="p-4 md:p-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <Skeleton className="h-20 w-20 rounded-lg" />
-                <div className="flex flex-col gap-2">
-                  <Skeleton className="h-9 w-32 rounded-md" />
-                  <Skeleton className="h-9 w-32 rounded-md" />
-                </div>
-                <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {[1, 2, 3, 4, 5].map((j) => (
+                <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {[1, 2, 3, 4, 5, 6].map((j) => (
                     <Skeleton key={j} className="h-24 rounded-lg" />
                   ))}
                 </div>
@@ -626,32 +622,43 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                 <div className={`text-2xl md:text-4xl font-bold ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-foreground"}`}>{weekNumber}</div>
               </div>
 
-              {/* Week Actions */}
-              <div className="flex-shrink-0 flex flex-row md:flex-col gap-2 justify-center">
-                <Button
-                  onClick={() => signupForWeek(days)}
-                  disabled={isLoading || !hasAvailableDays(days)}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 text-xs whitespace-nowrap"
-                >
-                  <Check className="w-3 h-3 mr-1" />
-                  Tilmeld hele ugen
-                </Button>
-                <Button
-                  onClick={() => optoutForWeek(days)}
-                  disabled={isLoading || !hasAvailableDays(days)}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 text-xs whitespace-nowrap"
-                >
-                  <X className="w-3 h-3 mr-1" />
-                  Frameld hele ugen
-                </Button>
-              </div>
-
-              {/* Days Grid */}
-              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {/* Days Grid - including "Hele ugen" as first card */}
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {/* Hele ugen card */}
+                <div className={`border rounded-lg p-3 flex flex-col gap-2 min-w-0 overflow-hidden ${!hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        Hele
+                      </div>
+                      <div className="text-sm font-semibold">
+                        Ugen
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 mt-auto min-w-0">
+                    <Button
+                      onClick={() => signupForWeek(days)}
+                      disabled={isLoading || !hasAvailableDays(days)}
+                      variant="outline"
+                      size="sm"
+                      className="h-9 text-xs justify-center"
+                    >
+                      <Check className="w-3 h-3 mr-1" />
+                      Tilmeld
+                    </Button>
+                    <Button
+                      onClick={() => optoutForWeek(days)}
+                      disabled={isLoading || !hasAvailableDays(days)}
+                      variant="outline"
+                      size="sm"
+                      className="h-9 text-xs justify-center"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Frameld
+                    </Button>
+                  </div>
+                </div>
               {days.map((date) => {
                   const signedUp = isSignedUp(date);
                   const optedOut = isOptedOut(date);

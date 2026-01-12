@@ -433,50 +433,51 @@ export const KitchenView = () => {
                   return (
                     <div
                       key={date.toISOString()}
-                      className={`border rounded-lg p-3 ${isPast || isClosed ? "opacity-60 bg-muted/50" : "bg-card hover:bg-accent/50"} ${daySignups.length > 0 ? "cursor-pointer transition-colors" : ""}`}
+                      className={`border rounded-lg p-2 ${isPast || isClosed ? "opacity-60 bg-muted/50" : "bg-card hover:bg-accent/50"} ${daySignups.length > 0 ? "cursor-pointer transition-colors" : ""}`}
                       onClick={() => daySignups.length > 0 && setSelectedDate(date)}
                     >
-                      <div className="text-center mb-2">
-                        <div className="text-xs text-muted-foreground font-medium">
-                          {format(date, "EEEE", { locale: da })}
-                        </div>
-                        <div className="text-sm font-semibold">
-                          {format(date, "MMM d", { locale: da })}
-                        </div>
-                        {isClosed && (
-                          <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1">
-                            <Lock className="w-3 h-3" />
-                            Lukket
+                      {/* Header row - dag/dato venstre, antal højre */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-left">
+                          <div className="text-xs text-muted-foreground font-medium">
+                            {format(date, "EEEE", { locale: da })}
                           </div>
-                        )}
+                          <div className="text-sm font-semibold">
+                            {format(date, "d. MMM", { locale: da })}
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge
+                            variant={daySignups.length > 0 ? "default" : "secondary"}
+                            className="flex items-center gap-1"
+                          >
+                            <Users className="w-3 h-3" />
+                            <span>{memberCount}</span>
+                            {guestCount > 0 && <span className="text-xs opacity-80">+{guestCount}</span>}
+                          </Badge>
+                          {isClosed && (
+                            <div className="flex items-center gap-1 text-xs text-destructive">
+                              <Lock className="w-3 h-3" />
+                              Lukket
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <Badge
-                          variant={daySignups.length > 0 ? "default" : "secondary"}
-                          className="flex items-center gap-1"
-                        >
-                          <Users className="w-3 h-3" />
-                          <span>{memberCount}</span>
-                          {guestCount > 0 && <span className="text-xs opacity-80">+{guestCount}</span>}
-                        </Badge>
-                      </div>
-
+                      {/* Kostrestriktioner på én linje */}
                       {daySignups.length > 0 && dietaryCounts.size > 0 && (
-                        <div className="space-y-1 text-xs">
+                        <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
                           {Array.from(dietaryCounts.entries()).map(([combo, count]) => (
-                            <div key={combo} className="flex items-center gap-1 text-muted-foreground">
-                              <div className="flex gap-0.5">
-                                {combo.includes('GF') && <Wheat className="w-3 h-3" />}
-                                {combo.includes('LF') && <Milk className="w-3 h-3" />}
-                                {combo.includes('V') && <Leaf className="w-3 h-3" />}
-                              </div>
-                              <span>{count} {combo}</span>
+                            <div key={combo} className="flex items-center gap-0.5">
+                              {combo.includes('GF') && <Wheat className="w-3 h-3" />}
+                              {combo.includes('LF') && <Milk className="w-3 h-3" />}
+                              {combo.includes('V') && <Leaf className="w-3 h-3" />}
+                              <span>{count}</span>
                             </div>
                           ))}
                         </div>
                       )}
-
                     </div>
                   );
                 })}

@@ -465,7 +465,9 @@ export const KitchenView = () => {
                           {/* Kostrestriktioner stablet vertikalt */}
                           {daySignups.length > 0 && dietaryCounts.size > 0 && (
                             <div className="flex flex-col items-end gap-0.5 text-xs text-muted-foreground">
-                              {Array.from(dietaryCounts.entries()).map(([combo, count]) => (
+                              {Array.from(dietaryCounts.entries())
+                                .sort(([a], [b]) => a.localeCompare(b))
+                                .map(([combo, count]) => (
                                 <div key={combo} className="flex items-center gap-0.5">
                                   {combo.includes('GF') && <Wheat className="w-3 h-3" />}
                                   {combo.includes('LF') && <Milk className="w-3 h-3" />}

@@ -392,6 +392,7 @@ export type Database = {
           created_at: string
           field_mapping: Json
           id: string
+          include_drafts: boolean
           is_enabled: boolean
           last_sync_at: string | null
           removal_policy: string
@@ -404,6 +405,7 @@ export type Database = {
           created_at?: string
           field_mapping?: Json
           id?: string
+          include_drafts?: boolean
           is_enabled?: boolean
           last_sync_at?: string | null
           removal_policy?: string
@@ -416,6 +418,7 @@ export type Database = {
           created_at?: string
           field_mapping?: Json
           id?: string
+          include_drafts?: boolean
           is_enabled?: boolean
           last_sync_at?: string | null
           removal_policy?: string

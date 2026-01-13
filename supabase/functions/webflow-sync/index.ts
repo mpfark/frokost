@@ -10,6 +10,9 @@ const corsHeaders = {
 
 interface WebflowItem {
   id: string;
+  isDraft?: boolean;
+  isArchived?: boolean;
+  lastPublished?: string;
   fieldData: {
     name: string;
     email: string;
@@ -242,9 +245,21 @@ serve(async (req) => {
       }
 
       const webflowData = await webflowResponse.json();
-      const webflowItems: WebflowItem[] = webflowData.items || [];
+      const allWebflowItems: WebflowItem[] = webflowData.items || [];
 
-      console.log(`Fetched ${webflowItems.length} items from Webflow`);
+      console.log(`Fetched ${allWebflowItems.length} items from Webflow`);
+
+      // Filter out drafts and archived items unless include_drafts is enabled
+      const webflowItems = settings.include_drafts
+        ? allWebflowItems.filter(item => !item.isArchived)
+        : allWebflowItems.filter(item => !item.isDraft && !item.isArchived);
+
+      const skippedDrafts = allWebflowItems.length - webflowItems.length;
+      if (skippedDrafts > 0) {
+        console.log(`Filtered out ${skippedDrafts} draft/archived items (include_drafts: ${settings.include_drafts})`);
+        details.skipped = details.skipped || [];
+        details.skipped.push(`${skippedDrafts} draft/archived items skipped`);
+      }
 
       // Get existing profiles
       const { data: existingProfiles, error: profilesError } = await supabase

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const WebflowSyncSettings = () => {
@@ -20,6 +21,7 @@ export const WebflowSyncSettings = () => {
     collection_id: '',
     sync_frequency: 'manual',
     removal_policy: 'deactivate',
+    include_drafts: false,
   });
 
   const { data: settings, isLoading } = useQuery({
@@ -47,6 +49,7 @@ export const WebflowSyncSettings = () => {
         collection_id: settings.collection_id,
         sync_frequency: settings.sync_frequency,
         removal_policy: settings.removal_policy,
+        include_drafts: settings.include_drafts ?? false,
       });
     }
   }, [settings]);
@@ -251,6 +254,20 @@ export const WebflowSyncSettings = () => {
               <p className="text-sm text-muted-foreground">
                 Hvad skal der ske med brugere der fjernes fra Webflow?
               </p>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="include-drafts">Inkludér drafts</Label>
+                <p className="text-sm text-muted-foreground">
+                  Synkronisér også medarbejdere der er i draft-tilstand
+                </p>
+              </div>
+              <Switch
+                id="include-drafts"
+                checked={formData.include_drafts}
+                onCheckedChange={(checked) => setFormData({ ...formData, include_drafts: checked })}
+              />
             </div>
 
             <Button

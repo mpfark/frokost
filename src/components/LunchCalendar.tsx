@@ -745,7 +745,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                               <Check className="w-3 h-3" />
                             </Button>
                             <Button
-                              variant="default"
+                              variant="destructive"
                               size="sm"
                               className="flex-1 w-0 h-9 text-xs justify-center pointer-events-none"
                               title="Frameldt"

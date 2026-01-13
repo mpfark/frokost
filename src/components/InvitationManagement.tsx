@@ -303,28 +303,22 @@ export const InvitationManagement = () => {
     }
   };
 
-  const copyInviteLink = async (inviteCode: string, email: string) => {
-    setActionLoading(inviteCode);
+  const copyInviteLink = async (invitationId: string, email: string) => {
+    setActionLoading(invitationId);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-invite-link", {
-        body: { inviteCode },
-      });
-
-      if (error) throw error;
-
-      if (!data?.link) {
-        throw new Error("Kunne ikke generere link");
-      }
-
-      await navigator.clipboard.writeText(data.link);
+      // Use the same link format as emails - points to accept-invitation page
+      // which generates a fresh magic link on-demand (valid for 7 days)
+      const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationId}`;
+      
+      await navigator.clipboard.writeText(inviteLink);
       toast({
         title: "Kopieret",
-        description: "Magic link kopieret til udklipsholder",
+        description: "Invitationslink kopieret til udklipsholder",
       });
     } catch (error: any) {
       toast({
         title: "Fejl",
-        description: error.message || "Kunne ikke generere link",
+        description: "Kunne ikke kopiere link",
         variant: "destructive",
       });
     } finally {
@@ -499,7 +493,7 @@ export const InvitationManagement = () => {
                           size="icon"
                           variant="outline"
                           className="h-7 w-7"
-                          onClick={() => copyInviteLink(invite.invite_code, invite.email)}
+                          onClick={() => copyInviteLink(invite.id, invite.email)}
                           disabled={actionLoading === invite.id}
                         >
                           <Copy className="h-3 w-3" />

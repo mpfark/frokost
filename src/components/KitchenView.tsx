@@ -692,7 +692,7 @@ export const KitchenView = () => {
       </TabsContent>
 
       <Drawer open={selectedDate !== null} onOpenChange={(open) => !open && setSelectedDate(null)}>
-        <DrawerContent>
+        <DrawerContent className="mx-auto max-w-lg">
           <DrawerHeader>
             <DrawerTitle>
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy", { locale: da })}

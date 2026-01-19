@@ -1,0 +1,150 @@
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { format, differenceInBusinessDays, eachDayOfInterval, isWeekend } from "date-fns";
+import { Users, Calendar, UserPlus, TrendingUp } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface StatisticsOverviewProps {
+  startDate: Date;
+  endDate: Date;
+}
+
+interface Stats {
+  totalSignups: number;
+  uniqueUsers: number;
+  totalGuests: number;
+  avgPerDay: number;
+  totalOptouts: number;
+}
+
+export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewProps) => {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      const startStr = format(startDate, "yyyy-MM-dd");
+      const endStr = format(endDate, "yyyy-MM-dd");
+
+      const [signupsRes, guestsRes, optoutsRes] = await Promise.all([
+        supabase
+          .from("lunch_signups")
+          .select("id, user_id, lunch_date, guest_count")
+          .gte("lunch_date", startStr)
+          .lte("lunch_date", endStr),
+        supabase
+          .from("guests")
+          .select("id, signup_id, lunch_signups!inner(lunch_date)")
+          .gte("lunch_signups.lunch_date", startStr)
+          .lte("lunch_signups.lunch_date", endStr),
+        supabase
+          .from("lunch_optouts")
+          .select("id")
+          .gte("lunch_date", startStr)
+          .lte("lunch_date", endStr),
+      ]);
+
+      const signups = signupsRes.data || [];
+      const guests = guestsRes.data || [];
+      const optouts = optoutsRes.data || [];
+
+      const uniqueUserIds = new Set(signups.map((s) => s.user_id));
+      
+      // Calculate business days in range
+      const allDays = eachDayOfInterval({ start: startDate, end: endDate });
+      const businessDays = allDays.filter((d) => !isWeekend(d)).length;
+      
+      const avgPerDay = businessDays > 0 ? signups.length / businessDays : 0;
+
+      setStats({
+        totalSignups: signups.length,
+        uniqueUsers: uniqueUserIds.size,
+        totalGuests: guests.length,
+        avgPerDay: Math.round(avgPerDay * 10) / 10,
+        totalOptouts: optouts.length,
+      });
+      setLoading(false);
+    };
+
+    fetchStats();
+  }, [startDate, endDate]);
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-3 w-32 mt-2" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!stats) return null;
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Tilmeldinger</CardTitle>
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.totalSignups}</div>
+          <p className="text-xs text-muted-foreground">
+            I den valgte periode
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Gns. pr. dag</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.avgPerDay}</div>
+          <p className="text-xs text-muted-foreground">
+            Hverdage i perioden
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Aktive brugere</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.uniqueUsers}</div>
+          <p className="text-xs text-muted-foreground">
+            Har været tilmeldt mindst én gang
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Gæster</CardTitle>
+          <UserPlus className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.totalGuests}</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.totalOptouts} afmeldinger i perioden
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

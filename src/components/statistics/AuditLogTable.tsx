@@ -27,6 +27,8 @@ const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secon
   optout_deleted: { label: "Fravalg fjernet", variant: "outline" },
   guest_added: { label: "Gæst tilføjet", variant: "default" },
   guest_removed: { label: "Gæst fjernet", variant: "destructive" },
+  marked_absent: { label: "Markeret fraværende", variant: "secondary" },
+  unmarked_absent: { label: "Fravær fjernet", variant: "outline" },
 };
 
 export const AuditLogTable = () => {
@@ -110,6 +112,8 @@ export const AuditLogTable = () => {
               <SelectItem value="optout_created">Fravalg</SelectItem>
               <SelectItem value="guest_added">Gæster tilføjet</SelectItem>
               <SelectItem value="guest_removed">Gæster fjernet</SelectItem>
+              <SelectItem value="marked_absent">Markeret fraværende</SelectItem>
+              <SelectItem value="unmarked_absent">Fravær fjernet</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" onClick={fetchLogs}>

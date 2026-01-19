@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles } from "lucide-react";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getUpcomingDanishHolidays, filterAlreadyClosedHolidays, type DanishHoliday } from "@/lib/danishHolidays";
 import {
@@ -39,6 +39,7 @@ interface LunchSignup {
   user_id: string;
   lunch_date: string;
   guest_count: number;
+  marked_absent_at: string | null;
   profiles: {
     full_name: string | null;
     email: string;
@@ -101,7 +102,25 @@ export const KitchenView = () => {
       return;
     }
 
-    setSignups(data || []);
+    setSignups((data as LunchSignup[]) || []);
+  };
+
+  const toggleAbsentStatus = async (signupId: string, isCurrentlyAbsent: boolean) => {
+    const { error } = await supabase
+      .from("lunch_signups")
+      .update({ 
+        marked_absent_at: isCurrentlyAbsent ? null : new Date().toISOString() 
+      })
+      .eq("id", signupId);
+
+    if (error) {
+      console.error("Error updating absence status:", error);
+      toast.error("Kunne ikke opdatere fraværsstatus");
+      return;
+    }
+
+    toast.success(isCurrentlyAbsent ? "Fravær fjernet" : "Markeret fraværende");
+    fetchSignups();
   };
 
   const fetchClosedDates = async () => {
@@ -344,6 +363,17 @@ export const KitchenView = () => {
     return daySignups.length + daySignups.reduce((sum, s) => sum + s.guest_count, 0);
   };
 
+  const getExpectedPeopleForDate = (date: Date) => {
+    const daySignups = getSignupsForDate(date);
+    const presentSignups = daySignups.filter(s => !s.marked_absent_at);
+    return presentSignups.length + presentSignups.reduce((sum, s) => sum + s.guest_count, 0);
+  };
+
+  const getAbsentCountForDate = (date: Date) => {
+    const daySignups = getSignupsForDate(date);
+    return daySignups.filter(s => s.marked_absent_at).length;
+  };
+
   const isDateClosed = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return closedDates.some((cd) => cd.date === dateStr);
@@ -424,6 +454,8 @@ export const KitchenView = () => {
                 {days.map((date) => {
                   const daySignups = getSignupsForDate(date);
                   const totalPeople = getTotalPeopleForDate(date);
+                  const expectedPeople = getExpectedPeopleForDate(date);
+                  const absentCount = getAbsentCountForDate(date);
                   const memberCount = daySignups.length;
                   const guestCount = daySignups.reduce((sum, s) => sum + s.guest_count, 0);
                   const isPast = isPastDate(date);
@@ -453,9 +485,17 @@ export const KitchenView = () => {
                             className="flex items-center gap-1"
                           >
                             <Users className="w-3 h-3" />
-                            <span>{memberCount}</span>
-                            {guestCount > 0 && <span className="text-xs opacity-80">+{guestCount}</span>}
+                            <span>{expectedPeople}</span>
+                            {absentCount > 0 && (
+                              <span className="text-xs opacity-80">/{totalPeople}</span>
+                            )}
                           </Badge>
+                          {absentCount > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <UserX className="w-3 h-3" />
+                              {absentCount} fravær
+                            </div>
+                          )}
                           {isClosed && (
                             <div className="flex items-center gap-1 text-xs text-destructive">
                               <Lock className="w-3 h-3" />
@@ -658,7 +698,16 @@ export const KitchenView = () => {
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy", { locale: da })}
             </DrawerTitle>
             <DrawerDescription>
-              {selectedDate && `${getTotalPeopleForDate(selectedDate)} personer i alt (${getSignupsForDate(selectedDate).length} tilmeldinger)`}
+              {selectedDate && (() => {
+                const total = getTotalPeopleForDate(selectedDate);
+                const expected = getExpectedPeopleForDate(selectedDate);
+                const absent = getAbsentCountForDate(selectedDate);
+                const signupCount = getSignupsForDate(selectedDate).length;
+                if (absent > 0) {
+                  return `${signupCount} tilmeldt · ${absent} fraværende · ${expected} forventet`;
+                }
+                return `${total} personer i alt (${signupCount} tilmeldinger)`;
+              })()}
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
@@ -686,15 +735,22 @@ export const KitchenView = () => {
               if (signup.profiles?.is_lactose_free) dietaryInfo.push("LF");
               if (signup.profiles?.is_vegetarian) dietaryInfo.push("V");
               
+              const isAbsent = !!signup.marked_absent_at;
+              
               return (
-                <div key={signup.id} className="py-3 border-b last:border-0">
+                <div key={signup.id} className={`py-3 border-b last:border-0 ${isAbsent ? "opacity-60" : ""}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="font-medium flex items-center gap-2">
+                      <div className={`font-medium flex items-center gap-2 ${isAbsent ? "line-through" : ""}`}>
                         {signup.profiles?.full_name || signup.profiles?.email || 'Unknown User'}
-                        {signup.guest_count > 0 && (
+                        {signup.guest_count > 0 && !isAbsent && (
                           <Badge variant="outline" className="text-xs">
                             +{signup.guest_count} gæst{signup.guest_count > 1 ? 'er' : ''}
+                          </Badge>
+                        )}
+                        {isAbsent && (
+                          <Badge variant="secondary" className="text-xs">
+                            Fraværende
                           </Badge>
                         )}
                       </div>
@@ -783,14 +839,31 @@ export const KitchenView = () => {
                         </div>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeSignup(signup.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleAbsentStatus(signup.id, isAbsent);
+                        }}
+                        className={isAbsent ? "text-green-600 hover:text-green-700" : "text-muted-foreground hover:text-foreground"}
+                        title={isAbsent ? "Marker som tilstede" : "Marker som fraværende"}
+                      >
+                        {isAbsent ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeSignup(signup.id);
+                        }}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );

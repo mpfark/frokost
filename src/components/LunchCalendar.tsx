@@ -32,6 +32,7 @@ interface LunchSignup {
   user_id: string;
   lunch_date: string;
   guest_count: number;
+  marked_absent_at: string | null;
   profiles: {
     full_name: string | null;
     email: string;
@@ -290,7 +291,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
   const getTotalPeopleForDate = (date: Date) => {
     const daySignups = getSignupsForDate(date);
-    return daySignups.length + daySignups.reduce((sum, s) => sum + s.guest_count, 0);
+    // Filter out absent people - employees only see expected count
+    const presentSignups = daySignups.filter(s => !s.marked_absent_at);
+    return presentSignups.length + presentSignups.reduce((sum, s) => sum + s.guest_count, 0);
   };
 
   const toggleSignup = async (date: Date) => {

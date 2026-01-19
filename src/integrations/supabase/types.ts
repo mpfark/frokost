@@ -234,6 +234,7 @@ export type Database = {
           guest_count: number
           id: string
           lunch_date: string
+          marked_absent_at: string | null
           user_id: string
         }
         Insert: {
@@ -241,6 +242,7 @@ export type Database = {
           guest_count?: number
           id?: string
           lunch_date: string
+          marked_absent_at?: string | null
           user_id: string
         }
         Update: {
@@ -248,6 +250,7 @@ export type Database = {
           guest_count?: number
           id?: string
           lunch_date?: string
+          marked_absent_at?: string | null
           user_id?: string
         }
         Relationships: [

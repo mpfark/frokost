@@ -496,6 +496,12 @@ export const KitchenView = () => {
                               {absentCount} fravær
                             </div>
                           )}
+                          {guestCount > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Users className="w-3 h-3" />
+                              {guestCount} {guestCount === 1 ? 'gæst' : 'gæster'}
+                            </div>
+                          )}
                           {isClosed && (
                             <div className="flex items-center gap-1 text-xs text-destructive">
                               <Lock className="w-3 h-3" />

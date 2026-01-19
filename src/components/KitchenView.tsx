@@ -671,7 +671,13 @@ export const KitchenView = () => {
                 // Second priority: dietary restrictions
                 const aDietary = (a.profiles?.is_gluten_free ? 1 : 0) + (a.profiles?.is_lactose_free ? 1 : 0) + (a.profiles?.is_vegetarian ? 1 : 0);
                 const bDietary = (b.profiles?.is_gluten_free ? 1 : 0) + (b.profiles?.is_lactose_free ? 1 : 0) + (b.profiles?.is_vegetarian ? 1 : 0);
-                return bDietary - aDietary;
+                if (bDietary !== aDietary) {
+                  return bDietary - aDietary;
+                }
+                // Third priority: alphabetical by name
+                const aName = a.profiles?.full_name || a.profiles?.email || '';
+                const bName = b.profiles?.full_name || b.profiles?.email || '';
+                return aName.localeCompare(bName, 'da');
               })
               .map((signup) => {
               const signupGuests = guests.filter(g => g.signup_id === signup.id);

@@ -3,15 +3,17 @@ import { UserManagement } from "@/components/UserManagement";
 import { InvitationManagement } from "@/components/InvitationManagement";
 import { CompanySettings } from "@/components/CompanySettings";
 import { WebflowSyncSettings } from "@/components/WebflowSyncSettings";
+import { StatisticsView } from "@/components/statistics/StatisticsView";
 
 export const AdminPanel = () => {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full max-w-2xl mx-auto mb-8 grid-cols-2 md:grid-cols-4 h-auto">
+      <TabsList className="grid w-full max-w-3xl mx-auto mb-8 grid-cols-2 md:grid-cols-5 h-auto">
         <TabsTrigger value="users">Brugere</TabsTrigger>
         <TabsTrigger value="invitations">Invitationer</TabsTrigger>
         <TabsTrigger value="settings">Indstillinger</TabsTrigger>
         <TabsTrigger value="webflow">Importer</TabsTrigger>
+        <TabsTrigger value="statistics">Statistik</TabsTrigger>
       </TabsList>
       
       <TabsContent value="users">
@@ -28,6 +30,10 @@ export const AdminPanel = () => {
       
       <TabsContent value="webflow">
         <WebflowSyncSettings />
+      </TabsContent>
+      
+      <TabsContent value="statistics">
+        <StatisticsView />
       </TabsContent>
     </Tabs>
   );

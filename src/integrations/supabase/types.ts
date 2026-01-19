@@ -326,6 +326,33 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          lunch_date: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          lunch_date: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          lunch_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sync_logs: {
         Row: {
           created_at: string

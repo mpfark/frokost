@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek } from "date-fns";
 import { da } from "date-fns/locale";
@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Users, UserPlus, Plus, Trash2, Check, X } from "lucide-react";
+import { Users, UserPlus, Plus, Trash2, Check, X, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 interface Guest {
   id: string;
   signup_id: string;
@@ -74,10 +79,12 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [optouts, setOptouts] = useState<LunchOptout[]>([]);
+  const [allOptouts, setAllOptouts] = useState<LunchOptout[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(cachedWeeks === null);
   const [openDialog, setOpenDialog] = useState<string | null>(null);
   const [weeksToDisplay, setWeeksToDisplay] = useState(cachedWeeks || 4);
+  const [activeUserCount, setActiveUserCount] = useState(0);
 
   const today = new Date();
   const currentWeekNumber = getWeek(today, { weekStartsOn: 1 });
@@ -147,6 +154,51 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     setOptouts(data || []);
   };
 
+  const fetchAllOptouts = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
+    const { data, error } = await supabase
+      .from("lunch_optouts")
+      .select("*")
+      .gte("lunch_date", format(startDate, "yyyy-MM-dd"))
+      .lte("lunch_date", format(endDate, "yyyy-MM-dd"));
+
+    if (error) {
+      console.error("Kunne ikke indlæse alle frameldinger:", error);
+      return;
+    }
+
+    setAllOptouts(data || []);
+  };
+
+  const fetchActiveUserCount = async () => {
+    // Get active users excluding kitchen staff
+    const { data: activeProfiles, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("is_active", true);
+
+    if (profileError) {
+      console.error("Kunne ikke hente aktive brugere:", profileError);
+      return;
+    }
+
+    // Get kitchen users to exclude
+    const { data: kitchenRoles, error: roleError } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "kitchen");
+
+    if (roleError) {
+      console.error("Kunne ikke hente køkkenroller:", roleError);
+      return;
+    }
+
+    const kitchenUserIds = new Set((kitchenRoles || []).map(r => r.user_id));
+    const nonKitchenActiveUsers = (activeProfiles || []).filter(p => !kitchenUserIds.has(p.id));
+    
+    setActiveUserCount(nonKitchenActiveUsers.length);
+  };
+
   const fetchGuests = async () => {
     const signupIds = signups.map(s => s.id);
     if (signupIds.length === 0) return;
@@ -196,6 +248,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       fetchSignups();
       fetchClosedDates();
       fetchOptouts();
+      fetchAllOptouts();
+      fetchActiveUserCount();
     }
   }, [weeksToDisplay]);
 
@@ -289,11 +343,49 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return signups.filter((s) => s.lunch_date === dateStr);
   };
 
+  const getAllOptoutsForDate = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return allOptouts.filter((o) => o.lunch_date === dateStr);
+  };
+
   const getTotalPeopleForDate = (date: Date) => {
     const daySignups = getSignupsForDate(date);
     // Filter out absent people - employees only see expected count
     const presentSignups = daySignups.filter(s => !s.marked_absent_at);
     return presentSignups.length + presentSignups.reduce((sum, s) => sum + s.guest_count, 0);
+  };
+
+  // Calculate week celebration status
+  const getWeekCelebrationStatus = (days: Date[]) => {
+    if (activeUserCount === 0) return { allResponded: false, hasFullSignupDay: false };
+    
+    let allDaysHaveFullResponse = true;
+    let hasAnyFullSignupDay = false;
+    
+    for (const day of days) {
+      if (isPastDate(day) || isDateClosed(day)) continue;
+      
+      const dateStr = format(day, "yyyy-MM-dd");
+      const signupsForDay = signups.filter(s => s.lunch_date === dateStr);
+      const optoutsForDay = allOptouts.filter(o => o.lunch_date === dateStr);
+      
+      // Unique users who have responded
+      const respondedUsers = new Set([
+        ...signupsForDay.map(s => s.user_id),
+        ...optoutsForDay.map(o => o.user_id)
+      ]);
+      
+      if (respondedUsers.size < activeUserCount) {
+        allDaysHaveFullResponse = false;
+      }
+      
+      // Check if all active users have signed up (not opted out)
+      if (signupsForDay.length >= activeUserCount) {
+        hasAnyFullSignupDay = true;
+      }
+    }
+    
+    return { allResponded: allDaysHaveFullResponse, hasFullSignupDay: hasAnyFullSignupDay };
   };
 
   const toggleSignup = async (date: Date) => {
@@ -614,16 +706,64 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-4">
-      {weeks.map(({ weekNumber, days }) => (
+      {weeks.map(({ weekNumber, days }) => {
+        const { allResponded, hasFullSignupDay } = getWeekCelebrationStatus(days);
+        const isCelebrating = allResponded || hasFullSignupDay;
+        const isCurrentWeek = weekNumber === currentWeekNumber;
+        
+        // Determine styling based on celebration status
+        let weekBgClass = "";
+        let weekTextClass = "";
+        let celebrationTooltip = "";
+        
+        if (allResponded && hasFullSignupDay) {
+          weekBgClass = "week-celebration animate-celebrate animate-glow-pulse";
+          weekTextClass = "text-success-foreground";
+          celebrationTooltip = "🎉 Alle har svaret og fuld tilmelding!";
+        } else if (allResponded) {
+          weekBgClass = "week-celebration animate-celebrate";
+          weekTextClass = "text-success-foreground";
+          celebrationTooltip = "✨ Alle har svaret!";
+        } else if (hasFullSignupDay) {
+          weekBgClass = "week-celebration-badge animate-sparkle";
+          weekTextClass = "text-white";
+          celebrationTooltip = "🌟 Fuld tilmelding på mindst én dag!";
+        } else if (isCurrentWeek) {
+          weekBgClass = "bg-primary";
+          weekTextClass = "text-primary-foreground";
+        } else {
+          weekBgClass = "bg-muted";
+          weekTextClass = "";
+        }
+        
+        return (
         <Card key={weekNumber}>
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col md:flex-row gap-4">
               {/* Week Number */}
-              <div className={`flex-shrink-0 flex flex-row md:flex-col items-center justify-center rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0 ${weekNumber === currentWeekNumber ? "bg-primary" : "bg-muted"}`}>
-                <div className={`text-xs uppercase tracking-wide ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-muted-foreground"}`}>Uge</div>
-                <div className={`text-2xl md:text-4xl font-bold ${weekNumber === currentWeekNumber ? "text-primary-foreground" : "text-foreground"}`}>{weekNumber}</div>
-              </div>
+              {isCelebrating ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`flex-shrink-0 flex flex-row md:flex-col items-center justify-center rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0 cursor-default ${weekBgClass}`}>
+                      <div className="flex items-center gap-1">
+                        <Sparkles className={`w-3 h-3 animate-sparkle ${weekTextClass || "text-muted-foreground"}`} />
+                        <span className={`text-xs uppercase tracking-wide ${weekTextClass || "text-muted-foreground"}`}>Uge</span>
+                      </div>
+                      <div className={`text-2xl md:text-4xl font-bold ${weekTextClass || "text-foreground"}`}>{weekNumber}</div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{celebrationTooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <div className={`flex-shrink-0 flex flex-row md:flex-col items-center justify-center rounded-lg px-4 py-2 md:min-w-[80px] gap-2 md:gap-0 ${weekBgClass}`}>
+                  <div className={`text-xs uppercase tracking-wide ${weekTextClass || "text-muted-foreground"}`}>Uge</div>
+                  <div className={`text-2xl md:text-4xl font-bold ${weekTextClass || "text-foreground"}`}>{weekNumber}</div>
+                </div>
+              )}
 
               {/* Days Grid - including "Hele ugen" as first card */}
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -874,7 +1014,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
     </div>
+    </TooltipProvider>
   );
 };

@@ -80,10 +80,37 @@ export default {
             height: "0",
           },
         },
+        "celebrate": {
+          "0%, 100%": {
+            transform: "scale(1)",
+          },
+          "50%": {
+            transform: "scale(1.05)",
+          },
+        },
+        "sparkle": {
+          "0%, 100%": {
+            opacity: "1",
+          },
+          "50%": {
+            opacity: "0.6",
+          },
+        },
+        "glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 5px hsl(var(--success) / 0.3), 0 0 10px hsl(var(--success) / 0.2)",
+          },
+          "50%": {
+            boxShadow: "0 0 10px hsl(var(--success) / 0.5), 0 0 20px hsl(var(--success) / 0.3)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "celebrate": "celebrate 2s ease-in-out infinite",
+        "sparkle": "sparkle 1.5s ease-in-out infinite",
+        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
       },
     },
   },

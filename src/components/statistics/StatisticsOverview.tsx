@@ -18,6 +18,7 @@ interface Stats {
   totalOptouts: number;
   absentCount: number;
   attendanceRate: number;
+  totalActiveProfiles: number;
 }
 
 export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewProps) => {
@@ -30,7 +31,7 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [signupsRes, guestsRes, optoutsRes] = await Promise.all([
+      const [signupsRes, guestsRes, optoutsRes, activeProfilesRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("id, user_id, lunch_date, guest_count, marked_absent_at")
@@ -46,6 +47,10 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
           .select("id")
           .gte("lunch_date", startStr)
           .lte("lunch_date", endStr),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("is_active", true),
       ]);
 
       const signups = signupsRes.data || [];
@@ -74,6 +79,7 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
         totalOptouts: optouts.length,
         absentCount,
         attendanceRate: Math.round(attendanceRate * 10) / 10,
+        totalActiveProfiles: activeProfilesRes.count || 0,
       });
       setLoading(false);
     };
@@ -83,8 +89,8 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        {[...Array(7)].map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
@@ -103,7 +109,19 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
   if (!stats) return null;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Brugere i systemet</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.totalActiveProfiles}</div>
+          <p className="text-xs text-muted-foreground">
+            Aktive brugere (is_active)
+          </p>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Tilmeldinger</CardTitle>
@@ -132,8 +150,8 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Aktive brugere</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Brugere med tilmeldinger</CardTitle>
+          <UserPlus className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.uniqueUsers}</div>

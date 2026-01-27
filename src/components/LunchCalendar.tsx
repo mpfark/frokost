@@ -355,15 +355,16 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return presentSignups.length + presentSignups.reduce((sum, s) => sum + s.guest_count, 0);
   };
 
-  // Calculate week celebration status
+  // Calculate week celebration status - triggers when at least ONE day has 100% activity
   const getWeekCelebrationStatus = (days: Date[]) => {
     if (activeUserCount === 0) return { allResponded: false, hasFullSignupDay: false };
     
-    let allDaysHaveFullResponse = true;
+    let hasAnyFullResponseDay = false;
     let hasAnyFullSignupDay = false;
     
     for (const day of days) {
-      if (isPastDate(day) || isDateClosed(day)) continue;
+      // Skip kun lukkede dage - ikke forbi-gåede dage
+      if (isDateClosed(day)) continue;
       
       const dateStr = format(day, "yyyy-MM-dd");
       const signupsForDay = signups.filter(s => s.lunch_date === dateStr);
@@ -375,8 +376,9 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         ...optoutsForDay.map(o => o.user_id)
       ]);
       
-      if (respondedUsers.size < activeUserCount) {
-        allDaysHaveFullResponse = false;
+      // Tjek om denne dag har fuld respons
+      if (respondedUsers.size >= activeUserCount) {
+        hasAnyFullResponseDay = true;
       }
       
       // Check if all active users have signed up (not opted out)
@@ -385,7 +387,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       }
     }
     
-    return { allResponded: allDaysHaveFullResponse, hasFullSignupDay: hasAnyFullSignupDay };
+    return { allResponded: hasAnyFullResponseDay, hasFullSignupDay: hasAnyFullSignupDay };
   };
 
   const toggleSignup = async (date: Date) => {

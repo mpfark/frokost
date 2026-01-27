@@ -18,6 +18,7 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("calendar");
+  const [fullName, setFullName] = useState<string | null>(null);
   const { isAdmin, isKitchen, isLoading: isRoleLoading } = useUserRole(user?.id);
   const canAccessKitchen = isAdmin || isKitchen;
 
@@ -69,6 +70,26 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch user's full name
+  useEffect(() => {
+    if (!user?.id) {
+      setFullName(null);
+      return;
+    }
+
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      
+      setFullName(data?.full_name ?? null);
+    };
+
+    fetchProfile();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -147,8 +168,10 @@ const Index = () => {
                 variant={activeTab === "profile" ? "default" : "ghost"}
                 size="icon" 
                 onClick={() => setActiveTab("profile")}
+                className="md:w-auto md:px-4"
               >
                 <UserIcon className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />

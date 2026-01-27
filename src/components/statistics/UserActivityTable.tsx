@@ -129,7 +129,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           <TabsList>
             <TabsTrigger value="top">Top 10 aktive</TabsTrigger>
             <TabsTrigger value="inactive">
-              Inaktive ({inactiveUsers.length})
+              Uden tilmeldinger ({inactiveUsers.length})
             </TabsTrigger>
           </TabsList>
 
@@ -176,6 +176,9 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           </TabsContent>
 
           <TabsContent value="inactive" className="mt-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Aktive brugere som ikke har tilmeldt sig frokost i den valgte periode.
+            </p>
             <Table>
               <TableHeader>
                 <TableRow>

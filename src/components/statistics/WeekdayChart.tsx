@@ -61,9 +61,18 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const profiles = profilesRes.data || [];
       const kitchenRoles = kitchenRolesRes.data || [];
 
-      // Calculate active non-kitchen users
+      // Calculate users with activity in the period (excluding kitchen staff)
       const kitchenIds = new Set(kitchenRoles.map((r) => r.user_id));
-      const activeNonKitchenCount = profiles.filter((p) => !kitchenIds.has(p.id)).length || 1;
+      
+      // Find all unique user_ids from signups + optouts in the period
+      const usersWithActivity = new Set<string>();
+      signups.forEach((s) => usersWithActivity.add(s.user_id));
+      optouts.forEach((o) => usersWithActivity.add(o.user_id));
+      
+      // Remove kitchen users from the set
+      kitchenIds.forEach((id) => usersWithActivity.delete(id));
+      
+      const activeNonKitchenCount = usersWithActivity.size || 1;
 
       // Group by weekday
       type WeekdayStats = {

@@ -7,8 +7,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Smartphone } from "lucide-react";
+import { Loader2, Smartphone, Palmtree, CalendarIcon } from "lucide-react";
 import { profileSchema } from "@/lib/validations";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format, addDays, isWeekend, isBefore, startOfDay, differenceInDays } from "date-fns";
+import { da } from "date-fns/locale";
 
 interface ProfileSettingsProps {
   userId: string;
@@ -21,6 +35,12 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   const [isGlutenFree, setIsGlutenFree] = useState(false);
   const [isLactoseFree, setIsLactoseFree] = useState(false);
   const [isVegetarian, setIsVegetarian] = useState(false);
+
+  // Vacation state
+  const [vacationDialogOpen, setVacationDialogOpen] = useState(false);
+  const [vacationStartDate, setVacationStartDate] = useState<Date | undefined>();
+  const [vacationEndDate, setVacationEndDate] = useState<Date | undefined>();
+  const [isSubmittingVacation, setIsSubmittingVacation] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -89,6 +109,129 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
     }
   };
 
+  // Generate all weekdays between two dates
+  const generateWeekdays = (start: Date, end: Date): string[] => {
+    const weekdays: string[] = [];
+    let current = startOfDay(start);
+    const endDay = startOfDay(end);
+
+    while (!isBefore(endDay, current)) {
+      if (!isWeekend(current)) {
+        weekdays.push(format(current, "yyyy-MM-dd"));
+      }
+      current = addDays(current, 1);
+    }
+
+    return weekdays;
+  };
+
+  const handleVacationSubmit = async () => {
+    if (!vacationStartDate || !vacationEndDate) {
+      toast.error("Vælg venligst både start- og slutdato");
+      return;
+    }
+
+    const today = startOfDay(new Date());
+    const startDay = startOfDay(vacationStartDate);
+    const endDay = startOfDay(vacationEndDate);
+
+    // Validation
+    if (isBefore(startDay, today)) {
+      toast.error("Startdato kan ikke være i fortiden");
+      return;
+    }
+
+    if (isBefore(endDay, startDay)) {
+      toast.error("Slutdato skal være efter startdato");
+      return;
+    }
+
+    if (differenceInDays(endDay, today) > 60) {
+      toast.error("Du kan maksimalt melde ferie 60 dage frem");
+      return;
+    }
+
+    setIsSubmittingVacation(true);
+
+    try {
+      // Generate all weekdays in the period
+      const allWeekdays = generateWeekdays(startDay, endDay);
+
+      if (allWeekdays.length === 0) {
+        toast.error("Der er ingen hverdage i den valgte periode");
+        setIsSubmittingVacation(false);
+        return;
+      }
+
+      // Fetch closed dates
+      const { data: closedDates } = await supabase
+        .from("closed_dates")
+        .select("date")
+        .gte("date", allWeekdays[0])
+        .lte("date", allWeekdays[allWeekdays.length - 1]);
+
+      const closedDateSet = new Set(closedDates?.map(d => d.date) || []);
+
+      // Fetch existing optouts for the user in this period
+      const { data: existingOptouts } = await supabase
+        .from("lunch_optouts")
+        .select("lunch_date")
+        .eq("user_id", userId)
+        .gte("lunch_date", allWeekdays[0])
+        .lte("lunch_date", allWeekdays[allWeekdays.length - 1]);
+
+      const existingOptoutSet = new Set(existingOptouts?.map(o => o.lunch_date) || []);
+
+      // Fetch existing signups for the user in this period
+      const { data: existingSignups } = await supabase
+        .from("lunch_signups")
+        .select("lunch_date")
+        .eq("user_id", userId)
+        .gte("lunch_date", allWeekdays[0])
+        .lte("lunch_date", allWeekdays[allWeekdays.length - 1]);
+
+      const existingSignupSet = new Set(existingSignups?.map(s => s.lunch_date) || []);
+
+      // Filter out closed dates, existing optouts, and existing signups
+      const datesToOptout = allWeekdays.filter(date => 
+        !closedDateSet.has(date) && 
+        !existingOptoutSet.has(date) &&
+        !existingSignupSet.has(date)
+      );
+
+      if (datesToOptout.length === 0) {
+        toast.info("Alle hverdage i perioden er enten lukket, allerede frameldt, eller du er allerede tilmeldt");
+        setIsSubmittingVacation(false);
+        return;
+      }
+
+      // Batch insert optouts
+      const optoutsToInsert = datesToOptout.map(date => ({
+        user_id: userId,
+        lunch_date: date,
+      }));
+
+      const { error } = await supabase
+        .from("lunch_optouts")
+        .insert(optoutsToInsert);
+
+      if (error) {
+        console.error("Error inserting vacation optouts:", error);
+        toast.error("Kunne ikke gemme ferie");
+      } else {
+        toast.success(`Ferie registreret! Du er nu frameldt ${datesToOptout.length} dag${datesToOptout.length === 1 ? '' : 'e'}`);
+        setVacationDialogOpen(false);
+        setVacationStartDate(undefined);
+        setVacationEndDate(undefined);
+      }
+    } catch (error) {
+      console.error("Error submitting vacation:", error);
+      toast.error("Der opstod en fejl ved registrering af ferie");
+    } finally {
+      setIsSubmittingVacation(false);
+    }
+  };
+
   if (isFetching) {
     return (
       <Card>
@@ -98,6 +241,9 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
       </Card>
     );
   }
+
+  const today = startOfDay(new Date());
+  const maxDate = addDays(today, 60);
 
   return (
     <Card>
@@ -172,6 +318,135 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             "Gem ændringer"
           )}
         </Button>
+
+        {/* Vacation Section */}
+        <div className="pt-4 border-t">
+          <Dialog open={vacationDialogOpen} onOpenChange={setVacationDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <Palmtree className="w-4 h-4 mr-2" />
+                Meld ferie
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Meld ferie</DialogTitle>
+                <DialogDescription>
+                  Vælg en periode, og du bliver automatisk frameldt frokost på alle hverdage.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Startdato</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !vacationStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {vacationStartDate ? (
+                          format(vacationStartDate, "PPP", { locale: da })
+                        ) : (
+                          <span>Vælg startdato</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={vacationStartDate}
+                        onSelect={setVacationStartDate}
+                        disabled={(date) => 
+                          isBefore(startOfDay(date), today) || 
+                          isBefore(maxDate, startOfDay(date))
+                        }
+                        initialFocus
+                        locale={da}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Slutdato</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !vacationEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {vacationEndDate ? (
+                          format(vacationEndDate, "PPP", { locale: da })
+                        ) : (
+                          <span>Vælg slutdato</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={vacationEndDate}
+                        onSelect={setVacationEndDate}
+                        disabled={(date) => {
+                          const dateStart = startOfDay(date);
+                          return (
+                            isBefore(dateStart, vacationStartDate || today) ||
+                            isBefore(maxDate, dateStart)
+                          );
+                        }}
+                        initialFocus
+                        locale={da}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {vacationStartDate && vacationEndDate && (
+                  <p className="text-sm text-muted-foreground">
+                    Du melder dig fra frokost i {generateWeekdays(vacationStartDate, vacationEndDate).length} hverdage
+                  </p>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setVacationDialogOpen(false);
+                    setVacationStartDate(undefined);
+                    setVacationEndDate(undefined);
+                  }}
+                >
+                  Annuller
+                </Button>
+                <Button 
+                  onClick={handleVacationSubmit} 
+                  disabled={isSubmittingVacation || !vacationStartDate || !vacationEndDate}
+                >
+                  {isSubmittingVacation ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Gemmer...
+                    </>
+                  ) : (
+                    "Gem ferie"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <div className="pt-4 border-t">
           <Button asChild variant="outline" className="w-full">

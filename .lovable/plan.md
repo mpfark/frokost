@@ -1,99 +1,92 @@
 
-# Uge-animation trigges ved 100% aktivitet på én dag
+# Synkroniser beregningslogik mellem Statistik og Uge-animation
 
-## Overblik
+## Problem identificeret
 
-Denne plan ændrer logikken for uge-animationen i `LunchCalendar.tsx`, så den udløses hvis **mindst én dag** i ugen har 100% aktivitet (alle har svaret - enten tilmeldt eller frameldt), i stedet for at kræve at alle fremtidige dage også er fuldt besvarede.
+Der er en uoverensstemmelse i hvordan "aktive brugere" beregnes:
 
-## Hvad ændres
+| Sted | Metode | Resultat for torsdag |
+|------|--------|----------------------|
+| **WeekdayChart (Statistik)** | Kun brugere med mindst én aktivitet i perioden | 43/43 = **100%** |
+| **LunchCalendar (Animation)** | Alle aktive profiler | 43/48 = **89.6%** |
 
-### Nuværende adfærd
-- `allResponded` er kun `true` hvis ALLE resterende dage (fremtidige) har 100% svar
-- Forbi-gåede dage ignoreres helt i beregningen
-- Animation vises kun når hele ugens fremtid er "komplet"
+Det er derfor animationen ikke trigges - LunchCalendar sammenligner med 48 brugere, mens statistikken kun ser på de 43 der faktisk har deltaget.
 
-### Ny adfærd
-- `allResponded` bliver `true` hvis **mindst én dag** i ugen har 100% svar (alle aktive brugere har tilmeldt eller frameldt)
-- Alle dage tælles med - både forbi-gåede og fremtidige (dog ikke lukkede dage)
-- Animation vises så snart én dag opnår fuld aktivitet
+## Løsning
 
-## Detaljeret implementation
+Opdater `LunchCalendar.tsx` til at bruge samme beregningslogik som `WeekdayChart.tsx`:
+- Beregn `activeUserCount` baseret på brugere der har **mindst én tilmelding eller afmelding** i den viste periode (ugerne der vises)
+- Dette matcher den nyligt implementerede ændring i statistikmodulet
 
-### LunchCalendar.tsx - Ændring af `getWeekCelebrationStatus`
+## Implementation
 
-Nuværende logik (linje 359-389):
-```typescript
-let allDaysHaveFullResponse = true;
-// ...
-if (respondedUsers.size < activeUserCount) {
-  allDaysHaveFullResponse = false;  // Kræver ALLE dage
-}
+### LunchCalendar.tsx - Opdater `fetchActiveUserCount`
+
+Nuværende logik:
+```text
+1. Hent alle aktive profiler
+2. Fjern køkkenbrugere
+3. Brug dette tal som activeUserCount
 ```
 
 Ny logik:
-```typescript
-let hasAnyFullResponseDay = false;
-// ...
-if (respondedUsers.size >= activeUserCount) {
-  hasAnyFullResponseDay = true;  // Kun EN dag behøves
-}
+```text
+1. Hent alle signups og optouts for den viste periode
+2. Find unikke user_ids fra disse
+3. Fjern køkkenbrugere fra dette sæt
+4. Brug dette tal som activeUserCount
 ```
 
-Ændringer i detaljer:
-1. Fjern `isPastDate(day)` fra skip-betingelsen - vi vil gerne tjekke alle dage
-2. Ændr `allDaysHaveFullResponse` til `hasAnyFullResponseDay` 
-3. Inverter logikken: sæt til `true` når én dag matcher, i stedet for `false` når én dag fejler
-4. Opdater return-statement og variabelnavne
+Konkret kodeændring i `fetchActiveUserCount`:
+```typescript
+const fetchActiveUserCount = async () => {
+  // Get the date range for displayed weeks
+  const startDate = format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const endDate = format(
+    endOfWeek(addWeeks(today, weeksToDisplay - 1), { weekStartsOn: 1 }), 
+    "yyyy-MM-dd"
+  );
+
+  // Fetch signups and optouts for the period
+  const [signupsRes, optoutsRes, kitchenRolesRes] = await Promise.all([
+    supabase
+      .from("lunch_signups")
+      .select("user_id")
+      .gte("lunch_date", startDate)
+      .lte("lunch_date", endDate),
+    supabase
+      .from("lunch_optouts")
+      .select("user_id")
+      .gte("lunch_date", startDate)
+      .lte("lunch_date", endDate),
+    supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "kitchen"),
+  ]);
+
+  // Find unique users with activity
+  const kitchenIds = new Set((kitchenRolesRes.data || []).map(r => r.user_id));
+  const usersWithActivity = new Set<string>();
+  
+  (signupsRes.data || []).forEach(s => usersWithActivity.add(s.user_id));
+  (optoutsRes.data || []).forEach(o => usersWithActivity.add(o.user_id));
+  
+  // Remove kitchen users
+  kitchenIds.forEach(id => usersWithActivity.delete(id));
+  
+  setActiveUserCount(usersWithActivity.size || 1);
+};
+```
 
 ## Filer der ændres
 
 | Fil | Ændring |
 |-----|---------|
-| `src/components/LunchCalendar.tsx` | Ændr `getWeekCelebrationStatus` til at trigge ved 100% på én dag |
+| `src/components/LunchCalendar.tsx` | Opdater `fetchActiveUserCount` til kun at tælle brugere med aktivitet i perioden |
 
 ## Konsekvenser
 
-- **Hyppigere animationer**: Uge-animationer vises oftere, hvilket giver mere positiv feedback
-- **Inkluderer fortid**: Hvis i går havde 100% aktivitet, vises animationen stadig i dag
-- **Mere intuitiv**: Brugerne ser straks at ugen har haft en "perfekt dag"
-- **Ingen data-ændringer**: Kun visuel logik ændres
-
-## Tekniske detaljer
-
-Den opdaterede funktion vil se sådan ud:
-
-```typescript
-const getWeekCelebrationStatus = (days: Date[]) => {
-  if (activeUserCount === 0) return { allResponded: false, hasFullSignupDay: false };
-  
-  let hasAnyFullResponseDay = false;
-  let hasAnyFullSignupDay = false;
-  
-  for (const day of days) {
-    // Skip kun lukkede dage - ikke forbi-gåede dage
-    if (isDateClosed(day)) continue;
-    
-    const dateStr = format(day, "yyyy-MM-dd");
-    const signupsForDay = signups.filter(s => s.lunch_date === dateStr);
-    const optoutsForDay = allOptouts.filter(o => o.lunch_date === dateStr);
-    
-    // Unikke brugere der har svaret
-    const respondedUsers = new Set([
-      ...signupsForDay.map(s => s.user_id),
-      ...optoutsForDay.map(o => o.user_id)
-    ]);
-    
-    // Tjek om denne dag har fuld respons
-    if (respondedUsers.size >= activeUserCount) {
-      hasAnyFullResponseDay = true;
-    }
-    
-    // Tjek om alle aktive brugere har tilmeldt sig
-    if (signupsForDay.length >= activeUserCount) {
-      hasAnyFullSignupDay = true;
-    }
-  }
-  
-  return { allResponded: hasAnyFullResponseDay, hasFullSignupDay: hasAnyFullSignupDay };
-};
-```
+- **Konsistens**: Animationen vil nu matche statistiksiden
+- **Animationen trigges**: Torsdag vil nu vise 100% (43/43) og trigge animationen
+- **Samme logik overalt**: Begge steder bruger nu "brugere med aktivitet" som basis

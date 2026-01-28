@@ -171,32 +171,45 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   };
 
   const fetchActiveUserCount = async () => {
-    // Get active users excluding kitchen staff
-    const { data: activeProfiles, error: profileError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("is_active", true);
+    // Get the date range for displayed weeks
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
+    const startStr = format(startDate, "yyyy-MM-dd");
+    const endStr = format(endDate, "yyyy-MM-dd");
 
-    if (profileError) {
-      console.error("Kunne ikke hente aktive brugere:", profileError);
+    // Fetch signups, optouts, and kitchen roles for the period in parallel
+    const [signupsRes, optoutsRes, kitchenRolesRes] = await Promise.all([
+      supabase
+        .from("lunch_signups")
+        .select("user_id")
+        .gte("lunch_date", startStr)
+        .lte("lunch_date", endStr),
+      supabase
+        .from("lunch_optouts")
+        .select("user_id")
+        .gte("lunch_date", startStr)
+        .lte("lunch_date", endStr),
+      supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "kitchen"),
+    ]);
+
+    if (signupsRes.error || optoutsRes.error || kitchenRolesRes.error) {
+      console.error("Kunne ikke hente brugerdata:", signupsRes.error || optoutsRes.error || kitchenRolesRes.error);
       return;
     }
 
-    // Get kitchen users to exclude
-    const { data: kitchenRoles, error: roleError } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "kitchen");
-
-    if (roleError) {
-      console.error("Kunne ikke hente køkkenroller:", roleError);
-      return;
-    }
-
-    const kitchenUserIds = new Set((kitchenRoles || []).map(r => r.user_id));
-    const nonKitchenActiveUsers = (activeProfiles || []).filter(p => !kitchenUserIds.has(p.id));
+    // Find unique users with activity in the period
+    const kitchenIds = new Set((kitchenRolesRes.data || []).map(r => r.user_id));
+    const usersWithActivity = new Set<string>();
     
-    setActiveUserCount(nonKitchenActiveUsers.length);
+    (signupsRes.data || []).forEach(s => usersWithActivity.add(s.user_id));
+    (optoutsRes.data || []).forEach(o => usersWithActivity.add(o.user_id));
+    
+    // Remove kitchen users from the set
+    kitchenIds.forEach(id => usersWithActivity.delete(id));
+    
+    setActiveUserCount(usersWithActivity.size || 1);
   };
 
   const fetchGuests = async () => {

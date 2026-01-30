@@ -370,10 +370,12 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
   // Calculate week celebration status - triggers when at least ONE day has 100% activity
   const getWeekCelebrationStatus = (days: Date[]) => {
-    if (activeUserCount === 0) return { allResponded: false, hasFullSignupDay: false };
+    if (activeUserCount === 0) return { allResponded: false, hasFullSignupDay: false, fullResponseDays: [], fullSignupDays: [] };
     
     let hasAnyFullResponseDay = false;
     let hasAnyFullSignupDay = false;
+    const fullResponseDays: string[] = [];
+    const fullSignupDays: string[] = [];
     
     for (const day of days) {
       // Skip kun lukkede dage - ikke forbi-gåede dage
@@ -392,15 +394,17 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       // Tjek om denne dag har fuld respons
       if (respondedUsers.size >= activeUserCount) {
         hasAnyFullResponseDay = true;
+        fullResponseDays.push(format(day, "EEEE", { locale: da }));
       }
       
       // Check if all active users have signed up (not opted out)
       if (signupsForDay.length >= activeUserCount) {
         hasAnyFullSignupDay = true;
+        fullSignupDays.push(format(day, "EEEE", { locale: da }));
       }
     }
     
-    return { allResponded: hasAnyFullResponseDay, hasFullSignupDay: hasAnyFullSignupDay };
+    return { allResponded: hasAnyFullResponseDay, hasFullSignupDay: hasAnyFullSignupDay, fullResponseDays, fullSignupDays };
   };
 
   const toggleSignup = async (date: Date) => {
@@ -724,9 +728,14 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     <TooltipProvider>
     <div className="space-y-4">
       {weeks.map(({ weekNumber, days }) => {
-        const { allResponded, hasFullSignupDay } = getWeekCelebrationStatus(days);
+        const { allResponded, hasFullSignupDay, fullResponseDays, fullSignupDays } = getWeekCelebrationStatus(days);
         const isCelebrating = allResponded || hasFullSignupDay;
         const isCurrentWeek = weekNumber === currentWeekNumber;
+        
+        // Capitalize first letter of day names
+        const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+        const formattedResponseDays = fullResponseDays.map(capitalize).join(", ");
+        const formattedSignupDays = fullSignupDays.map(capitalize).join(", ");
         
         // Determine styling based on celebration status
         let weekBgClass = "";
@@ -736,15 +745,15 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
         if (allResponded && hasFullSignupDay) {
           weekBgClass = "week-celebration animate-celebrate animate-glow-pulse";
           weekTextClass = "text-success-foreground";
-          celebrationTooltip = "🎉 Alle har svaret og fuld tilmelding!";
+          celebrationTooltip = `🎉 100% svar: ${formattedResponseDays}\n🌟 Fuld tilmelding: ${formattedSignupDays}`;
         } else if (allResponded) {
           weekBgClass = "week-celebration animate-celebrate";
           weekTextClass = "text-success-foreground";
-          celebrationTooltip = "✨ Alle har svaret!";
+          celebrationTooltip = `✨ 100% svar: ${formattedResponseDays}`;
         } else if (hasFullSignupDay) {
           weekBgClass = "week-celebration-badge animate-sparkle";
           weekTextClass = "text-white";
-          celebrationTooltip = "🌟 Fuld tilmelding på mindst én dag!";
+          celebrationTooltip = `🌟 Fuld tilmelding: ${formattedSignupDays}`;
         } else if (isCurrentWeek) {
           weekBgClass = "bg-primary";
           weekTextClass = "text-primary-foreground";
@@ -769,8 +778,8 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                       <div className={`text-2xl md:text-4xl font-bold ${weekTextClass || "text-foreground"}`}>{weekNumber}</div>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{celebrationTooltip}</p>
+                  <TooltipContent className="whitespace-pre-line">
+                    {celebrationTooltip}
                   </TooltipContent>
                 </Tooltip>
               ) : (

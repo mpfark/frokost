@@ -29,6 +29,82 @@ const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secon
   guest_removed: { label: "Gæst fjernet", variant: "destructive" },
   marked_absent: { label: "Markeret fraværende", variant: "secondary" },
   unmarked_absent: { label: "Fravær fjernet", variant: "outline" },
+  // Combined actions
+  changed_to_optout: { label: "Ændret til fravalg", variant: "secondary" },
+  changed_to_signup: { label: "Ændret til tilmelding", variant: "default" },
+};
+
+// Combine related actions that happen within 1 minute
+const combineRelatedActions = (logs: AuditLogEntry[]): AuditLogEntry[] => {
+  const result: AuditLogEntry[] = [];
+  const usedIndices = new Set<number>();
+
+  for (let i = 0; i < logs.length; i++) {
+    if (usedIndices.has(i)) continue;
+
+    const current = logs[i];
+    let combined = false;
+
+    // Look for a matching pair within adjacent entries
+    for (let j = i + 1; j < logs.length; j++) {
+      if (usedIndices.has(j)) continue;
+
+      const other = logs[j];
+
+      // Must be same user and same lunch date
+      if (current.user_id !== other.user_id || current.lunch_date !== other.lunch_date) continue;
+
+      // Check if within 1 minute of each other
+      const currentTime = new Date(current.created_at).getTime();
+      const otherTime = new Date(other.created_at).getTime();
+      const diffMs = Math.abs(currentTime - otherTime);
+      
+      if (diffMs > 60000) continue; // More than 1 minute apart
+
+      // Check for signup_deleted + optout_created combination
+      if (
+        (current.action === "signup_deleted" && other.action === "optout_created") ||
+        (current.action === "optout_created" && other.action === "signup_deleted")
+      ) {
+        // Use the later timestamp
+        const laterEntry = currentTime > otherTime ? current : other;
+        result.push({
+          ...laterEntry,
+          action: "changed_to_optout",
+        });
+        usedIndices.add(i);
+        usedIndices.add(j);
+        combined = true;
+        break;
+      }
+
+      // Check for optout_deleted + signup_created combination
+      if (
+        (current.action === "optout_deleted" && other.action === "signup_created") ||
+        (current.action === "signup_created" && other.action === "optout_deleted")
+      ) {
+        // Use the later timestamp
+        const laterEntry = currentTime > otherTime ? current : other;
+        result.push({
+          ...laterEntry,
+          action: "changed_to_signup",
+        });
+        usedIndices.add(i);
+        usedIndices.add(j);
+        combined = true;
+        break;
+      }
+    }
+
+    if (!combined) {
+      result.push(current);
+    }
+  }
+
+  // Sort by created_at descending
+  return result.sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 };
 
 export const AuditLogTable = () => {
@@ -66,12 +142,15 @@ export const AuditLogTable = () => {
 
     const profileMap = new Map(profiles?.map((p) => [p.id, p.full_name || p.email]) || []);
 
-    const logsWithNames = auditLogs.map((log) => ({
+    const logsWithNames: AuditLogEntry[] = auditLogs.map((log) => ({
       ...log,
       userName: profileMap.get(log.user_id) || "Ukendt",
     }));
 
-    setLogs(logsWithNames);
+    // Combine related actions before setting state
+    const combinedLogs = combineRelatedActions(logsWithNames);
+
+    setLogs(combinedLogs);
     setLoading(false);
   };
 

@@ -18,9 +18,6 @@ verify_jwt = false
 [functions.webflow-sync]
 verify_jwt = true
 
-[functions.resend-pending-invitations]
-verify_jwt = true
-
 [functions.generate-invite-link]
 verify_jwt = false
 

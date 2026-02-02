@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Bell, Send } from "lucide-react";
+import { Bell, Send, Info } from "lucide-react";
 
 export const ReminderSettings = () => {
   const [reminderEnabled, setReminderEnabled] = useState(true);
@@ -214,6 +214,14 @@ export const ReminderSettings = () => {
               <p className="text-sm text-muted-foreground">
                 Hvilken dag skal påmindelser sendes
               </p>
+              <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md mt-2">
+                <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  {reminderDay === 1
+                    ? "Påmindelser sendt om mandagen vil opfordre brugere til at tilmelde sig frokost i den igangværende uge (mandag-fredag)."
+                    : `Påmindelser sendt om ${['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag'][reminderDay]}en vil opfordre brugere til at tilmelde sig frokost i den kommende uge (næste mandag-fredag).`}
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -1,81 +1,64 @@
 
-# Plan: Tilføj "Dag" tab til køkkenvisningen
+# Plan: Tilføj forklaring af påmindelseslogik i indstillinger
 
 ## Oversigt
-Tilføjer en ny "Dag" tab til køkkenvisningen med et to-kolonnet layout:
-- **Venstre side**: Overordnede informationer (antal tilmeldte, gæster, kostrestriktioner, fravær)
-- **Højre side**: Liste med tilmeldte, sorteret på samme måde som i den eksisterende skuffe
+Tilføjer en dynamisk forklaringstekst i påmindelsesindstillingerne, der tydeligt forklarer hvilken uge påmindelsen vil gælde for, baseret på den valgte dag.
 
-## Ændringer
+## Ændring
 
-### 1. Opdater TabsList til tre tabs
-Ændrer tab-layoutet fra 2 til 3 kolonner:
-- **Dag** (ny) - med CalendarDays ikon
-- **Uge** (nuværende "Tilmeldinger")  
-- **Lukkede dage** (uændret)
+### Opdater ReminderSettings.tsx
+Tilføjer en informationsboks under dag-vælgeren med kontekstuel forklaring:
 
-### 2. Tilføj state til dagvalg
-Tilføjer state til at holde styr på hvilken dag der vises i dag-tabben:
-- `selectedDayTab` - den valgte dato (default: i dag)
-- Navigation mellem dage med venstre/højre pile
+**For mandag (dag 1):**
+> "Påmindelser sendt om mandagen vil opfordre brugere til at tilmelde sig frokost i den igangværende uge (mandag-fredag)."
 
-### 3. Dag-tab indhold (to-kolonnet layout)
+**For tirsdag-søndag (dag 2-6, 0):**
+> "Påmindelser sendt om [ugedag] vil opfordre brugere til at tilmelde sig frokost i den kommende uge (næste mandag-fredag)."
+
+### Visuel implementering
+Forklaringen vises som en info-boks med et Info-ikon for at gøre den tydelig:
 
 ```text
-+----------------------------------+----------------------------------+
-|         VENSTRE KOLONNE          |         HØJRE KOLONNE            |
-|----------------------------------|----------------------------------|
-| [< Forrige]  Mandag 3. feb  [>]  |  Tilmeldte (sorteret liste)      |
-|                                  |                                  |
-| ┌─────────────────────────────┐  |  ┌────────────────────────────┐  |
-| │ 👤 37 forventet (39 total)  │  |  │ Navn + gæster + badges     │  |
-| │ ❌ 2 fravær                 │  |  │ Kostrestriktioner          │  |
-| │ 👥 5 gæster                 │  |  │ Gæst info                  │  |
-| └─────────────────────────────┘  |  │ [Fravær] [Fjern] knapper   │  |
-|                                  |  └────────────────────────────┘  |
-| Kostrestriktioner:               |  ┌────────────────────────────┐  |
-| ┌─────────────────────────────┐  |  │ Næste person...            │  |
-| │ 🌾 Glutenfri: 2             │  |  └────────────────────────────┘  |
-| │ 🥛 Laktosefri: 1            │  |  ...                             |
-| │ 🌿 Vegetar: 4               │  |                                  |
-| │ 🌾+🌿 GF+V: 1               │  |                                  |
-| └─────────────────────────────┘  |                                  |
-+----------------------------------+----------------------------------+
+Dag
+┌─────────────────────────────────────┐
+│ Mandag                          ▼   │
+└─────────────────────────────────────┘
+Hvilken dag skal påmindelser sendes
+
+┌─────────────────────────────────────┐
+│ ℹ️  Påmindelser sendt om mandagen   │
+│     vil opfordre brugere til at     │
+│     tilmelde sig i den igangværende │
+│     uge (mandag-fredag).            │
+└─────────────────────────────────────┘
 ```
-
-### 4. Sortering af tilmeldte (samme som skuffen)
-Listen sorteres efter:
-1. Antal gæster (flest først)
-2. Antal kostrestriktioner (flest først)
-3. Alfabetisk efter navn
-
-### 5. Funktionalitet i højre kolonne
-Hver tilmelding viser:
-- Navn med eventuelle gæste-badges
-- Kostrestriktions-badges (Glutenfri, Laktosefri, Vegetar)
-- Gæsternes kostrestriktioner
-- Knapper til at markere fravær og fjerne tilmelding
 
 ## Tekniske detaljer
 
 ### Fil der ændres
-- `src/components/KitchenView.tsx`
+- `src/components/settings/ReminderSettings.tsx`
 
-### Nye state variabler
+### Ny import
+- `Info` ikon fra `lucide-react`
+
+### Logik til dynamisk tekst
 ```typescript
-const [selectedDayTab, setSelectedDayTab] = useState<Date>(new Date());
+const getWeekExplanation = () => {
+  const dayNames = ['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag'];
+  const dayName = dayNames[reminderDay];
+  
+  if (reminderDay === 1) {
+    return `Påmindelser sendt om ${dayName}en vil opfordre brugere til at tilmelde sig frokost i den igangværende uge (mandag-fredag).`;
+  } else {
+    return `Påmindelser sendt om ${dayName}en vil opfordre brugere til at tilmelde sig frokost i den kommende uge (næste mandag-fredag).`;
+  }
+};
 ```
 
-### Navigation mellem dage
-- Venstre pil: Gå til forrige hverdag
-- Højre pil: Gå til næste hverdag
-- Springer weekender over
-
-### Responsivt design
-- På desktop: To kolonner side om side
-- På mobil: Kolonnerne stables vertikalt (oversigt først, derefter liste)
+### Placering i UI
+Forklaringen indsættes lige efter den eksisterende hjælpetekst "Hvilken dag skal påmindelser sendes" (linje 214-216).
 
 ## Fordele
-- Køkkenpersonalet får et hurtigt overblik over én dag uden at skulle åbne skuffen
-- Samme sorteringslogik som skuffen sikrer konsistens
-- Nem navigation mellem dage med pile-knapper
+- Brugeren forstår præcis hvordan systemet fungerer uden at skulle gætte
+- Teksten opdateres dynamisk når man ændrer dag, så man altid ser den relevante forklaring
+- Info-ikonet signalerer at dette er en nyttig forklaring, ikke en fejl eller advarsel

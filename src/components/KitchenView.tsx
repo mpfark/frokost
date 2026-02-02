@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth } from "date-fns";
+import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth, isWeekend, subDays } from "date-fns";
 import { da } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck, CalendarCheck } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { getUpcomingDanishHolidays, filterAlreadyClosedHolidays, type DanishHoliday } from "@/lib/danishHolidays";
 import {
@@ -65,6 +67,17 @@ export const KitchenView = () => {
   const [reasonInput, setReasonInput] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
   const [isAddingHolidays, setIsAddingHolidays] = useState(false);
+  const [selectedDayTab, setSelectedDayTab] = useState<Date>(() => {
+    // Start with today, but if it's a weekend, move to next Monday
+    const today = new Date();
+    if (isWeekend(today)) {
+      const day = today.getDay();
+      const daysToAdd = day === 0 ? 1 : 8 - day;
+      return addDays(today, daysToAdd);
+    }
+    return today;
+  });
+  const isMobile = useIsMobile();
 
   // Get upcoming holidays filtered by already closed dates
   const suggestedHolidays = useMemo(() => {
@@ -425,18 +438,308 @@ export const KitchenView = () => {
     return combinations;
   };
 
+  // Navigation functions for day tab
+  const navigateToPreviousWeekday = () => {
+    let newDate = subDays(selectedDayTab, 1);
+    while (isWeekend(newDate)) {
+      newDate = subDays(newDate, 1);
+    }
+    setSelectedDayTab(newDate);
+  };
+
+  const navigateToNextWeekday = () => {
+    let newDate = addDays(selectedDayTab, 1);
+    while (isWeekend(newDate)) {
+      newDate = addDays(newDate, 1);
+    }
+    setSelectedDayTab(newDate);
+  };
+
+  // Get signups for the selected day tab
+  const dayTabSignups = useMemo(() => {
+    const dateStr = format(selectedDayTab, "yyyy-MM-dd");
+    return signups
+      .filter((s) => s.lunch_date === dateStr)
+      .sort((a, b) => {
+        // First priority: guests (more guests = higher priority)
+        if (b.guest_count !== a.guest_count) {
+          return b.guest_count - a.guest_count;
+        }
+        // Second priority: dietary restrictions
+        const aDietary = (a.profiles?.is_gluten_free ? 1 : 0) + (a.profiles?.is_lactose_free ? 1 : 0) + (a.profiles?.is_vegetarian ? 1 : 0);
+        const bDietary = (b.profiles?.is_gluten_free ? 1 : 0) + (b.profiles?.is_lactose_free ? 1 : 0) + (b.profiles?.is_vegetarian ? 1 : 0);
+        if (bDietary !== aDietary) {
+          return bDietary - aDietary;
+        }
+        // Third priority: alphabetical by name
+        const aName = a.profiles?.full_name || a.profiles?.email || '';
+        const bName = b.profiles?.full_name || b.profiles?.email || '';
+        return aName.localeCompare(bName, 'da');
+      });
+  }, [signups, selectedDayTab]);
+
+  const dayTabStats = useMemo(() => {
+    const total = dayTabSignups.length + dayTabSignups.reduce((sum, s) => sum + s.guest_count, 0);
+    const absentSignups = dayTabSignups.filter(s => s.marked_absent_at);
+    const absentCount = absentSignups.length;
+    const expected = dayTabSignups.filter(s => !s.marked_absent_at).length + 
+      dayTabSignups.filter(s => !s.marked_absent_at).reduce((sum, s) => sum + s.guest_count, 0);
+    const guestCount = dayTabSignups.reduce((sum, s) => sum + s.guest_count, 0);
+    const dietaryCounts = getDietaryCounts(dayTabSignups);
+    const isClosed = isDateClosed(selectedDayTab);
+    
+    return { total, expected, absentCount, guestCount, dietaryCounts, isClosed };
+  }, [dayTabSignups, selectedDayTab, closedDates]);
+
   return (
-    <Tabs defaultValue="signups" className="w-full">
-      <TabsList className="grid w-full max-w-2xl mx-auto mb-8 grid-cols-2 h-auto">
+    <Tabs defaultValue="day" className="w-full">
+      <TabsList className="grid w-full max-w-2xl mx-auto mb-8 grid-cols-3 h-auto">
+        <TabsTrigger value="day" className="flex items-center gap-2">
+          <CalendarCheck className="w-4 h-4" />
+          Dag
+        </TabsTrigger>
         <TabsTrigger value="signups" className="flex items-center gap-2">
           <UtensilsCrossed className="w-4 h-4" />
-          Tilmeldinger
+          Uge
         </TabsTrigger>
         <TabsTrigger value="closed" className="flex items-center gap-2">
           <Lock className="w-4 h-4" />
           Lukkede dage
         </TabsTrigger>
       </TabsList>
+
+      {/* Day Tab Content */}
+      <TabsContent value="day" className="space-y-4">
+        <Card>
+          <CardContent className="p-4 md:p-6">
+            {/* Navigation header */}
+            <div className="flex items-center justify-between mb-6">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={navigateToPreviousWeekday}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <div className="text-center">
+                <div className="text-lg md:text-xl font-semibold capitalize">
+                  {format(selectedDayTab, "EEEE", { locale: da })}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {format(selectedDayTab, "d. MMMM yyyy", { locale: da })}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={navigateToNextWeekday}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {dayTabStats.isClosed ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground">Denne dag er lukket</p>
+              </div>
+            ) : (
+              <div className={`grid gap-6 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
+                {/* Left Column - Overview */}
+                <div className="space-y-4">
+                  {/* Summary stats */}
+                  <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Users className="w-5 h-5 text-primary" />
+                      <span className="font-medium">
+                        {dayTabStats.expected} forventet
+                        {dayTabStats.absentCount > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            ({dayTabStats.total} total)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {dayTabStats.absentCount > 0 && (
+                      <div className="flex items-center gap-3">
+                        <UserX className="w-5 h-5 text-destructive" />
+                        <span className="text-muted-foreground">
+                          {dayTabStats.absentCount} fravær
+                        </span>
+                      </div>
+                    )}
+                    {dayTabStats.guestCount > 0 && (
+                      <div className="flex items-center gap-3">
+                        <Users className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {dayTabStats.guestCount} {dayTabStats.guestCount === 1 ? 'gæst' : 'gæster'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dietary restrictions */}
+                  {dayTabStats.dietaryCounts.size > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Kostrestriktioner</h4>
+                      <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+                        {Array.from(dayTabStats.dietaryCounts.entries())
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([combo, count]) => (
+                            <div key={combo} className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                {combo.includes('GF') && <Wheat className="w-4 h-4" />}
+                                {combo.includes('LF') && <Milk className="w-4 h-4" />}
+                                {combo.includes('V') && <Leaf className="w-4 h-4" />}
+                              </div>
+                              <span className="text-sm">
+                                {combo.split('+').map(c => {
+                                  if (c === 'GF') return 'Glutenfri';
+                                  if (c === 'LF') return 'Laktosefri';
+                                  if (c === 'V') return 'Vegetar';
+                                  return c;
+                                }).join(' + ')}: {count}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {dayTabSignups.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Ingen tilmeldinger for denne dag
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column - Signups list */}
+                {dayTabSignups.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                      Tilmeldte ({dayTabSignups.length})
+                    </h4>
+                    <ScrollArea className="h-[400px] md:h-[500px]">
+                      <div className="space-y-2 pr-4">
+                        {dayTabSignups.map((signup) => {
+                          const signupGuests = guests.filter(g => g.signup_id === signup.id);
+                          const isAbsent = !!signup.marked_absent_at;
+
+                          return (
+                            <div
+                              key={signup.id}
+                              className={`p-3 border rounded-lg ${isAbsent ? "opacity-60 bg-muted/30" : "bg-card"}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className={`font-medium flex items-center gap-2 flex-wrap ${isAbsent ? "line-through" : ""}`}>
+                                    <span className="truncate">
+                                      {signup.profiles?.full_name || signup.profiles?.email || 'Unknown User'}
+                                    </span>
+                                    {signup.guest_count > 0 && !isAbsent && (
+                                      <Badge variant="outline" className="text-xs shrink-0">
+                                        +{signup.guest_count} gæst{signup.guest_count > 1 ? 'er' : ''}
+                                      </Badge>
+                                    )}
+                                    {isAbsent && (
+                                      <Badge variant="secondary" className="text-xs shrink-0">
+                                        Fraværende
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {/* User dietary restrictions */}
+                                  {(signup.profiles?.is_gluten_free || signup.profiles?.is_lactose_free || signup.profiles?.is_vegetarian) && (
+                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                      {signup.profiles?.is_gluten_free && (
+                                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                          <Wheat className="w-3 h-3" />
+                                          GF
+                                        </Badge>
+                                      )}
+                                      {signup.profiles?.is_lactose_free && (
+                                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                          <Milk className="w-3 h-3" />
+                                          LF
+                                        </Badge>
+                                      )}
+                                      {signup.profiles?.is_vegetarian && (
+                                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                          <Leaf className="w-3 h-3" />
+                                          V
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                  {/* Guest dietary restrictions */}
+                                  {signupGuests.length > 0 && (
+                                    <div className="mt-2 ml-2 space-y-1">
+                                      {signupGuests.map((guest, index) => {
+                                        const hasRestrictions = guest.is_gluten_free || guest.is_lactose_free || guest.is_vegetarian;
+                                        return (
+                                          <div key={guest.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span>Gæst {index + 1}:</span>
+                                            {hasRestrictions ? (
+                                              <div className="flex gap-1">
+                                                {guest.is_gluten_free && (
+                                                  <Badge variant="outline" className="text-xs flex items-center gap-0.5 py-0">
+                                                    <Wheat className="w-3 h-3" />
+                                                    GF
+                                                  </Badge>
+                                                )}
+                                                {guest.is_lactose_free && (
+                                                  <Badge variant="outline" className="text-xs flex items-center gap-0.5 py-0">
+                                                    <Milk className="w-3 h-3" />
+                                                    LF
+                                                  </Badge>
+                                                )}
+                                                {guest.is_vegetarian && (
+                                                  <Badge variant="outline" className="text-xs flex items-center gap-0.5 py-0">
+                                                    <Leaf className="w-3 h-3" />
+                                                    V
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-muted-foreground/60">Ingen restriktioner</span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => toggleAbsentStatus(signup.id, isAbsent)}
+                                    className={isAbsent ? "text-green-600 hover:text-green-700" : "text-muted-foreground hover:text-foreground"}
+                                    title={isAbsent ? "Marker som tilstede" : "Marker som fraværende"}
+                                  >
+                                    {isAbsent ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => removeSignup(signup.id)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
       <TabsContent value="signups" className="space-y-4">
       {weeks.map(({ weekNumber, days }) => (

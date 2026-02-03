@@ -34,8 +34,9 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      // Fetch signups, optouts, profiles, and kitchen roles in parallel
-      const [signupsRes, optoutsRes, profilesRes, kitchenRolesRes] = await Promise.all([
+      // Fetch signups, optouts, and kitchen roles in parallel
+      // Note: We calculate active users from signups+optouts in the period, not from profiles
+      const [signupsRes, optoutsRes, kitchenRolesRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("lunch_date, user_id")
@@ -47,10 +48,6 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
           .gte("lunch_date", startStr)
           .lte("lunch_date", endStr),
         supabase
-          .from("profiles")
-          .select("id")
-          .eq("is_active", true),
-        supabase
           .from("user_roles")
           .select("user_id")
           .eq("role", "kitchen"),
@@ -58,7 +55,6 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
 
       const signups = signupsRes.data || [];
       const optouts = optoutsRes.data || [];
-      const profiles = profilesRes.data || [];
       const kitchenRoles = kitchenRolesRes.data || [];
 
       // Calculate users with activity in the period (excluding kitchen staff)

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek } from "date-fns";
 import { da } from "date-fns/locale";
@@ -296,6 +296,16 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     }
   }, [signups]);
 
+  // Debounce utility for realtime updates
+  const debounceTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  
+  const debouncedFetch = useCallback((key: string, fn: () => void, delay: number = 300) => {
+    if (debounceTimeoutRef.current[key]) {
+      clearTimeout(debounceTimeoutRef.current[key]);
+    }
+    debounceTimeoutRef.current[key] = setTimeout(fn, delay);
+  }, []);
+
   useEffect(() => {
     const signupsChannel = supabase
       .channel("lunch_signups_changes")
@@ -307,7 +317,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           table: "lunch_signups",
         },
         () => {
-          fetchSignups();
+          debouncedFetch("signups", fetchSignups);
         }
       )
       .subscribe();
@@ -322,7 +332,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           table: "closed_dates",
         },
         () => {
-          fetchClosedDates();
+          debouncedFetch("closedDates", fetchClosedDates);
         }
       )
       .subscribe();
@@ -337,8 +347,10 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           table: "guests",
         },
         () => {
-          fetchSignups();
-          fetchGuests();
+          debouncedFetch("guests", () => {
+            fetchSignups();
+            fetchGuests();
+          });
         }
       )
       .subscribe();
@@ -353,18 +365,20 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
           table: "lunch_optouts",
         },
         () => {
-          fetchOptouts();
+          debouncedFetch("optouts", fetchOptouts);
         }
       )
       .subscribe();
 
     return () => {
+      // Clear all debounce timeouts
+      Object.values(debounceTimeoutRef.current).forEach(clearTimeout);
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
       supabase.removeChannel(optoutsChannel);
     };
-  }, []);
+  }, [debouncedFetch]);
 
   const isSignedUp = (date: Date) => {
     return getUserSignup(date) !== undefined;

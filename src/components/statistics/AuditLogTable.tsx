@@ -133,14 +133,27 @@ export const AuditLogTable = () => {
       return;
     }
 
-    // Get user names
+    // Get user names with batching to avoid URL length issues
     const userIds = [...new Set(auditLogs.map((l) => l.user_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, email")
-      .in("id", userIds);
+    const BATCH_SIZE = 50;
+    let allProfiles: { id: string; full_name: string | null; email: string }[] = [];
 
-    const profileMap = new Map(profiles?.map((p) => [p.id, p.full_name || p.email]) || []);
+    if (userIds.length > 0) {
+      const batches: string[][] = [];
+      for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+        batches.push(userIds.slice(i, i + BATCH_SIZE));
+      }
+
+      const results = await Promise.all(
+        batches.map(batch =>
+          supabase.from("profiles").select("id, full_name, email").in("id", batch)
+        )
+      );
+
+      allProfiles = results.flatMap(r => r.data || []);
+    }
+
+    const profileMap = new Map(allProfiles.map((p) => [p.id, p.full_name || p.email]));
 
     const logsWithNames: AuditLogEntry[] = auditLogs.map((log) => ({
       ...log,

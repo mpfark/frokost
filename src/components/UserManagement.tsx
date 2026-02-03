@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2 } from "lucide-react";
+import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,8 @@ interface UserWithRoles extends UserProfile {
   roles: string[];
 }
 
+const PAGE_SIZE = 50;
+
 export const UserManagement = () => {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,27 +48,41 @@ export const UserManagement = () => {
   const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const fetchUsers = async () => {
-    // Fetch profiles
-    const { data: profiles, error: profilesError } = await supabase
+  const fetchUsers = useCallback(async (pageNum: number = page) => {
+    // Fetch profiles with pagination
+    const { data: profiles, error: profilesError, count } = await supabase
       .from("profiles")
-      .select("*")
-      .order("email");
+      .select("*", { count: "exact" })
+      .order("email")
+      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
     if (profilesError) {
       toast.error("Kunne ikke indlæse brugere");
       return;
     }
 
-    // Fetch all user roles
-    const { data: roles, error: rolesError } = await supabase
-      .from("user_roles")
-      .select("user_id, role");
+    if (count !== null) {
+      setTotalCount(count);
+    }
 
-    if (rolesError) {
-      toast.error("Kunne ikke indlæse brugerroller");
-      return;
+    // Fetch roles only for the profiles on this page
+    const profileIds = (profiles || []).map(p => p.id);
+    let roles: { user_id: string; role: string }[] = [];
+    
+    if (profileIds.length > 0) {
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", profileIds);
+
+      if (rolesError) {
+        toast.error("Kunne ikke indlæse brugerroller");
+        return;
+      }
+      roles = rolesData || [];
     }
 
     // Combine profiles with their roles
@@ -77,11 +93,13 @@ export const UserManagement = () => {
 
     setUsers(usersWithRoles);
     setIsLoading(false);
-  };
+  }, [page]);
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(page);
+  }, [page]);
 
+  useEffect(() => {
     const channel = supabase
       .channel("profiles_changes")
       .on(
@@ -92,7 +110,7 @@ export const UserManagement = () => {
           table: "profiles",
         },
         () => {
-          fetchUsers();
+          fetchUsers(page);
         }
       )
       .subscribe();
@@ -100,7 +118,11 @@ export const UserManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [page, fetchUsers]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const canGoPrevious = page > 0;
+  const canGoNext = page < totalPages - 1;
 
   const isUserAdmin = (user: UserWithRoles) => {
     return user.roles?.includes("admin");
@@ -283,8 +305,11 @@ export const UserManagement = () => {
     <TooltipProvider>
       <div className="space-y-4">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Brugerstyring</CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {totalCount} brugere
+            </span>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -467,6 +492,35 @@ export const UserManagement = () => {
                 );
               })}
             </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <span className="text-sm text-muted-foreground">
+                  Side {page + 1} af {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => p - 1)}
+                    disabled={!canGoPrevious || isLoading}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Forrige
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={!canGoNext || isLoading}
+                  >
+                    Næste
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

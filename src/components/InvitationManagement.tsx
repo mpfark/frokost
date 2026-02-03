@@ -40,34 +40,44 @@ export const InvitationManagement = () => {
   const [resendDialogOpen, setResendDialogOpen] = useState(false);
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [displayLimit, setDisplayLimit] = useState(50);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     fetchInvitations();
-  }, []);
+  }, [displayLimit]);
 
   const fetchInvitations = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch stats using count queries for efficiency
+      const [pendingRes, acceptedRes, expiredRes, linksSentRes, totalRes] = await Promise.all([
+        supabase.from("invitations").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("invitations").select("*", { count: "exact", head: true }).eq("status", "accepted"),
+        supabase.from("invitations").select("*", { count: "exact", head: true }).eq("status", "expired"),
+        supabase.from("invitations").select("*", { count: "exact", head: true }).not("link_sent_at", "is", null),
+        supabase.from("invitations").select("*", { count: "exact", head: true }),
+      ]);
+
+      setStats({
+        total: totalRes.count || 0,
+        pending: pendingRes.count || 0,
+        accepted: acceptedRes.count || 0,
+        expired: expiredRes.count || 0,
+        linksSent: linksSentRes.count || 0,
+      });
+
+      // Fetch only non-accepted invitations with limit
+      const { data, error, count } = await supabase
         .from("invitations")
-        .select("*")
-        .order("invited_at", { ascending: false });
+        .select("*", { count: "exact" })
+        .neq("status", "accepted")
+        .order("invited_at", { ascending: false })
+        .limit(displayLimit);
 
       if (error) throw error;
 
-      // Calculate stats from all invitations
-      const allInvitations = data || [];
-      const stats = {
-        total: allInvitations.length,
-        pending: allInvitations.filter(i => i.status === "pending").length,
-        accepted: allInvitations.filter(i => i.status === "accepted").length,
-        expired: allInvitations.filter(i => i.status === "expired").length,
-        linksSent: allInvitations.filter(i => i.link_sent_at).length,
-      };
-      setStats(stats);
-
-      // Only show non-accepted invitations in the list
-      const displayedInvitations = allInvitations.filter(i => i.status !== "accepted");
-      setInvitations(displayedInvitations);
+      setInvitations(data || []);
+      setHasMore((count || 0) > displayLimit);
     } catch (error: any) {
       toast({
         title: "Fejl",
@@ -462,6 +472,18 @@ export const InvitationManagement = () => {
                   </div>
                 </div>
               ))
+            )}
+            
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setDisplayLimit(prev => prev + 50)}
+                >
+                  Indlæs flere invitationer
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>

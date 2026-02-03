@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth, isWeekend, subDays } from "date-fns";
 import { da } from "date-fns/locale";
@@ -323,6 +323,16 @@ export const KitchenView = () => {
     }
   }, [signups]);
 
+  // Debounce utility for realtime updates
+  const debounceTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  
+  const debouncedFetch = useCallback((key: string, fn: () => void, delay: number = 300) => {
+    if (debounceTimeoutRef.current[key]) {
+      clearTimeout(debounceTimeoutRef.current[key]);
+    }
+    debounceTimeoutRef.current[key] = setTimeout(fn, delay);
+  }, []);
+
   useEffect(() => {
     const signupsChannel = supabase
       .channel("kitchen_view_signups")
@@ -334,7 +344,7 @@ export const KitchenView = () => {
           table: "lunch_signups",
         },
         () => {
-          fetchSignups();
+          debouncedFetch("signups", fetchSignups);
         }
       )
       .subscribe();
@@ -349,7 +359,7 @@ export const KitchenView = () => {
           table: "closed_dates",
         },
         () => {
-          fetchClosedDates();
+          debouncedFetch("closedDates", fetchClosedDates);
         }
       )
       .subscribe();
@@ -364,17 +374,19 @@ export const KitchenView = () => {
           table: "guests",
         },
         () => {
-          fetchGuests();
+          debouncedFetch("guests", fetchGuests);
         }
       )
       .subscribe();
 
     return () => {
+      // Clear all debounce timeouts
+      Object.values(debounceTimeoutRef.current).forEach(clearTimeout);
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
     };
-  }, [signups]);
+  }, [debouncedFetch]);
 
   const getSignupsForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");

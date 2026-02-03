@@ -151,17 +151,27 @@ export const KitchenView = () => {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("guests")
-      .select("*")
-      .in("signup_id", signupIds);
+    // Batch requests to avoid URL length issues
+    const BATCH_SIZE = 50;
+    const batches: string[][] = [];
+    for (let i = 0; i < signupIds.length; i += BATCH_SIZE) {
+      batches.push(signupIds.slice(i, i + BATCH_SIZE));
+    }
 
+    const results = await Promise.all(
+      batches.map(batch =>
+        supabase.from("guests").select("*").in("signup_id", batch)
+      )
+    );
+
+    const error = results.find(r => r.error)?.error;
     if (error) {
       console.error("Error fetching guests:", error);
       return;
     }
 
-    setGuests(data || []);
+    const allGuests = results.flatMap(r => r.data || []);
+    setGuests(allGuests);
   };
 
   const fetchCompanySettings = async () => {

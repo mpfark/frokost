@@ -1,64 +1,95 @@
 
-# Plan: Tilføj forklaring af påmindelseslogik i indstillinger
+# Plan: Implementer batching i KitchenView og AuditLogTable
 
 ## Oversigt
-Tilføjer en dynamisk forklaringstekst i påmindelsesindstillingerne, der tydeligt forklarer hvilken uge påmindelsen vil gælde for, baseret på den valgte dag.
+Implementerer samme batching-løsning som i LunchCalendar.tsx for at undgå URL-længde problemer ved store mængder data.
 
-## Ændring
+## Ændringer
 
-### Opdater ReminderSettings.tsx
-Tilføjer en informationsboks under dag-vælgeren med kontekstuel forklaring:
+### 1. KitchenView.tsx - fetchGuests funktion (linje 147-165)
 
-**For mandag (dag 1):**
-> "Påmindelser sendt om mandagen vil opfordre brugere til at tilmelde sig frokost i den igangværende uge (mandag-fredag)."
+Opdaterer `fetchGuests` til at opdele signup IDs i batches af 50:
 
-**For tirsdag-søndag (dag 2-6, 0):**
-> "Påmindelser sendt om [ugedag] vil opfordre brugere til at tilmelde sig frokost i den kommende uge (næste mandag-fredag)."
+**Nuværende kode:**
+```typescript
+const { data, error } = await supabase
+  .from("guests")
+  .select("*")
+  .in("signup_id", signupIds);
+```
 
-### Visuel implementering
-Forklaringen vises som en info-boks med et Info-ikon for at gøre den tydelig:
+**Ny kode:**
+```typescript
+const BATCH_SIZE = 50;
+const batches: string[][] = [];
+for (let i = 0; i < signupIds.length; i += BATCH_SIZE) {
+  batches.push(signupIds.slice(i, i + BATCH_SIZE));
+}
 
-```text
-Dag
-┌─────────────────────────────────────┐
-│ Mandag                          ▼   │
-└─────────────────────────────────────┘
-Hvilken dag skal påmindelser sendes
+const results = await Promise.all(
+  batches.map(batch =>
+    supabase.from("guests").select("*").in("signup_id", batch)
+  )
+);
 
-┌─────────────────────────────────────┐
-│ ℹ️  Påmindelser sendt om mandagen   │
-│     vil opfordre brugere til at     │
-│     tilmelde sig i den igangværende │
-│     uge (mandag-fredag).            │
-└─────────────────────────────────────┘
+const error = results.find(r => r.error)?.error;
+if (error) {
+  console.error("Error fetching guests:", error);
+  return;
+}
+
+const allGuests = results.flatMap(r => r.data || []);
+setGuests(allGuests);
+```
+
+### 2. AuditLogTable.tsx - fetchLogs funktion (linje 136-141)
+
+Opdaterer profile-hentning til at bruge batching:
+
+**Nuværende kode:**
+```typescript
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("id, full_name, email")
+  .in("id", userIds);
+```
+
+**Ny kode:**
+```typescript
+const BATCH_SIZE = 50;
+let allProfiles: { id: string; full_name: string | null; email: string }[] = [];
+
+if (userIds.length > 0) {
+  const batches: string[][] = [];
+  for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+    batches.push(userIds.slice(i, i + BATCH_SIZE));
+  }
+
+  const results = await Promise.all(
+    batches.map(batch =>
+      supabase.from("profiles").select("id, full_name, email").in("id", batch)
+    )
+  );
+
+  allProfiles = results.flatMap(r => r.data || []);
+}
+
+const profileMap = new Map(allProfiles.map((p) => [p.id, p.full_name || p.email]));
 ```
 
 ## Tekniske detaljer
 
-### Fil der ændres
-- `src/components/settings/ReminderSettings.tsx`
+### Filer der ændres
+1. `src/components/KitchenView.tsx` - fetchGuests funktion
+2. `src/components/statistics/AuditLogTable.tsx` - fetchLogs funktion
 
-### Ny import
-- `Info` ikon fra `lucide-react`
+### Batch-størrelse
+Bruger samme BATCH_SIZE på 50 som i LunchCalendar for konsistens.
 
-### Logik til dynamisk tekst
-```typescript
-const getWeekExplanation = () => {
-  const dayNames = ['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag'];
-  const dayName = dayNames[reminderDay];
-  
-  if (reminderDay === 1) {
-    return `Påmindelser sendt om ${dayName}en vil opfordre brugere til at tilmelde sig frokost i den igangværende uge (mandag-fredag).`;
-  } else {
-    return `Påmindelser sendt om ${dayName}en vil opfordre brugere til at tilmelde sig frokost i den kommende uge (næste mandag-fredag).`;
-  }
-};
-```
-
-### Placering i UI
-Forklaringen indsættes lige efter den eksisterende hjælpetekst "Hvilken dag skal påmindelser sendes" (linje 214-216).
+### Parallel eksekvering
+Alle batches køres parallelt med `Promise.all` for optimal performance.
 
 ## Fordele
-- Brugeren forstår præcis hvordan systemet fungerer uden at skulle gætte
-- Teksten opdateres dynamisk når man ændrer dag, så man altid ser den relevante forklaring
-- Info-ikonet signalerer at dette er en nyttig forklaring, ikke en fejl eller advarsel
+- Forhindrer URL-længde fejl når der er mange tilmeldinger/brugere
+- Parallel eksekvering holder performance høj
+- Konsistent løsning på tværs af hele applikationen

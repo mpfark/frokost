@@ -214,19 +214,43 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
   const fetchGuests = async () => {
     const signupIds = signups.map(s => s.id);
-    if (signupIds.length === 0) return;
-
-    const { data, error } = await supabase
-      .from("guests")
-      .select("*")
-      .in("signup_id", signupIds);
-
-    if (error) {
-      toast.error("Kunne ikke indlæse gæster");
+    if (signupIds.length === 0) {
+      setGuests([]);
       return;
     }
 
-    setGuests(data || []);
+    // Batch signup IDs to avoid URL length limits (max ~50 IDs per request)
+    const BATCH_SIZE = 50;
+    const batches: string[][] = [];
+    for (let i = 0; i < signupIds.length; i += BATCH_SIZE) {
+      batches.push(signupIds.slice(i, i + BATCH_SIZE));
+    }
+
+    try {
+      const results = await Promise.all(
+        batches.map(batch =>
+          supabase
+            .from("guests")
+            .select("*")
+            .in("signup_id", batch)
+        )
+      );
+
+      // Check for errors in any batch
+      const error = results.find(r => r.error)?.error;
+      if (error) {
+        console.error("Error fetching guests:", error);
+        toast.error("Kunne ikke indlæse gæster");
+        return;
+      }
+
+      // Combine all results
+      const allGuests = results.flatMap(r => r.data || []);
+      setGuests(allGuests);
+    } catch (err) {
+      console.error("Error fetching guests:", err);
+      toast.error("Kunne ikke indlæse gæster");
+    }
   };
 
   const fetchCompanySettings = async () => {

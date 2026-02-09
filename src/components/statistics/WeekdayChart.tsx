@@ -85,11 +85,14 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         weekdayStats[i] = { signups: 0, optouts: 0, dates: new Set(), usersWithChoice: new Map() };
       }
 
-      // Process signups
+      // Process signups (excluding kitchen users from response rate)
       signups.forEach((s) => {
         const date = parseISO(s.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {
+          // Skip kitchen users for response rate calculation
+          if (kitchenIds.has(s.user_id)) return;
+          
           weekdayStats[dayIndex].signups++;
           weekdayStats[dayIndex].dates.add(s.lunch_date);
 
@@ -100,11 +103,14 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         }
       });
 
-      // Process optouts
+      // Process optouts (excluding kitchen users from response rate)
       optouts.forEach((o) => {
         const date = parseISO(o.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {
+          // Skip kitchen users for response rate calculation
+          if (kitchenIds.has(o.user_id)) return;
+          
           weekdayStats[dayIndex].optouts++;
           weekdayStats[dayIndex].dates.add(o.lunch_date);
 

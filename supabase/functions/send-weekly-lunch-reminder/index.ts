@@ -76,20 +76,39 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
       },
     );
 
-    // Check if reminders are enabled in company settings
+    // Fetch reminder settings from database
     const { data: settings, error: settingsError } = await supabaseAdmin
       .from("company_settings")
-      .select("reminder_enabled")
+      .select("reminder_enabled, reminder_day, reminder_hour")
       .single();
 
     if (settingsError) {
       console.error("Error fetching company settings:", settingsError);
+      return;
     }
 
-    if (settings && !settings.reminder_enabled) {
+    // Check if reminders are enabled
+    if (!settings?.reminder_enabled) {
       console.log("Weekly reminders are disabled in company settings");
       return;
     }
+
+    // Check if current day and hour match the configured schedule (Danish timezone)
+    const now = new Date();
+    const danishTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Copenhagen' }));
+    const currentDay = danishTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday
+    const currentHour = danishTime.getHours();
+
+    const configuredDay = settings.reminder_day ?? 1; // Default Monday
+    const configuredHour = settings.reminder_hour ?? 8; // Default 08:00
+
+    // If this is not a test email and the schedule doesn't match, skip
+    if (!testEmail && (currentDay !== configuredDay || currentHour !== configuredHour)) {
+      console.log(`Schedule check: Current day=${currentDay} hour=${currentHour}, configured day=${configuredDay} hour=${configuredHour}. Skipping.`);
+      return;
+    }
+
+    console.log(`Schedule matched! Proceeding with reminders (day=${currentDay}, hour=${currentHour})`);
 
 // Calculate the upcoming week (Monday to Friday) using Danish local time
     const now = new Date();

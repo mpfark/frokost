@@ -34,9 +34,9 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      // Fetch signups, optouts, and kitchen roles in parallel
+      // Fetch signups and optouts in parallel
       // Note: We calculate active users from signups+optouts in the period, not from profiles
-      const [signupsRes, optoutsRes, kitchenRolesRes] = await Promise.all([
+      const [signupsRes, optoutsRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("lunch_date, user_id")
@@ -47,28 +47,17 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
           .select("lunch_date, user_id")
           .gte("lunch_date", startStr)
           .lte("lunch_date", endStr),
-        supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "kitchen"),
       ]);
 
       const signups = signupsRes.data || [];
       const optouts = optoutsRes.data || [];
-      const kitchenRoles = kitchenRolesRes.data || [];
 
-      // Calculate users with activity in the period (excluding kitchen staff)
-      const kitchenIds = new Set(kitchenRoles.map((r) => r.user_id));
-      
-      // Find all unique user_ids from signups + optouts in the period
+      // Find all unique user_ids from signups + optouts in the period (all active users)
       const usersWithActivity = new Set<string>();
       signups.forEach((s) => usersWithActivity.add(s.user_id));
       optouts.forEach((o) => usersWithActivity.add(o.user_id));
       
-      // Remove kitchen users from the set
-      kitchenIds.forEach((id) => usersWithActivity.delete(id));
-      
-      const activeNonKitchenCount = usersWithActivity.size || 1;
+      const activeUserCount = usersWithActivity.size || 1;
 
       // Group by weekday
       type WeekdayStats = {
@@ -85,14 +74,11 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         weekdayStats[i] = { signups: 0, optouts: 0, dates: new Set(), usersWithChoice: new Map() };
       }
 
-      // Process signups (excluding kitchen users from response rate)
+      // Process signups
       signups.forEach((s) => {
         const date = parseISO(s.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {
-          // Skip kitchen users for response rate calculation
-          if (kitchenIds.has(s.user_id)) return;
-          
           weekdayStats[dayIndex].signups++;
           weekdayStats[dayIndex].dates.add(s.lunch_date);
 
@@ -103,14 +89,11 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         }
       });
 
-      // Process optouts (excluding kitchen users from response rate)
+      // Process optouts
       optouts.forEach((o) => {
         const date = parseISO(o.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {
-          // Skip kitchen users for response rate calculation
-          if (kitchenIds.has(o.user_id)) return;
-          
           weekdayStats[dayIndex].optouts++;
           weekdayStats[dayIndex].dates.add(o.lunch_date);
 
@@ -133,7 +116,7 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         // Calculate average response rate for this weekday
         let totalDailyResponseRate = 0;
         stats.usersWithChoice.forEach((users) => {
-          const dailyRate = (users.size / activeNonKitchenCount) * 100;
+          const dailyRate = (users.size / activeUserCount) * 100;
           totalDailyResponseRate += dailyRate;
         });
         const avgResponseRateForDay = stats.dates.size > 0 ? totalDailyResponseRate / stats.dates.size : 0;

@@ -111,13 +111,10 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
     console.log(`Schedule matched! Proceeding with reminders (day=${currentDay}, hour=${currentHour})`);
 
 // Calculate the upcoming week (Monday to Friday) using Danish local time
-    const now = new Date();
-    // Convert to Danish timezone to get the correct local day
-    const danishTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Copenhagen' }));
-    const currentDay = danishTime.getDay();
+    // Reuse danishTime from schedule check above
 
-    // Calculate days until next Monday (if today is Monday, use today)
-    const daysUntilMonday = currentDay === 1 ? 0 : (8 - currentDay) % 7;
+    // Calculate days until next Monday (always the NEXT Monday for the coming week)
+    const daysUntilMonday = currentDay === 1 ? 7 : (8 - currentDay) % 7;
 
     const nextMonday = new Date(now);
     nextMonday.setDate(now.getDate() + daysUntilMonday);

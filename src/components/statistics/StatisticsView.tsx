@@ -34,16 +34,6 @@ const getDateRanges = (): Record<string, DateRange> => {
       end: endOfMonth(subMonths(now, 1)),
       label: "Sidste måned",
     },
-    last3Months: {
-      start: startOfMonth(subMonths(now, 2)),
-      end: endOfMonth(now),
-      label: "Sidste 3 måneder",
-    },
-    all: {
-      start: new Date(2020, 0, 1),
-      end: endOfMonth(now),
-      label: "Alt",
-    },
   };
 };
 

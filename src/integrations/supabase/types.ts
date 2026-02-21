@@ -463,6 +463,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_lunch_data: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       expire_old_invitations: { Args: never; Returns: undefined }
       has_role: {

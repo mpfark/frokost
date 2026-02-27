@@ -18,7 +18,14 @@ type DateRange = {
 
 const getDateRanges = (): Record<string, DateRange> => {
   const now = new Date();
+  const nextWeekDate = new Date(now);
+  nextWeekDate.setDate(now.getDate() + 7);
   return {
+    nextWeek: {
+      start: startOfWeek(nextWeekDate, { weekStartsOn: 1 }),
+      end: endOfWeek(nextWeekDate, { weekStartsOn: 1 }),
+      label: "Næste uge",
+    },
     thisWeek: {
       start: startOfWeek(now, { weekStartsOn: 1 }),
       end: endOfWeek(now, { weekStartsOn: 1 }),

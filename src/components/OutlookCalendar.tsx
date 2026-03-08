@@ -163,7 +163,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
               </Button>
             )}
             {isConnected && (
-              <Button variant="ghost" size="icon" onClick={disconnectMicrosoft} title="Afbryd Outlook">
+              <Button variant="ghost" size="icon" onClick={disconnectMicrosoft} title="Afbryd forbindelse">
                 <Unlink className="w-4 h-4" />
               </Button>
             )}

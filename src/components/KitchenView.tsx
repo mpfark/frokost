@@ -351,6 +351,7 @@ export const KitchenView = () => {
     if (weeksToDisplay > 0) {
       fetchSignups();
       fetchClosedDates();
+      fetchCateringOrders();
     }
   }, [weeksToDisplay]);
 

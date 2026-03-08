@@ -39,7 +39,7 @@ const DIETARY_OPTIONS = [
 ] as const;
 
 export const CateringOrderDialog = ({ open, onOpenChange, meeting }: CateringOrderDialogProps) => {
-  const [personCount, setPersonCount] = useState(meeting.attendeeCount || 1);
+  const [personCount, setPersonCount] = useState((meeting.attendeeCount || 0) + 1); // +1 for organizer
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
   const [comment, setComment] = useState("");

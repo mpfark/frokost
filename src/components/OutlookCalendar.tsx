@@ -60,7 +60,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         redirect_uri: redirectUri,
         scope: "offline_access Calendars.Read",
         response_mode: "query",
-        prompt: "consent",
+        prompt: "select_account",
       }).toString();
 
     window.location.href = authUrl;

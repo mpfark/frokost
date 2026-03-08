@@ -129,6 +129,16 @@ const Index = () => {
             {/* Navigation */}
             <div className="flex items-center gap-2 ml-auto">
               <Button
+                variant={activeTab === "calendar" ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setActiveTab("calendar")}
+                className="md:w-auto md:px-4"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">Min plan</span>
+              </Button>
+
+              <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => isAdmin && setActiveTab("outlook")}
@@ -138,16 +148,6 @@ const Index = () => {
               >
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden md:inline ml-2">Forplejning</span>
-              </Button>
-
-              <Button
-                variant={activeTab === "calendar" ? "default" : "ghost"}
-                size="icon"
-                onClick={() => setActiveTab("calendar")}
-                className="md:w-auto md:px-4"
-              >
-                <Calendar className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">Min plan</span>
               </Button>
 
               {canAccessKitchen && (

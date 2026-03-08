@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CateringOrdersSection, type CateringOrder } from "@/components/kitchen/CateringOrdersSection";
 
 interface Guest {
   id: string;
@@ -60,6 +61,7 @@ interface ClosedDate {
 export const KitchenView = () => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [cateringOrders, setCateringOrders] = useState<CateringOrder[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -190,6 +192,41 @@ export const KitchenView = () => {
     }
   };
 
+  const fetchCateringOrders = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
+    const { data, error } = await supabase
+      .from("catering_orders")
+      .select("*")
+      .gte("meeting_date", format(startDate, "yyyy-MM-dd"))
+      .lte("meeting_date", format(endDate, "yyyy-MM-dd"))
+      .order("meeting_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching catering orders:", error);
+      return;
+    }
+
+    // Fetch profile info for each order
+    const userIds = [...new Set((data || []).map(o => o.user_id))];
+    let profileMap: Record<string, { full_name: string | null; email: string }> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      if (profiles) {
+        profileMap = Object.fromEntries(profiles.map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+      }
+    }
+
+    const ordersWithProfiles = (data || []).map(o => ({
+      ...o,
+      profiles: profileMap[o.user_id] || null,
+    }));
+
+    setCateringOrders(ordersWithProfiles as CateringOrder[]);
+  };
+
   const toggleClosedDate = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const existingClosed = closedDates.find((cd) => cd.date === dateStr);
@@ -314,6 +351,7 @@ export const KitchenView = () => {
     if (weeksToDisplay > 0) {
       fetchSignups();
       fetchClosedDates();
+      fetchCateringOrders();
     }
   }, [weeksToDisplay]);
 
@@ -379,14 +417,35 @@ export const KitchenView = () => {
       )
       .subscribe();
 
+    const cateringChannel = supabase
+      .channel("kitchen_catering_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "catering_orders",
+        },
+        () => {
+          debouncedFetch("catering", fetchCateringOrders);
+        }
+      )
+      .subscribe();
+
     return () => {
       // Clear all debounce timeouts
       Object.values(debounceTimeoutRef.current).forEach(clearTimeout);
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
+      supabase.removeChannel(cateringChannel);
     };
   }, [debouncedFetch]);
+
+  const getCateringOrdersForDate = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return cateringOrders.filter((o) => o.meeting_date === dateStr);
+  };
 
   const getSignupsForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -628,9 +687,15 @@ export const KitchenView = () => {
                     </div>
                   )}
 
-                  {dayTabSignups.length === 0 && (
+                  {/* Catering orders for this day */}
+                  <CateringOrdersSection
+                    orders={getCateringOrdersForDate(selectedDayTab)}
+                    onStatusChange={fetchCateringOrders}
+                  />
+
+                  {dayTabSignups.length === 0 && getCateringOrdersForDate(selectedDayTab).length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      Ingen tilmeldinger for denne dag
+                      Ingen tilmeldinger eller bestillinger for denne dag
                     </div>
                   )}
                 </div>
@@ -847,6 +912,13 @@ export const KitchenView = () => {
                                 </div>
                               ))}
                             </div>
+                          )}
+                          {/* Catering orders indicator */}
+                          {getCateringOrdersForDate(date).length > 0 && (
+                            <CateringOrdersSection
+                              orders={getCateringOrdersForDate(date)}
+                              compact
+                            />
                           )}
                         </div>
                       </div>
@@ -1199,6 +1271,15 @@ export const KitchenView = () => {
                 </div>
               );
             })}
+            {/* Catering orders in drawer */}
+            {selectedDate && getCateringOrdersForDate(selectedDate).length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <CateringOrdersSection
+                  orders={getCateringOrdersForDate(selectedDate)}
+                  onStatusChange={fetchCateringOrders}
+                />
+              </div>
+            )}
           </div>
         </DrawerContent>
       </Drawer>

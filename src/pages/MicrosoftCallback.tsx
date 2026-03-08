@@ -40,7 +40,7 @@ const MicrosoftCallback = () => {
           throw new Error(data?.error || fnError?.message || "Ukendt fejl");
         }
 
-        toast.success("Outlook-kalender forbundet!");
+        toast.success("Kalender forbundet!");
         setStatus("success");
         setTimeout(() => navigate("/?tab=profile"), 1000);
       } catch (err: any) {

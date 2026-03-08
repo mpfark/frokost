@@ -687,9 +687,15 @@ export const KitchenView = () => {
                     </div>
                   )}
 
-                  {dayTabSignups.length === 0 && (
+                  {/* Catering orders for this day */}
+                  <CateringOrdersSection
+                    orders={getCateringOrdersForDate(selectedDayTab)}
+                    onStatusChange={fetchCateringOrders}
+                  />
+
+                  {dayTabSignups.length === 0 && getCateringOrdersForDate(selectedDayTab).length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      Ingen tilmeldinger for denne dag
+                      Ingen tilmeldinger eller bestillinger for denne dag
                     </div>
                   )}
                 </div>

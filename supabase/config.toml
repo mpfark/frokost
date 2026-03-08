@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.trigger-reminder-test]
 verify_jwt = true
+
+[functions.get-calendar-events]
+verify_jwt = true

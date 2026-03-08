@@ -11,6 +11,7 @@ import SetPassword from "./pages/SetPassword";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Install from "./pages/Install";
 import Guide from "./pages/Guide";
+import MicrosoftCallback from "./pages/MicrosoftCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const AppContent = () => {
         <Route path="/accept-invitation/:invitationId" element={<AcceptInvitation />} />
         <Route path="/install" element={<Install />} />
         <Route path="/guide" element={<Guide />} />
+        <Route path="/microsoft-callback" element={<MicrosoftCallback />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

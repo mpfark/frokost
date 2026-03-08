@@ -3,25 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function getAccessToken(): Promise<string> {
-  const tenantId = Deno.env.get("AZURE_TENANT_ID");
-  const clientId = Deno.env.get("AZURE_CLIENT_ID");
-  const clientSecret = Deno.env.get("AZURE_CLIENT_SECRET");
-
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("Azure AD credentials not configured");
-  }
-
+async function refreshAccessToken(
+  refreshToken: string,
+  tenantId: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ access_token: string; refresh_token: string; expires_in: number } | null> {
   const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
-    scope: "https://graph.microsoft.com/.default",
-    grant_type: "client_credentials",
+    refresh_token: refreshToken,
+    grant_type: "refresh_token",
+    scope: "offline_access Calendars.Read",
   });
 
   const res = await fetch(tokenUrl, {
@@ -31,13 +29,11 @@ async function getAccessToken(): Promise<string> {
   });
 
   if (!res.ok) {
-    const errorText = await res.text();
-    console.error("Token error:", errorText);
-    throw new Error(`Failed to get access token: ${res.status}`);
+    console.error("Token refresh error:", await res.text());
+    return null;
   }
 
-  const data = await res.json();
-  return data.access_token;
+  return await res.json();
 }
 
 Deno.serve(async (req) => {
@@ -46,7 +42,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -73,15 +68,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Parse request body
-    const { email, startDate, endDate } = await req.json();
+    const { startDate, endDate } = await req.json();
 
-    // If no email provided, use the authenticated user's email
-    const targetEmail = email || user.email;
+    // Get user's stored Microsoft tokens
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    if (!targetEmail) {
+    const { data: tokenData, error: tokenError } = await serviceClient
+      .from("microsoft_tokens")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (tokenError || !tokenData) {
       return new Response(
-        JSON.stringify({ error: "No email provided" }),
+        JSON.stringify({
+          error: "not_connected",
+          message: "Microsoft-konto er ikke forbundet. Forbind din Outlook-kalender først.",
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,20 +95,63 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get Microsoft Graph access token
-    const accessToken = await getAccessToken();
+    let accessToken = tokenData.access_token;
 
-    // Build the calendar view URL
+    // Check if token is expired and refresh if needed
+    const tenantId = Deno.env.get("AZURE_TENANT_ID")!;
+    const clientId = Deno.env.get("AZURE_CLIENT_ID")!;
+    const clientSecret = Deno.env.get("AZURE_CLIENT_SECRET")!;
+
+    if (new Date(tokenData.expires_at) <= new Date()) {
+      console.log("Token expired, refreshing...");
+      const refreshed = await refreshAccessToken(
+        tokenData.refresh_token,
+        tenantId,
+        clientId,
+        clientSecret
+      );
+
+      if (!refreshed) {
+        // Token refresh failed — user needs to re-authenticate
+        await serviceClient
+          .from("microsoft_tokens")
+          .delete()
+          .eq("user_id", user.id);
+
+        return new Response(
+          JSON.stringify({
+            error: "token_expired",
+            message: "Din Microsoft-session er udløbet. Forbind venligst igen.",
+          }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      accessToken = refreshed.access_token;
+
+      // Update stored tokens
+      await serviceClient
+        .from("microsoft_tokens")
+        .update({
+          access_token: refreshed.access_token,
+          refresh_token: refreshed.refresh_token || tokenData.refresh_token,
+          expires_at: new Date(
+            Date.now() + (refreshed.expires_in || 3600) * 1000
+          ).toISOString(),
+        })
+        .eq("user_id", user.id);
+    }
+
+    // Fetch calendar events using delegated token
     const start = startDate || new Date().toISOString();
     const end =
       endDate ||
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const graphUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(
-      targetEmail
-    )}/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,organizer,attendees,location,isAllDay&$orderby=start/dateTime&$top=50`;
-
-    console.log("Fetching calendar for:", targetEmail);
+    const graphUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,organizer,attendees,location,isAllDay&$orderby=start/dateTime&$top=50`;
 
     const graphRes = await fetch(graphUrl, {
       headers: {
@@ -115,28 +164,20 @@ Deno.serve(async (req) => {
       const errorText = await graphRes.text();
       console.error("Graph API error:", graphRes.status, errorText);
 
-      if (graphRes.status === 403) {
-        return new Response(
-          JSON.stringify({
-            error: "calendar_permission_denied",
-            message:
-              "Calendars.Read permission er ikke godkendt endnu. Bed din administrator om at give admin consent i Azure Portal.",
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+      if (graphRes.status === 401) {
+        // Token was invalidated
+        await serviceClient
+          .from("microsoft_tokens")
+          .delete()
+          .eq("user_id", user.id);
 
-      if (graphRes.status === 404) {
         return new Response(
           JSON.stringify({
-            error: "user_not_found",
-            message: `Brugeren ${targetEmail} blev ikke fundet i Microsoft 365.`,
+            error: "token_expired",
+            message: "Din Microsoft-session er udløbet. Forbind venligst igen.",
           }),
           {
-            status: 404,
+            status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
@@ -156,7 +197,6 @@ Deno.serve(async (req) => {
 
     const calendarData = await graphRes.json();
 
-    // Map events to a cleaner format
     const events = (calendarData.value || []).map((event: any) => ({
       id: event.id,
       subject: event.subject,
@@ -176,10 +216,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error:", error);
     return new Response(
-      JSON.stringify({
-        error: "internal_error",
-        message: error.message,
-      }),
+      JSON.stringify({ error: "internal_error", message: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

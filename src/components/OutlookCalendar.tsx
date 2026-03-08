@@ -314,12 +314,37 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                       {dayEvents.map((event) => (
                         <div
                           key={event.id}
-                          className="flex flex-col p-3.5 rounded-xl border bg-card/50 hover:bg-card hover:shadow-sm transition-all"
+                          className="border rounded-lg p-3 flex flex-col gap-2 bg-card"
                         >
-                          <div className="flex items-start justify-between gap-3 mb-3">
+                          {/* Top Row: Title and Attendee Count */}
+                          <div className="flex justify-between items-start gap-2">
                             <h4 className="text-sm font-semibold leading-tight line-clamp-2" title={event.subject}>
                               {event.subject}
                             </h4>
+                            {event.attendeeCount > 0 && (
+                              <div className="flex items-center gap-1 text-xs font-medium shrink-0">
+                                <Users className="w-3 h-3" />
+                                <span>{event.attendeeCount}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Metadata Row */}
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                            </span>
+                            {event.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate max-w-[120px]">{event.location}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Action Row */}
+                          <div className="flex gap-1 mt-auto">
                             {(() => {
                               const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
                               const order = existingOrders[orderKey];
@@ -332,7 +357,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                 };
                                 const info = statusLabels[order.status] || { label: order.status, className: "" };
                                 return (
-                                  <div className="shrink-0 flex flex-col items-end gap-1.5">
+                                  <div className="flex items-center gap-2 w-full">
                                     <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
                                       {order.status === "pending" && <Clock className="w-3 h-3" />}
                                       {order.status === "confirmed" && <Check className="w-3 h-3" />}
@@ -340,9 +365,9 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                     </Badge>
                                     {order.status === "pending" && (
                                       <Button
-                                        variant="ghost"
+                                        variant="outline"
                                         size="sm"
-                                        className="h-6 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        className="h-9 text-xs ml-auto"
                                         onClick={async () => {
                                           const { error } = await supabase
                                             .from("catering_orders")
@@ -356,7 +381,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                           }
                                         }}
                                       >
-                                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                        <Trash2 className="w-3 h-3 mr-1" />
                                         Annullér
                                       </Button>
                                     )}
@@ -365,35 +390,16 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                               }
                               return (
                                 <Button
-                                  variant="secondary"
+                                  variant="outline"
                                   size="sm"
-                                  className="shrink-0 h-8 font-medium bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                                  className="h-9 text-xs"
                                   onClick={() => setCateringEvent(event)}
                                 >
-                                  <UtensilsCrossed className="w-3.5 h-3.5 mr-1.5" />
+                                  <UtensilsCrossed className="w-3 h-3 mr-1" />
                                   Bestil
                                 </Button>
                               );
                             })()}
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1.5 font-medium text-foreground/80 bg-muted/50 px-2 py-1 rounded-md">
-                              <Clock className="w-3.5 h-3.5 text-primary/70" />
-                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                            </span>
-                            {event.location && (
-                              <span className="flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-muted-foreground/70" />
-                                <span className="truncate max-w-[140px]">{event.location}</span>
-                              </span>
-                            )}
-                            {event.attendeeCount > 0 && (
-                              <span className="flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-muted-foreground/70" />
-                                {event.attendeeCount} deltagere
-                              </span>
-                            )}
                           </div>
                         </div>
                       ))}

@@ -141,6 +141,30 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
+  const fetchExistingOrders = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const weekStart = format(currentWeekStart, "yyyy-MM-dd");
+    const weekEnd = format(addDays(currentWeekStart, 5), "yyyy-MM-dd");
+
+    const { data } = await supabase
+      .from("catering_orders")
+      .select("meeting_subject, meeting_date, meeting_time, status")
+      .eq("user_id", user.id)
+      .gte("meeting_date", weekStart)
+      .lte("meeting_date", weekEnd);
+
+    if (data) {
+      const orderMap: Record<string, string> = {};
+      data.forEach((o) => {
+        const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
+        orderMap[key] = o.status;
+      });
+      setExistingOrders(orderMap);
+    }
+  };
+
   useEffect(() => {
     checkConnection();
   }, []);
@@ -148,6 +172,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   useEffect(() => {
     if (isConnected) {
       fetchEvents();
+      fetchExistingOrders();
     }
   }, [isConnected, selectedDate, weekOffset]);
 

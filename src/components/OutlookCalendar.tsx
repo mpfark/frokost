@@ -154,7 +154,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-primary" />
-            Outlook Kalender
+            Forplejning
           </CardTitle>
           <div className="flex items-center gap-1">
             {isConnected && (

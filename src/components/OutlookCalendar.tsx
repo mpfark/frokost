@@ -314,84 +314,87 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                       {dayEvents.map((event) => (
                         <div
                           key={event.id}
-                          className="flex gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                          className="flex flex-col p-3.5 rounded-xl border bg-card/50 hover:bg-card hover:shadow-sm transition-all"
                         >
-                          <div className="flex flex-col items-center justify-center min-w-[3.5rem] px-2 py-1 rounded bg-primary/10 text-primary">
-                            <span className="text-xs font-medium">{formatTime(event.startTime)}</span>
-                            <span className="text-[10px] text-muted-foreground">{formatTime(event.endTime)}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{event.subject}</p>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {event.location && (
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <MapPin className="w-3 h-3" />
-                                  {event.location}
-                                </span>
-                              )}
-                              {event.attendeeCount > 0 && (
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Users className="w-3 h-3" />
-                                  {event.attendeeCount}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {(() => {
-                            const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
-                            const order = existingOrders[orderKey];
-                            if (order) {
-                              const statusLabels: Record<string, { label: string; className: string }> = {
-                                pending: { label: "Afventer", className: "text-amber-600 border-amber-300 bg-amber-50" },
-                                confirmed: { label: "Bekræftet", className: "text-green-600 border-green-300 bg-green-50" },
-                                delivered: { label: "Leveret", className: "text-muted-foreground border-muted bg-muted/50" },
-                                cancelled: { label: "Annulleret", className: "text-destructive border-destructive/30 bg-destructive/5" },
-                              };
-                              const info = statusLabels[order.status] || { label: order.status, className: "" };
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <h4 className="text-sm font-semibold leading-tight line-clamp-2" title={event.subject}>
+                              {event.subject}
+                            </h4>
+                            {(() => {
+                              const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
+                              const order = existingOrders[orderKey];
+                              if (order) {
+                                const statusLabels: Record<string, { label: string; className: string }> = {
+                                  pending: { label: "Afventer", className: "text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/30" },
+                                  confirmed: { label: "Bekræftet", className: "text-green-700 border-green-300 bg-green-50 dark:bg-green-950/30" },
+                                  delivered: { label: "Leveret", className: "text-muted-foreground border-muted bg-muted/50" },
+                                  cancelled: { label: "Annulleret", className: "text-destructive border-destructive/30 bg-destructive/10" },
+                                };
+                                const info = statusLabels[order.status] || { label: order.status, className: "" };
+                                return (
+                                  <div className="shrink-0 flex flex-col items-end gap-1.5">
+                                    <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
+                                      {order.status === "pending" && <Clock className="w-3 h-3" />}
+                                      {order.status === "confirmed" && <Check className="w-3 h-3" />}
+                                      {info.label}
+                                    </Badge>
+                                    {order.status === "pending" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={async () => {
+                                          const { error } = await supabase
+                                            .from("catering_orders")
+                                            .delete()
+                                            .eq("id", order.id);
+                                          if (error) {
+                                            toast.error("Kunne ikke annullere bestilling");
+                                          } else {
+                                            toast.success("Bestilling annulleret");
+                                            fetchExistingOrders();
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                        Annullér
+                                      </Button>
+                                    )}
+                                  </div>
+                                );
+                              }
                               return (
-                                <div className="shrink-0 self-center flex items-center gap-1">
-                                  <Badge variant="outline" className={`gap-1 text-xs ${info.className}`}>
-                                    {order.status === "pending" && <Clock className="w-3 h-3" />}
-                                    {order.status === "confirmed" && <Check className="w-3 h-3" />}
-                                    {info.label}
-                                  </Badge>
-                                  {order.status === "pending" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                      title="Annullér bestilling"
-                                      onClick={async () => {
-                                        const { error } = await supabase
-                                          .from("catering_orders")
-                                          .delete()
-                                          .eq("id", order.id);
-                                        if (error) {
-                                          toast.error("Kunne ikke annullere bestilling");
-                                        } else {
-                                          toast.success("Bestilling annulleret");
-                                          fetchExistingOrders();
-                                        }
-                                      }}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </Button>
-                                  )}
-                                </div>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="shrink-0 h-8 font-medium bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                                  onClick={() => setCateringEvent(event)}
+                                >
+                                  <UtensilsCrossed className="w-3.5 h-3.5 mr-1.5" />
+                                  Bestil
+                                </Button>
                               );
-                            }
-                            return (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="shrink-0 self-center gap-1"
-                                onClick={() => setCateringEvent(event)}
-                              >
-                                <UtensilsCrossed className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Bestil</span>
-                              </Button>
-                            );
-                          })()}
+                            })()}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1.5 font-medium text-foreground/80 bg-muted/50 px-2 py-1 rounded-md">
+                              <Clock className="w-3.5 h-3.5 text-primary/70" />
+                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                            </span>
+                            {event.location && (
+                              <span className="flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-muted-foreground/70" />
+                                <span className="truncate max-w-[140px]">{event.location}</span>
+                              </span>
+                            )}
+                            {event.attendeeCount > 0 && (
+                              <span className="flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-muted-foreground/70" />
+                                {event.attendeeCount} deltagere
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

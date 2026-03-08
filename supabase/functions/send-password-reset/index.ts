@@ -156,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in send-password-reset function:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send password reset email" 
+        error: "An internal error occurred" 
       }),
       {
         status: 500,

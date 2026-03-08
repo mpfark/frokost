@@ -35,6 +35,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // Check if user has connected Microsoft account
   const checkConnection = async () => {

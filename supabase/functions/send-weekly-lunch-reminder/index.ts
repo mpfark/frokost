@@ -426,7 +426,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in send-weekly-lunch-reminder function:", error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: "An internal error occurred",
         success: false,
       }),
       {

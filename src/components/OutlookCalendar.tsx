@@ -256,6 +256,15 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                       )}
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 self-center gap-1"
+                    onClick={() => setCateringEvent(event)}
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Bestil</span>
+                  </Button>
                 </div>
               ))}
 

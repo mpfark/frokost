@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink } from "lucide-react";
+import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
+import { CateringOrderDialog } from "./CateringOrderDialog";
 
 interface CalendarEvent {
   id: string;
@@ -33,6 +34,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
+  const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
 
   // Check if user has connected Microsoft account
   const checkConnection = async () => {
@@ -149,6 +151,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const displayDate = selectedDate || new Date();
 
   return (
+    <>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -254,6 +257,15 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                       )}
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 self-center gap-1"
+                    onClick={() => setCateringEvent(event)}
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Bestil</span>
+                  </Button>
                 </div>
               ))}
 
@@ -274,5 +286,20 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         )}
       </CardContent>
     </Card>
+
+    {cateringEvent && (
+      <CateringOrderDialog
+        open={!!cateringEvent}
+        onOpenChange={(open) => !open && setCateringEvent(null)}
+        meeting={{
+          subject: cateringEvent.subject,
+          date: format(parseISO(cateringEvent.startTime), "yyyy-MM-dd"),
+          time: `${formatTime(cateringEvent.startTime)} - ${formatTime(cateringEvent.endTime)}`,
+          location: cateringEvent.location,
+          attendeeCount: cateringEvent.attendeeCount,
+        }}
+      />
+    )}
+    </>
   );
 };

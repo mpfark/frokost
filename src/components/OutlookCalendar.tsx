@@ -250,66 +250,63 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
               Prøv igen
             </Button>
           </div>
-        ) : events.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <CalendarDays className="w-8 h-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Ingen møder denne dag</p>
-          </div>
         ) : (
-          <div className="space-y-3">
-            {events
-              .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
-              .map((event) => (
-                <div
-                  key={event.id}
-                  className="flex gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center min-w-[3.5rem] px-2 py-1 rounded bg-primary/10 text-primary">
-                    <span className="text-xs font-medium">{formatTime(event.startTime)}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatTime(event.endTime)}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{event.subject}</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {event.location && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          {event.location}
-                        </span>
-                      )}
-                      {event.attendeeCount > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Users className="w-3 h-3" />
-                          {event.attendeeCount}
-                        </span>
-                      )}
+          <div className="space-y-4">
+            {weekDays.map((day) => {
+              const dayEvents = getEventsForDay(day);
+              const isToday = isSameDay(day, new Date());
+              return (
+                <div key={day.toISOString()}>
+                  <p className={`text-xs font-semibold mb-2 capitalize ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                    {format(day, "EEEE d. MMM", { locale: da })}
+                    {isToday && <span className="ml-1 text-[10px] font-normal">(i dag)</span>}
+                  </p>
+                  {dayEvents.length === 0 ? (
+                    <p className="text-xs text-muted-foreground pl-2 pb-2">Ingen møder</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center min-w-[3.5rem] px-2 py-1 rounded bg-primary/10 text-primary">
+                            <span className="text-xs font-medium">{formatTime(event.startTime)}</span>
+                            <span className="text-[10px] text-muted-foreground">{formatTime(event.endTime)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{event.subject}</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {event.location && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <MapPin className="w-3 h-3" />
+                                  {event.location}
+                                </span>
+                              )}
+                              {event.attendeeCount > 0 && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Users className="w-3 h-3" />
+                                  {event.attendeeCount}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 self-center gap-1"
+                            onClick={() => setCateringEvent(event)}
+                          >
+                            <UtensilsCrossed className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Bestil</span>
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 self-center gap-1"
-                    onClick={() => setCateringEvent(event)}
-                  >
-                    <UtensilsCrossed className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Bestil</span>
-                  </Button>
+                  )}
                 </div>
-              ))}
-
-            {events.filter((e) => e.isAllDay).length > 0 && (
-              <div className="pt-2 border-t">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Heldagsbegivenheder</p>
-                {events
-                  .filter((e) => e.isAllDay)
-                  .map((event) => (
-                    <div key={event.id} className="flex items-center gap-2 py-1">
-                      <Badge variant="secondary" className="text-xs">Heldag</Badge>
-                      <span className="text-sm truncate">{event.subject}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
+              );
+            })}
           </div>
         )}
       </CardContent>

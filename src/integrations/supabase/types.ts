@@ -87,6 +87,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           allowed_domain: string
+          allowed_locations: string[]
           created_at: string
           id: string
           primary_color: string | null
@@ -100,6 +101,7 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           allowed_domain: string
+          allowed_locations?: string[]
           created_at?: string
           id?: string
           primary_color?: string | null
@@ -113,6 +115,7 @@ export type Database = {
         Update: {
           accent_color?: string | null
           allowed_domain?: string
+          allowed_locations?: string[]
           created_at?: string
           id?: string
           primary_color?: string | null

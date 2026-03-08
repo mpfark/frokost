@@ -6,6 +6,7 @@ import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { PasswordChange } from "@/components/PasswordChange";
+import { OutlookCalendar } from "@/components/OutlookCalendar";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

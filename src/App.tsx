@@ -11,6 +11,7 @@ import SetPassword from "./pages/SetPassword";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Install from "./pages/Install";
 import Guide from "./pages/Guide";
+import MicrosoftCallback from "./pages/MicrosoftCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

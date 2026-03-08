@@ -1280,15 +1280,6 @@ export const KitchenView = () => {
                 </div>
               );
             })}
-            {/* Catering orders in drawer */}
-            {selectedDate && getCateringOrdersForDate(selectedDate).length > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <CateringOrdersSection
-                  orders={getCateringOrdersForDate(selectedDate)}
-                  onStatusChange={fetchCateringOrders}
-                />
-              </div>
-            )}
           </div>
         </DrawerContent>
       </Drawer>

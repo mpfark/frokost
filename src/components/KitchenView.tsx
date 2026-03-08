@@ -63,7 +63,6 @@ export const KitchenView = () => {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [cateringOrders, setCateringOrders] = useState<CateringOrder[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
-  const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [reasonDialogDate, setReasonDialogDate] = useState<Date | null>(null);

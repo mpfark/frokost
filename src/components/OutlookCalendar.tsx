@@ -317,15 +317,37 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                               )}
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 self-center gap-1"
-                            onClick={() => setCateringEvent(event)}
-                          >
-                            <UtensilsCrossed className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Bestil</span>
-                          </Button>
+                          {(() => {
+                            const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
+                            const orderStatus = existingOrders[orderKey];
+                            if (orderStatus) {
+                              const statusLabels: Record<string, { label: string; className: string }> = {
+                                pending: { label: "Afventer", className: "text-amber-600 border-amber-300 bg-amber-50" },
+                                confirmed: { label: "Bekræftet", className: "text-green-600 border-green-300 bg-green-50" },
+                                delivered: { label: "Leveret", className: "text-muted-foreground border-muted bg-muted/50" },
+                                cancelled: { label: "Afvist", className: "text-destructive border-destructive/30 bg-destructive/5" },
+                              };
+                              const info = statusLabels[orderStatus] || { label: orderStatus, className: "" };
+                              return (
+                                <Badge variant="outline" className={`shrink-0 self-center gap-1 text-xs ${info.className}`}>
+                                  {orderStatus === "pending" && <Clock className="w-3 h-3" />}
+                                  {orderStatus === "confirmed" && <Check className="w-3 h-3" />}
+                                  {info.label}
+                                </Badge>
+                              );
+                            }
+                            return (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="shrink-0 self-center gap-1"
+                                onClick={() => setCateringEvent(event)}
+                              >
+                                <UtensilsCrossed className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Bestil</span>
+                              </Button>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>

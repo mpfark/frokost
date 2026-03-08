@@ -192,6 +192,41 @@ export const KitchenView = () => {
     }
   };
 
+  const fetchCateringOrders = async () => {
+    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
+    const { data, error } = await supabase
+      .from("catering_orders")
+      .select("*")
+      .gte("meeting_date", format(startDate, "yyyy-MM-dd"))
+      .lte("meeting_date", format(endDate, "yyyy-MM-dd"))
+      .order("meeting_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching catering orders:", error);
+      return;
+    }
+
+    // Fetch profile info for each order
+    const userIds = [...new Set((data || []).map(o => o.user_id))];
+    let profileMap: Record<string, { full_name: string | null; email: string }> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      if (profiles) {
+        profileMap = Object.fromEntries(profiles.map(p => [p.id, { full_name: p.full_name, email: p.email }]));
+      }
+    }
+
+    const ordersWithProfiles = (data || []).map(o => ({
+      ...o,
+      profiles: profileMap[o.user_id] || null,
+    }));
+
+    setCateringOrders(ordersWithProfiles as CateringOrder[]);
+  };
+
   const toggleClosedDate = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const existingClosed = closedDates.find((cd) => cd.date === dateStr);

@@ -137,7 +137,7 @@ const Index = () => {
                 title={!isAdmin ? "Kun tilgængelig for administratorer" : "Outlook Kalender"}
               >
                 <CalendarDays className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">Outlook</span>
+                <span className="hidden md:inline ml-2">Forplejning</span>
               </Button>
 
               <Button

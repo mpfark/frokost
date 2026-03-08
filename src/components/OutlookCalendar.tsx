@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed, ChevronLeft, ChevronRight, Clock, Check } from "lucide-react";
 import { format, parseISO, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay, isWeekend } from "date-fns";
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [errorType, setErrorType] = useState<string | null>(null);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [existingOrders, setExistingOrders] = useState<Record<string, string>>({});
 
   // Check if user has connected Microsoft account
   const checkConnection = async () => {
@@ -140,6 +141,30 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
+  const fetchExistingOrders = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const weekStart = format(currentWeekStart, "yyyy-MM-dd");
+    const weekEnd = format(addDays(currentWeekStart, 5), "yyyy-MM-dd");
+
+    const { data } = await supabase
+      .from("catering_orders")
+      .select("meeting_subject, meeting_date, meeting_time, status")
+      .eq("user_id", user.id)
+      .gte("meeting_date", weekStart)
+      .lte("meeting_date", weekEnd);
+
+    if (data) {
+      const orderMap: Record<string, string> = {};
+      data.forEach((o) => {
+        const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
+        orderMap[key] = o.status;
+      });
+      setExistingOrders(orderMap);
+    }
+  };
+
   useEffect(() => {
     checkConnection();
   }, []);
@@ -147,6 +172,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   useEffect(() => {
     if (isConnected) {
       fetchEvents();
+      fetchExistingOrders();
     }
   }, [isConnected, selectedDate, weekOffset]);
 
@@ -291,15 +317,37 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                               )}
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 self-center gap-1"
-                            onClick={() => setCateringEvent(event)}
-                          >
-                            <UtensilsCrossed className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Bestil</span>
-                          </Button>
+                          {(() => {
+                            const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
+                            const orderStatus = existingOrders[orderKey];
+                            if (orderStatus) {
+                              const statusLabels: Record<string, { label: string; className: string }> = {
+                                pending: { label: "Afventer", className: "text-amber-600 border-amber-300 bg-amber-50" },
+                                confirmed: { label: "Bekræftet", className: "text-green-600 border-green-300 bg-green-50" },
+                                delivered: { label: "Leveret", className: "text-muted-foreground border-muted bg-muted/50" },
+                                cancelled: { label: "Afvist", className: "text-destructive border-destructive/30 bg-destructive/5" },
+                              };
+                              const info = statusLabels[orderStatus] || { label: orderStatus, className: "" };
+                              return (
+                                <Badge variant="outline" className={`shrink-0 self-center gap-1 text-xs ${info.className}`}>
+                                  {orderStatus === "pending" && <Clock className="w-3 h-3" />}
+                                  {orderStatus === "confirmed" && <Check className="w-3 h-3" />}
+                                  {info.label}
+                                </Badge>
+                              );
+                            }
+                            return (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="shrink-0 self-center gap-1"
+                                onClick={() => setCateringEvent(event)}
+                              >
+                                <UtensilsCrossed className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Bestil</span>
+                              </Button>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -315,7 +363,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     {cateringEvent && (
       <CateringOrderDialog
         open={!!cateringEvent}
-        onOpenChange={(open) => !open && setCateringEvent(null)}
+        onOpenChange={(open) => { if (!open) { setCateringEvent(null); fetchExistingOrders(); } }}
         meeting={{
           subject: cateringEvent.subject,
           date: format(parseISO(cateringEvent.startTime), "yyyy-MM-dd"),

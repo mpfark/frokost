@@ -60,7 +60,7 @@ const MicrosoftCallback = () => {
         {status === "processing" && (
           <>
             <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
-            <p className="text-muted-foreground">Forbinder Outlook-kalender...</p>
+            <p className="text-muted-foreground">Forbinder kalender...</p>
           </>
         )}
         {status === "success" && (

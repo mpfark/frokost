@@ -82,7 +82,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
     setIsConnected(false);
     setEvents([]);
-    toast.success("Outlook-kalender afbrudt");
+    toast.success("Kalenderforbindelse afbrudt");
   };
 
   const fetchEvents = async () => {

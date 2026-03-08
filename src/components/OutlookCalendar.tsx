@@ -148,7 +148,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     if (isConnected) {
       fetchEvents();
     }
-  }, [isConnected, selectedDate]);
+  }, [isConnected, selectedDate, weekOffset]);
 
   const formatTime = (dateTimeStr: string) => {
     try {

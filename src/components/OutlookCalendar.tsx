@@ -339,21 +339,45 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                           </div>
                           {(() => {
                             const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
-                            const orderStatus = existingOrders[orderKey];
-                            if (orderStatus) {
+                            const order = existingOrders[orderKey];
+                            if (order) {
                               const statusLabels: Record<string, { label: string; className: string }> = {
                                 pending: { label: "Afventer", className: "text-amber-600 border-amber-300 bg-amber-50" },
                                 confirmed: { label: "Bekræftet", className: "text-green-600 border-green-300 bg-green-50" },
                                 delivered: { label: "Leveret", className: "text-muted-foreground border-muted bg-muted/50" },
-                                cancelled: { label: "Afvist", className: "text-destructive border-destructive/30 bg-destructive/5" },
+                                cancelled: { label: "Annulleret", className: "text-destructive border-destructive/30 bg-destructive/5" },
                               };
-                              const info = statusLabels[orderStatus] || { label: orderStatus, className: "" };
+                              const info = statusLabels[order.status] || { label: order.status, className: "" };
                               return (
-                                <Badge variant="outline" className={`shrink-0 self-center gap-1 text-xs ${info.className}`}>
-                                  {orderStatus === "pending" && <Clock className="w-3 h-3" />}
-                                  {orderStatus === "confirmed" && <Check className="w-3 h-3" />}
-                                  {info.label}
-                                </Badge>
+                                <div className="shrink-0 self-center flex items-center gap-1">
+                                  <Badge variant="outline" className={`gap-1 text-xs ${info.className}`}>
+                                    {order.status === "pending" && <Clock className="w-3 h-3" />}
+                                    {order.status === "confirmed" && <Check className="w-3 h-3" />}
+                                    {info.label}
+                                  </Badge>
+                                  {order.status === "pending" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                      title="Annullér bestilling"
+                                      onClick={async () => {
+                                        const { error } = await supabase
+                                          .from("catering_orders")
+                                          .delete()
+                                          .eq("id", order.id);
+                                        if (error) {
+                                          toast.error("Kunne ikke annullere bestilling");
+                                        } else {
+                                          toast.success("Bestilling annulleret");
+                                          fetchExistingOrders();
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
                               );
                             }
                             return (

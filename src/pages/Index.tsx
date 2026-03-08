@@ -235,7 +235,6 @@ const Index = () => {
                   <PasswordChange />
                 </div>
               </div>
-              </div>
             ) : (
               <div className="max-w-7xl mx-auto">
                 <LunchCalendar userId={user.id} />

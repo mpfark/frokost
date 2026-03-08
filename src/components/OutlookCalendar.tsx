@@ -363,7 +363,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     {cateringEvent && (
       <CateringOrderDialog
         open={!!cateringEvent}
-        onOpenChange={(open) => !open && setCateringEvent(null)}
+        onOpenChange={(open) => { if (!open) { setCateringEvent(null); fetchExistingOrders(); } }}
         meeting={{
           subject: cateringEvent.subject,
           date: format(parseISO(cateringEvent.startTime), "yyyy-MM-dd"),

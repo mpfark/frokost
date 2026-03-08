@@ -49,14 +49,9 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   };
 
   const connectMicrosoft = () => {
-    const clientId = import.meta.env.VITE_AZURE_CLIENT_ID;
-    const tenantId = import.meta.env.VITE_AZURE_TENANT_ID;
+    const clientId = "4a478a74-a4dc-4553-8cae-10c9814416b8";
+    const tenantId = "1b9fe8e1-0b95-46a2-9574-4e7a39581f22";
     const redirectUri = `${window.location.origin}/microsoft-callback`;
-
-    if (!clientId || !tenantId) {
-      toast.error("Azure konfiguration mangler");
-      return;
-    }
 
     const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?` +
       new URLSearchParams({

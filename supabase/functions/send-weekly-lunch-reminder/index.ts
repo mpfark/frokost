@@ -11,6 +11,33 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 // Helper function for rate limiting
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// In-memory rate limiting for failed auth attempts (per IP, max 5 failures per hour)
+const failedAttempts = new Map<string, { count: number; firstAttempt: number }>();
+const MAX_FAILED_ATTEMPTS = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = failedAttempts.get(ip);
+  if (!record) return false;
+  // Reset if window expired
+  if (now - record.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    failedAttempts.delete(ip);
+    return false;
+  }
+  return record.count >= MAX_FAILED_ATTEMPTS;
+}
+
+function recordFailedAttempt(ip: string): void {
+  const now = Date.now();
+  const record = failedAttempts.get(ip);
+  if (!record || now - record.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    failedAttempts.set(ip, { count: 1, firstAttempt: now });
+  } else {
+    record.count++;
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

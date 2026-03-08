@@ -227,7 +227,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         ) : (
           <div className="space-y-3">
             {events
-              .filter((e) => !e.isAllDay)
+              .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
               .map((event) => (
                 <div
                   key={event.id}

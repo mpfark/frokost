@@ -198,7 +198,7 @@ const Index = () => {
         {(isAdmin || canAccessKitchen) ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsContent value="outlook">
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-7xl mx-auto">
                 {isAdmin && user.email && <OutlookCalendar userEmail={user.email} />}
               </div>
             </TabsContent>

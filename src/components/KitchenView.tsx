@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CateringOrdersSection, type CateringOrder } from "@/components/kitchen/CateringOrdersSection";
 
 interface Guest {
   id: string;

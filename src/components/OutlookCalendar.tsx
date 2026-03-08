@@ -166,8 +166,19 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
+  const fetchAllowedLocations = async () => {
+    const { data } = await supabase
+      .from("company_settings")
+      .select("allowed_locations")
+      .single();
+    if (data) {
+      setAllowedLocations((data as any).allowed_locations || []);
+    }
+  };
+
   useEffect(() => {
     checkConnection();
+    fetchAllowedLocations();
   }, []);
 
   useEffect(() => {

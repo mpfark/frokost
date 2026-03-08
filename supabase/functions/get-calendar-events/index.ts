@@ -197,18 +197,23 @@ Deno.serve(async (req) => {
 
     const calendarData = await graphRes.json();
 
-    const events = (calendarData.value || []).map((event: any) => ({
-      id: event.id,
-      subject: event.subject,
-      startTime: event.start?.dateTime,
-      startTimezone: event.start?.timeZone,
-      endTime: event.end?.dateTime,
-      endTimezone: event.end?.timeZone,
-      location: event.location?.displayName || null,
-      isAllDay: event.isAllDay,
-      organizer: event.organizer?.emailAddress?.name || null,
-      attendeeCount: event.attendees?.length || 0,
-    }));
+    const events = (calendarData.value || []).map((event: any) => {
+      const nonResourceAttendees = (event.attendees || []).filter(
+        (a: any) => a.type !== "resource"
+      );
+      return {
+        id: event.id,
+        subject: event.subject,
+        startTime: event.start?.dateTime,
+        startTimezone: event.start?.timeZone,
+        endTime: event.end?.dateTime,
+        endTimezone: event.end?.timeZone,
+        location: event.location?.displayName || null,
+        isAllDay: event.isAllDay,
+        organizer: event.organizer?.emailAddress?.name || null,
+        attendeeCount: nonResourceAttendees.length,
+      };
+    });
 
     return new Response(JSON.stringify({ events }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

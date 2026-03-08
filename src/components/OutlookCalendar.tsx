@@ -285,5 +285,20 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         )}
       </CardContent>
     </Card>
+
+    {cateringEvent && (
+      <CateringOrderDialog
+        open={!!cateringEvent}
+        onOpenChange={(open) => !open && setCateringEvent(null)}
+        meeting={{
+          subject: cateringEvent.subject,
+          date: format(parseISO(cateringEvent.startTime), "yyyy-MM-dd"),
+          time: `${formatTime(cateringEvent.startTime)} - ${formatTime(cateringEvent.endTime)}`,
+          location: cateringEvent.location,
+          attendeeCount: cateringEvent.attendeeCount,
+        }}
+      />
+    )}
+    </>
   );
 };

@@ -134,10 +134,10 @@ const Index = () => {
                 onClick={() => isAdmin && setActiveTab("outlook")}
                 disabled={!isAdmin}
                 className={`md:w-auto md:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-                title={!isAdmin ? "Kun tilgængelig for administratorer" : "Outlook Kalender"}
+                title={!isAdmin ? "Kun tilgængelig for administratorer" : "Forplejning"}
               >
                 <CalendarDays className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">Outlook</span>
+                <span className="hidden md:inline ml-2">Forplejning</span>
               </Button>
 
               <Button

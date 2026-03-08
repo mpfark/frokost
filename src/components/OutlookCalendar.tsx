@@ -186,14 +186,14 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <CalendarDays className="w-10 h-10 text-muted-foreground" />
             <div>
-              <p className="text-sm font-medium">Forbind din Outlook-kalender</p>
+              <p className="text-sm font-medium">Forbind din kalender</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Se dine møder direkte her ved at logge ind med din Microsoft-konto
+                Se dine møder og bestil forplejning ved at logge ind med din Microsoft-konto
               </p>
             </div>
             <Button onClick={connectMicrosoft} className="gap-2">
               <Link className="w-4 h-4" />
-              Forbind Outlook
+              Forbind kalender
             </Button>
           </div>
         ) : isLoading ? (

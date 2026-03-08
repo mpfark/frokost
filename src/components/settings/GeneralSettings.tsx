@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Building2 } from "lucide-react";
+import { Building2, MapPin, Plus, X } from "lucide-react";
 
 export const GeneralSettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
+  const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
+  const [newLocation, setNewLocation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -21,7 +24,7 @@ export const GeneralSettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain, weeks_to_display")
+        .select("allowed_domain, weeks_to_display, allowed_locations")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -31,6 +34,7 @@ export const GeneralSettings = () => {
       if (data) {
         setAllowedDomain(data.allowed_domain);
         setWeeksToDisplay(data.weeks_to_display || 3);
+        setAllowedLocations((data as any).allowed_locations || []);
       }
     } catch (error: any) {
       toast({
@@ -41,6 +45,21 @@ export const GeneralSettings = () => {
     } finally {
       setIsFetching(false);
     }
+  };
+
+  const addLocation = () => {
+    const trimmed = newLocation.trim();
+    if (!trimmed) return;
+    if (allowedLocations.some(l => l.toLowerCase() === trimmed.toLowerCase())) {
+      toast({ title: "Fejl", description: "Lokationen findes allerede", variant: "destructive" });
+      return;
+    }
+    setAllowedLocations([...allowedLocations, trimmed]);
+    setNewLocation("");
+  };
+
+  const removeLocation = (index: number) => {
+    setAllowedLocations(allowedLocations.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -79,23 +98,23 @@ export const GeneralSettings = () => {
         .select("id")
         .single();
 
+      const payload = { 
+        allowed_domain: allowedDomain.toLowerCase(),
+        weeks_to_display: weeksToDisplay,
+        allowed_locations: allowedLocations,
+      };
+
       if (existing) {
         const { error } = await supabase
           .from("company_settings")
-          .update({ 
-            allowed_domain: allowedDomain.toLowerCase(),
-            weeks_to_display: weeksToDisplay
-          })
+          .update(payload)
           .eq("id", existing.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("company_settings")
-          .insert({ 
-            allowed_domain: allowedDomain.toLowerCase(),
-            weeks_to_display: weeksToDisplay
-          });
+          .insert(payload);
 
         if (error) throw error;
       }
@@ -163,6 +182,44 @@ export const GeneralSettings = () => {
           <p className="text-sm text-muted-foreground">
             Antallet af uger der vises i brugerens frokostkalender (1-8)
           </p>
+        </div>
+
+        {/* Allowed locations for catering */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Tilladte mødelokationer (forplejning)
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Kun møder med lokationer der indeholder et af disse navne vises på forplejningssiden. Lad listen være tom for at vise alle møder.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="F.eks. Mødelokale A"
+              value={newLocation}
+              onChange={(e) => setNewLocation(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLocation())}
+              disabled={isLoading}
+            />
+            <Button type="button" variant="outline" size="icon" onClick={addLocation} disabled={isLoading}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {allowedLocations.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {allowedLocations.map((loc, i) => (
+                <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                  {loc}
+                  <button
+                    onClick={() => removeLocation(i)}
+                    className="ml-1 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
         <Button onClick={handleSave} disabled={isLoading} className="w-full">

@@ -129,6 +129,18 @@ const Index = () => {
             {/* Navigation */}
             <div className="flex items-center gap-2 ml-auto">
               <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => isAdmin && setActiveTab("outlook")}
+                disabled={!isAdmin}
+                className={`md:w-auto md:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                title={!isAdmin ? "Kun tilgængelig for administratorer" : "Outlook Kalender"}
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">Outlook</span>
+              </Button>
+
+              <Button
                 variant={activeTab === "calendar" ? "default" : "ghost"}
                 size="icon"
                 onClick={() => setActiveTab("calendar")}

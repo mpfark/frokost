@@ -23,7 +23,7 @@ interface CateringOrderDialogProps {
 
 const CATERING_OPTIONS = [
   { id: "coffee_tea", label: "Kaffe & te" },
-  { id: "water_juice", label: "Vand & juice" },
+  { id: "water", label: "Vand" },
   { id: "fruit", label: "Frugt" },
   { id: "pastry", label: "Morgenmad / wienerbrød" },
   { id: "sandwich", label: "Sandwich" },

@@ -25,7 +25,7 @@ interface CateringOrder {
 
 const CATERING_TYPE_LABELS: Record<string, string> = {
   coffee_tea: "Kaffe & te",
-  water_juice: "Vand & juice",
+  water: "Vand",
   fruit: "Frugt",
   pastry: "Morgenmad / wienerbrød",
   sandwich: "Sandwich",

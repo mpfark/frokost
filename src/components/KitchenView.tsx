@@ -417,14 +417,35 @@ export const KitchenView = () => {
       )
       .subscribe();
 
+    const cateringChannel = supabase
+      .channel("kitchen_catering_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "catering_orders",
+        },
+        () => {
+          debouncedFetch("catering", fetchCateringOrders);
+        }
+      )
+      .subscribe();
+
     return () => {
       // Clear all debounce timeouts
       Object.values(debounceTimeoutRef.current).forEach(clearTimeout);
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
+      supabase.removeChannel(cateringChannel);
     };
   }, [debouncedFetch]);
+
+  const getCateringOrdersForDate = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return cateringOrders.filter((o) => o.meeting_date === dateStr);
+  };
 
   const getSignupsForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");

@@ -297,12 +297,12 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex flex-wrap gap-4">
             {weekDays.map((day) => {
               const dayEvents = getEventsForDay(day);
               const isToday = isSameDay(day, new Date());
               return (
-                <div key={day.toISOString()}>
+                <div key={day.toISOString()} className="min-w-[220px] flex-1">
                   <p className={`text-xs font-semibold mb-2 capitalize ${isToday ? "text-primary" : "text-muted-foreground"}`}>
                     {format(day, "EEEE d. MMM", { locale: da })}
                     {isToday && <span className="ml-1 text-[10px] font-normal">(i dag)</span>}

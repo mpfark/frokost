@@ -913,6 +913,13 @@ export const KitchenView = () => {
                               ))}
                             </div>
                           )}
+                          {/* Catering orders indicator */}
+                          {getCateringOrdersForDate(date).length > 0 && (
+                            <CateringOrdersSection
+                              orders={getCateringOrdersForDate(date)}
+                              compact
+                            />
+                          )}
                         </div>
                       </div>
                     </div>

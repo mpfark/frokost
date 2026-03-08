@@ -1114,6 +1114,15 @@ export const KitchenView = () => {
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
+            {/* Catering orders at top */}
+            {selectedDate && getCateringOrdersForDate(selectedDate).length > 0 && (
+              <div className="mb-4 pb-4 border-b">
+                <CateringOrdersSection
+                  orders={getCateringOrdersForDate(selectedDate)}
+                  onStatusChange={fetchCateringOrders}
+                />
+              </div>
+            )}
             {selectedDate && getSignupsForDate(selectedDate)
               .sort((a, b) => {
                 // First priority: guests (more guests = higher priority)

@@ -202,6 +202,14 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     return events
       .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
       .filter((e) => {
+        // If allowed locations are configured, only show matching events
+        if (allowedLocations.length > 0) {
+          const loc = (e.location || "").toLowerCase();
+          return allowedLocations.some(al => loc.includes(al.toLowerCase()));
+        }
+        return true;
+      })
+      .filter((e) => {
         try {
           return isSameDay(parseISO(e.startTime), day);
         } catch {

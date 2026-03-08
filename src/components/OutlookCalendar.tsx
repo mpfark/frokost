@@ -158,7 +158,19 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  const displayDate = selectedDate || new Date();
+  const weekLabel = `Uge ${format(currentWeekStart, "w", { locale: da })} — ${format(currentWeekStart, "d. MMM", { locale: da })} – ${format(addDays(currentWeekStart, 4), "d. MMM yyyy", { locale: da })}`;
+
+  const getEventsForDay = (day: Date) => {
+    return events
+      .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
+      .filter((e) => {
+        try {
+          return isSameDay(parseISO(e.startTime), day);
+        } catch {
+          return false;
+        }
+      });
+  };
 
   return (
     <>
@@ -183,9 +195,15 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
           </div>
         </div>
         {isConnected && (
-          <p className="text-sm text-muted-foreground">
-            {format(displayDate, "EEEE d. MMMM yyyy", { locale: da })}
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <p className="text-sm text-muted-foreground">{weekLabel}</p>
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         )}
       </CardHeader>
       <CardContent>

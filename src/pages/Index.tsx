@@ -10,7 +10,7 @@ import { OutlookCalendar } from "@/components/OutlookCalendar";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, UtensilsCrossed, User as UserIcon, Calendar, ChefHat, Settings } from "lucide-react";
+import { LogOut, UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -129,6 +129,18 @@ const Index = () => {
             {/* Navigation */}
             <div className="flex items-center gap-2 ml-auto">
               <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => isAdmin && setActiveTab("outlook")}
+                disabled={!isAdmin}
+                className={`md:w-auto md:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                title={!isAdmin ? "Kun tilgængelig for administratorer" : "Outlook Kalender"}
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">Outlook</span>
+              </Button>
+
+              <Button
                 variant={activeTab === "calendar" ? "default" : "ghost"}
                 size="icon"
                 onClick={() => setActiveTab("calendar")}
@@ -185,6 +197,11 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {(isAdmin || canAccessKitchen) ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsContent value="outlook">
+              <div className="max-w-2xl mx-auto">
+                {isAdmin && user.email && <OutlookCalendar userEmail={user.email} />}
+              </div>
+            </TabsContent>
             <TabsContent value="calendar">
               <div className="max-w-7xl mx-auto">
                 <LunchCalendar userId={user.id} />
@@ -206,9 +223,6 @@ const Index = () => {
                   <ProfileSettings userId={user.id} />
                   <PasswordChange />
                 </div>
-                {user.email && (
-                  <OutlookCalendar userEmail={user.email} />
-                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -220,9 +234,6 @@ const Index = () => {
                   <ProfileSettings userId={user.id} />
                   <PasswordChange />
                 </div>
-                {user.email && (
-                  <OutlookCalendar userEmail={user.email} />
-                )}
               </div>
             ) : (
               <div className="max-w-7xl mx-auto">

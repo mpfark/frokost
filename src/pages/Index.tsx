@@ -197,6 +197,11 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {(isAdmin || canAccessKitchen) ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsContent value="outlook">
+              <div className="max-w-2xl mx-auto">
+                {isAdmin && user.email && <OutlookCalendar userEmail={user.email} />}
+              </div>
+            </TabsContent>
             <TabsContent value="calendar">
               <div className="max-w-7xl mx-auto">
                 <LunchCalendar userId={user.id} />
@@ -218,9 +223,6 @@ const Index = () => {
                   <ProfileSettings userId={user.id} />
                   <PasswordChange />
                 </div>
-                {user.email && (
-                  <OutlookCalendar userEmail={user.email} />
-                )}
               </div>
             </TabsContent>
           </Tabs>

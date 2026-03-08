@@ -28,6 +28,7 @@ const AppContent = () => {
         <Route path="/accept-invitation/:invitationId" element={<AcceptInvitation />} />
         <Route path="/install" element={<Install />} />
         <Route path="/guide" element={<Guide />} />
+        <Route path="/microsoft-callback" element={<MicrosoftCallback />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

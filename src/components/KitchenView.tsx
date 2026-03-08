@@ -61,6 +61,8 @@ interface ClosedDate {
 export const KitchenView = () => {
   const [signups, setSignups] = useState<LunchSignup[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [cateringOrders, setCateringOrders] = useState<CateringOrder[]>([]);
+  const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [closedDates, setClosedDates] = useState<ClosedDate[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);

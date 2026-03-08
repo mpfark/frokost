@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed } from "lucide-react";
-import { format, parseISO, startOfDay, addDays } from "date-fns";
+import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, parseISO, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay, isWeekend } from "date-fns";
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
 import { CateringOrderDialog } from "./CateringOrderDialog";
@@ -35,6 +35,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // Check if user has connected Microsoft account
   const checkConnection = async () => {
@@ -87,6 +88,16 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     toast.success("Kalenderforbindelse afbrudt");
   };
 
+  const currentWeekStart = useMemo(() => {
+    const base = selectedDate || new Date();
+    const weekStart = startOfWeek(addDays(base, weekOffset * 7), { weekStartsOn: 1 });
+    return weekStart;
+  }, [selectedDate, weekOffset]);
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => addDays(currentWeekStart, i)); // Mon-Fri
+  }, [currentWeekStart]);
+
   const fetchEvents = async () => {
     if (!isConnected) return;
 
@@ -95,9 +106,8 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     setErrorType(null);
 
     try {
-      const date = selectedDate || new Date();
-      const startDate = startOfDay(date).toISOString();
-      const endDate = startOfDay(addDays(date, 1)).toISOString();
+      const startDate = startOfDay(currentWeekStart).toISOString();
+      const endDate = startOfDay(addDays(currentWeekStart, 5)).toISOString();
 
       const { data, error: fnError } = await supabase.functions.invoke(
         "get-calendar-events",
@@ -138,7 +148,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     if (isConnected) {
       fetchEvents();
     }
-  }, [isConnected, selectedDate]);
+  }, [isConnected, selectedDate, weekOffset]);
 
   const formatTime = (dateTimeStr: string) => {
     try {
@@ -148,7 +158,19 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  const displayDate = selectedDate || new Date();
+  const weekLabel = `Uge ${format(currentWeekStart, "w", { locale: da })} — ${format(currentWeekStart, "d. MMM", { locale: da })} – ${format(addDays(currentWeekStart, 4), "d. MMM yyyy", { locale: da })}`;
+
+  const getEventsForDay = (day: Date) => {
+    return events
+      .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
+      .filter((e) => {
+        try {
+          return isSameDay(parseISO(e.startTime), day);
+        } catch {
+          return false;
+        }
+      });
+  };
 
   return (
     <>
@@ -173,9 +195,15 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
           </div>
         </div>
         {isConnected && (
-          <p className="text-sm text-muted-foreground">
-            {format(displayDate, "EEEE d. MMMM yyyy", { locale: da })}
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <p className="text-sm text-muted-foreground">{weekLabel}</p>
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         )}
       </CardHeader>
       <CardContent>
@@ -222,66 +250,63 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
               Prøv igen
             </Button>
           </div>
-        ) : events.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <CalendarDays className="w-8 h-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Ingen møder denne dag</p>
-          </div>
         ) : (
-          <div className="space-y-3">
-            {events
-              .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
-              .map((event) => (
-                <div
-                  key={event.id}
-                  className="flex gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center min-w-[3.5rem] px-2 py-1 rounded bg-primary/10 text-primary">
-                    <span className="text-xs font-medium">{formatTime(event.startTime)}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatTime(event.endTime)}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{event.subject}</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {event.location && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          {event.location}
-                        </span>
-                      )}
-                      {event.attendeeCount > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Users className="w-3 h-3" />
-                          {event.attendeeCount}
-                        </span>
-                      )}
+          <div className="space-y-4">
+            {weekDays.map((day) => {
+              const dayEvents = getEventsForDay(day);
+              const isToday = isSameDay(day, new Date());
+              return (
+                <div key={day.toISOString()}>
+                  <p className={`text-xs font-semibold mb-2 capitalize ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                    {format(day, "EEEE d. MMM", { locale: da })}
+                    {isToday && <span className="ml-1 text-[10px] font-normal">(i dag)</span>}
+                  </p>
+                  {dayEvents.length === 0 ? (
+                    <p className="text-xs text-muted-foreground pl-2 pb-2">Ingen møder</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center min-w-[3.5rem] px-2 py-1 rounded bg-primary/10 text-primary">
+                            <span className="text-xs font-medium">{formatTime(event.startTime)}</span>
+                            <span className="text-[10px] text-muted-foreground">{formatTime(event.endTime)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{event.subject}</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {event.location && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <MapPin className="w-3 h-3" />
+                                  {event.location}
+                                </span>
+                              )}
+                              {event.attendeeCount > 0 && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Users className="w-3 h-3" />
+                                  {event.attendeeCount}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 self-center gap-1"
+                            onClick={() => setCateringEvent(event)}
+                          >
+                            <UtensilsCrossed className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Bestil</span>
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 self-center gap-1"
-                    onClick={() => setCateringEvent(event)}
-                  >
-                    <UtensilsCrossed className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Bestil</span>
-                  </Button>
+                  )}
                 </div>
-              ))}
-
-            {events.filter((e) => e.isAllDay).length > 0 && (
-              <div className="pt-2 border-t">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Heldagsbegivenheder</p>
-                {events
-                  .filter((e) => e.isAllDay)
-                  .map((event) => (
-                    <div key={event.id} className="flex items-center gap-2 py-1">
-                      <Badge variant="secondary" className="text-xs">Heldag</Badge>
-                      <span className="text-sm truncate">{event.subject}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
+              );
+            })}
           </div>
         )}
       </CardContent>

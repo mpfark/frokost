@@ -6,6 +6,7 @@ import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { PasswordChange } from "@/components/PasswordChange";
+import { OutlookCalendar } from "@/components/OutlookCalendar";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -201,8 +202,13 @@ const Index = () => {
             </TabsContent>
             <TabsContent value="profile">
               <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ProfileSettings userId={user.id} />
-                <PasswordChange />
+                <div className="space-y-6">
+                  <ProfileSettings userId={user.id} />
+                  <PasswordChange />
+                </div>
+                {user.email && (
+                  <OutlookCalendar userEmail={user.email} />
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -210,8 +216,13 @@ const Index = () => {
           <>
             {activeTab === "profile" ? (
               <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ProfileSettings userId={user.id} />
-                <PasswordChange />
+                <div className="space-y-6">
+                  <ProfileSettings userId={user.id} />
+                  <PasswordChange />
+                </div>
+                {user.email && (
+                  <OutlookCalendar userEmail={user.email} />
+                )}
               </div>
             ) : (
               <div className="max-w-7xl mx-auto">

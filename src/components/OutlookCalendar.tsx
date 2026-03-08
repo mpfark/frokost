@@ -151,16 +151,16 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
     const { data } = await supabase
       .from("catering_orders")
-      .select("meeting_subject, meeting_date, meeting_time, status")
+      .select("id, meeting_subject, meeting_date, meeting_time, status")
       .eq("user_id", user.id)
       .gte("meeting_date", weekStart)
       .lte("meeting_date", weekEnd);
 
     if (data) {
-      const orderMap: Record<string, string> = {};
+      const orderMap: Record<string, { status: string; id: string }> = {};
       data.forEach((o) => {
         const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
-        orderMap[key] = o.status;
+        orderMap[key] = { status: o.status, id: o.id };
       });
       setExistingOrders(orderMap);
     }

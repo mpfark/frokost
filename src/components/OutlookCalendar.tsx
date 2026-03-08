@@ -88,6 +88,16 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     toast.success("Kalenderforbindelse afbrudt");
   };
 
+  const currentWeekStart = useMemo(() => {
+    const base = selectedDate || new Date();
+    const weekStart = startOfWeek(addDays(base, weekOffset * 7), { weekStartsOn: 1 });
+    return weekStart;
+  }, [selectedDate, weekOffset]);
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => addDays(currentWeekStart, i)); // Mon-Fri
+  }, [currentWeekStart]);
+
   const fetchEvents = async () => {
     if (!isConnected) return;
 
@@ -96,9 +106,8 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     setErrorType(null);
 
     try {
-      const date = selectedDate || new Date();
-      const startDate = startOfDay(date).toISOString();
-      const endDate = startOfDay(addDays(date, 1)).toISOString();
+      const startDate = startOfDay(currentWeekStart).toISOString();
+      const endDate = startOfDay(addDays(currentWeekStart, 5)).toISOString();
 
       const { data, error: fnError } = await supabase.functions.invoke(
         "get-calendar-events",

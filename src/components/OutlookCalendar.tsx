@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink } from "lucide-react";
+import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
+import { CateringOrderDialog } from "./CateringOrderDialog";
 
 interface CalendarEvent {
   id: string;

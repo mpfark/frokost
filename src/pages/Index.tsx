@@ -228,10 +228,8 @@ const Index = () => {
           <>
             {activeTab === "profile" ? (
               <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <ProfileSettings userId={user.id} />
-                  <PasswordChange />
-                </div>
+                <ProfileSettings userId={user.id} />
+                <PasswordChange />
               </div>
             ) : (
               <div className="max-w-7xl mx-auto">

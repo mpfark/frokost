@@ -181,10 +181,89 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     fetchAllowedLocations();
   }, []);
 
+  const autoCancelOrphanedOrders = async (fetchedEvents: CalendarEvent[], orders: Record<string, { status: string; id: string }>) => {
+    // Build a set of event keys from current calendar
+    const eventKeys = new Set<string>();
+    fetchedEvents.forEach((e) => {
+      if (e.isAllDay || !e.location) return;
+      try {
+        const date = format(parseISO(e.startTime), "yyyy-MM-dd");
+        const time = `${format(parseISO(e.startTime), "HH:mm")} - ${format(parseISO(e.endTime), "HH:mm")}`;
+        eventKeys.add(`${e.subject}|${date}|${time}`);
+      } catch { /* ignore parse errors */ }
+    });
+
+    // Find pending orders with no matching event
+    const orphanedIds: string[] = [];
+    for (const [key, order] of Object.entries(orders)) {
+      if (order.status === "pending" && !eventKeys.has(key)) {
+        orphanedIds.push(order.id);
+      }
+    }
+
+    if (orphanedIds.length > 0) {
+      for (const id of orphanedIds) {
+        await supabase.from("catering_orders").delete().eq("id", id);
+      }
+      toast.info(`${orphanedIds.length} forplejningsbestilling${orphanedIds.length > 1 ? "er" : ""} annulleret — mødet er fjernet fra din kalender`);
+      // Re-fetch orders to update UI
+      fetchExistingOrders();
+    }
+  };
+
   useEffect(() => {
     if (isConnected) {
-      fetchEvents();
-      fetchExistingOrders();
+      const loadAndCheck = async () => {
+        // Fetch events
+        setIsLoading(true);
+        setError(null);
+        setErrorType(null);
+        let fetchedEvents: CalendarEvent[] = [];
+        try {
+          const startDate = startOfDay(currentWeekStart).toISOString();
+          const endDate = startOfDay(addDays(currentWeekStart, 5)).toISOString();
+          const { data, error: fnError } = await supabase.functions.invoke("get-calendar-events", { body: { startDate, endDate } });
+          if (fnError) throw new Error(fnError.message || "Kunne ikke hente kalender");
+          if (data?.error) {
+            if (data.error === "not_connected" || data.error === "token_expired") {
+              setIsConnected(false); setEvents([]); return;
+            }
+            setErrorType(data.error); setError(data.message); setEvents([]); return;
+          }
+          fetchedEvents = data?.events || [];
+          setEvents(fetchedEvents);
+        } catch (err: any) {
+          console.error("Calendar fetch error:", err);
+          setError(err.message || "Ukendt fejl"); setEvents([]); return;
+        } finally {
+          setIsLoading(false);
+        }
+
+        // Fetch existing orders
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const weekStart = format(currentWeekStart, "yyyy-MM-dd");
+        const weekEnd = format(addDays(currentWeekStart, 5), "yyyy-MM-dd");
+        const { data: ordersData } = await supabase
+          .from("catering_orders")
+          .select("id, meeting_subject, meeting_date, meeting_time, status")
+          .eq("user_id", user.id)
+          .gte("meeting_date", weekStart)
+          .lte("meeting_date", weekEnd);
+
+        if (ordersData) {
+          const orderMap: Record<string, { status: string; id: string }> = {};
+          ordersData.forEach((o) => {
+            const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
+            orderMap[key] = { status: o.status, id: o.id };
+          });
+          setExistingOrders(orderMap);
+
+          // Auto-cancel orphaned orders
+          await autoCancelOrphanedOrders(fetchedEvents, orderMap);
+        }
+      };
+      loadAndCheck();
     }
   }, [isConnected, selectedDate, weekOffset]);
 

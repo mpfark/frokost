@@ -196,7 +196,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     // Find pending orders with no matching event
     const orphanedIds: string[] = [];
     for (const [key, order] of Object.entries(orders)) {
-      if (order.status === "pending" && !eventKeys.has(key)) {
+      if ((order.status === "pending" || order.status === "confirmed") && !eventKeys.has(key)) {
         orphanedIds.push(order.id);
       }
     }

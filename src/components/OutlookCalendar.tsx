@@ -464,7 +464,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                         onClick={async () => {
                                           const { error } = await supabase
                                             .from("catering_orders")
-                                            .delete()
+                                            .update({ status: "cancelled" })
                                             .eq("id", order.id);
                                           if (error) {
                                             toast.error("Kunne ikke annullere bestilling");

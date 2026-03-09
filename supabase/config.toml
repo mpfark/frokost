@@ -33,5 +33,11 @@ verify_jwt = true
 [functions.generate-vapid-keys]
 verify_jwt = false
 
+[functions.calendar-webhook]
+verify_jwt = false
+
+[functions.renew-graph-subscriptions]
+verify_jwt = false
+
 [functions.send-push-notification]
 verify_jwt = false

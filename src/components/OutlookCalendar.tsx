@@ -267,6 +267,20 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   }, [isConnected, selectedDate, weekOffset]);
 
+  // Realtime subscription for catering_orders status changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("catering_orders_realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "catering_orders" },
+        () => fetchExistingOrders()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [currentWeekStart]);
+
   const formatTime = (dateTimeStr: string) => {
     try {
       return format(parseISO(dateTimeStr), "HH:mm");

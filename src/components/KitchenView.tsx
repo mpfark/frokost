@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CateringOrdersSection, type CateringOrder } from "@/components/kitchen/CateringOrdersSection";
+import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
 
 interface Guest {
   id: string;
@@ -574,20 +575,23 @@ export const KitchenView = () => {
 
   return (
     <Tabs defaultValue="day" className="w-full">
-      <TabsList className="grid w-full max-w-2xl mx-auto mb-8 grid-cols-3 h-auto">
-        <TabsTrigger value="day" className="flex items-center gap-2">
-          <CalendarCheck className="w-4 h-4" />
-          Dag
-        </TabsTrigger>
-        <TabsTrigger value="signups" className="flex items-center gap-2">
-          <UtensilsCrossed className="w-4 h-4" />
-          Uge
-        </TabsTrigger>
-        <TabsTrigger value="closed" className="flex items-center gap-2">
-          <Lock className="w-4 h-4" />
-          Lukkede dage
-        </TabsTrigger>
-      </TabsList>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <TabsList className="grid max-w-2xl grid-cols-3 h-auto flex-1">
+          <TabsTrigger value="day" className="flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4" />
+            Dag
+          </TabsTrigger>
+          <TabsTrigger value="signups" className="flex items-center gap-2">
+            <UtensilsCrossed className="w-4 h-4" />
+            Uge
+          </TabsTrigger>
+          <TabsTrigger value="closed" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Lukkede dage
+          </TabsTrigger>
+        </TabsList>
+        <KitchenNotifications />
+      </div>
 
       {/* Day Tab Content */}
       <TabsContent value="day" className="space-y-4">

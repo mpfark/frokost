@@ -590,7 +590,7 @@ export const KitchenView = () => {
             Lukkede dage
           </TabsTrigger>
         </TabsList>
-        <KitchenNotifications />
+        
       </div>
 
       {/* Day Tab Content */}

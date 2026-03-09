@@ -116,8 +116,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-1 sm:gap-2  <button 
-              onClick={() => setActiveTab("calendar")} 
+          <div className="flex items-center gap-1 sm:gap-2            onClick={() => setActiveTab("calendar")} 
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
@@ -130,7 +129,7 @@ const Index = () => {
 
             {/* Navigation */}
             <div className="flex items-center 1 sm:gap-ga1 gap-1 sm:ga
-              <Button
+ gap-1 sm:ga
                 variant={activeTab === "calendar" ? "default" : "ghost"}
                 size="icon"
                 onClick={() => setActiveTab("calendar")}
@@ -178,8 +177,7 @@ const Index = () => {
             </div>
 
             {/* Profile & Logout */}
-            <div className="flex items-1 sm:gap-center gap-2">
-              <Button 
+            <div className="flex items-1 sm:gap-center gap-2"center gap-1 sm:<Button 
                 variant={activeTab === "profile" ? "default" : "ghost"}
                 size="icon" 
                 onClick={() => setActiveTab("profile")}

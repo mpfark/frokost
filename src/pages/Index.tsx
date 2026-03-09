@@ -192,6 +192,7 @@ const Index = () => {
               <TooltipProvider>
                 <NotificationBell />
               </TooltipProvider>
+              {canAccessKitchen && <KitchenNotifications />}
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>

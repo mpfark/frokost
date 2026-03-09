@@ -23,8 +23,7 @@ export const PushSubscriptionButton = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSupported, setIsSupported] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const { isAdmin, isKitchen } = useUserRole(userId ?? undefined);
-  const canSubscribe = isAdmin || isKitchen;
+  // All users can subscribe to push notifications
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {

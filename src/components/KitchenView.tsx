@@ -591,7 +591,6 @@ export const KitchenView = () => {
           </TabsTrigger>
         </TabsList>
         <KitchenNotifications />
-        <PushSubscriptionButton />
       </div>
 
       {/* Day Tab Content */}

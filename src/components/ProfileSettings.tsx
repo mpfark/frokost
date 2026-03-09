@@ -449,6 +449,11 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
           </Dialog>
         </div>
 
+        {/* Push Notifications */}
+        <div className="pt-4 border-t">
+          <PushSubscriptionButton />
+        </div>
+
         <div className="pt-4 border-t">
           <Button asChild variant="outline" className="w-full">
             <Link to="/install" className="flex items-center gap-2">

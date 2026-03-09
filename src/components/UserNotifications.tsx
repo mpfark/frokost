@@ -75,7 +75,7 @@ export const UserNotifications = () => {
   };
 
   const getIcon = (type: string) => {
-    if (type === "order_confirmed") return <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />;
+    if (type === "order_confirmed") return <CheckCircle className="w-4 h-4 text-primary shrink-0" />;
     return <Bell className="w-4 h-4 text-primary shrink-0" />;
   };
 

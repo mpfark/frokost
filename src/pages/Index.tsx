@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { TooltipProvider } from "@/components/ui/tooltip";
+
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);

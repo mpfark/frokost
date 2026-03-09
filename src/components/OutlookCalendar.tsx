@@ -75,12 +75,13 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("microsoft_tokens")
-      .delete()
-      .eq("user_id", user.id);
+    // Delete tokens and graph subscription
+    const [tokenResult] = await Promise.all([
+      supabase.from("microsoft_tokens").delete().eq("user_id", user.id),
+      supabase.from("graph_subscriptions").delete().eq("user_id", user.id),
+    ]);
 
-    if (error) {
+    if (tokenResult.error) {
       toast.error("Kunne ikke afbryde forbindelsen");
       return;
     }

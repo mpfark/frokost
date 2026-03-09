@@ -70,10 +70,19 @@ export const KitchenNotifications = () => {
   };
 
   const deleteAll = async () => {
-    await supabase
+    const notificationIds = notifications.map((n) => n.id);
+    if (notificationIds.length === 0) return;
+
+    const { error } = await supabase
       .from("kitchen_notifications")
       .delete()
-      .neq("id", "");
+      .in("id", notificationIds);
+
+    if (error) {
+      console.error("Failed to delete kitchen notifications:", error);
+      return;
+    }
+
     fetchNotifications();
   };
 

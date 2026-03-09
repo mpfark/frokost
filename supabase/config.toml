@@ -29,3 +29,9 @@ verify_jwt = true
 
 [functions.get-calendar-events]
 verify_jwt = true
+
+[functions.generate-vapid-keys]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { CateringOrdersSection, type CateringOrder } from "@/components/kitchen/CateringOrdersSection";
 import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
+import { PushSubscriptionButton } from "@/components/kitchen/PushSubscriptionButton";
 
 interface Guest {
   id: string;

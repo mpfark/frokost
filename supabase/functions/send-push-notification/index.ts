@@ -240,9 +240,88 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    const { notification_id } = await req.json();
+    const { notification_id, user_notification_id, target_user_id } = await req.json();
 
-    // Fetch the notification
+    // Handle user-targeted notification (e.g. order confirmed)
+    if (user_notification_id && target_user_id) {
+      const { data: userNotif } = await supabase
+        .from("user_notifications")
+        .select("*")
+        .eq("id", user_notification_id)
+        .single();
+
+      if (!userNotif) {
+        return new Response(JSON.stringify({ sent: 0, reason: "notification_not_found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: subscriptions } = await supabase
+        .from("push_subscriptions")
+        .select("*")
+        .eq("user_id", target_user_id);
+
+      if (!subscriptions || subscriptions.length === 0) {
+        return new Response(JSON.stringify({ sent: 0, reason: "no_subscriptions" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const vapidSubject = "mailto:admin@plusfrokost.dk";
+      let sent = 0;
+      let failed = 0;
+
+      for (const sub of subscriptions) {
+        try {
+          const payloadObj = {
+            title: "✅ Forplejning godkendt",
+            body: userNotif.message,
+            icon: "/pwa-192x192.png",
+            badge: "/pwa-192x192.png",
+            tag: `user-${userNotif.id}`,
+            data: { url: "/" },
+          };
+
+          const { authorization } = await generateVapidAuth(
+            sub.endpoint, vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
+          );
+
+          const { body: encryptedBody } = await encryptPayload(
+            JSON.stringify(payloadObj), sub.p256dh, sub.auth
+          );
+
+          const response = await fetch(sub.endpoint, {
+            method: "POST",
+            headers: {
+              "Authorization": authorization,
+              "Content-Type": "application/octet-stream",
+              "Content-Encoding": "aes128gcm",
+              "TTL": "86400",
+            },
+            body: encryptedBody,
+          });
+
+          if (response.status === 201 || response.status === 200) {
+            sent++;
+          } else if (response.status === 410 || response.status === 404) {
+            await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+            failed++;
+          } else {
+            console.error(`Push failed for ${sub.endpoint}: ${response.status}`);
+            failed++;
+          }
+        } catch (err) {
+          console.error(`Push error for subscription ${sub.id}:`, err);
+          failed++;
+        }
+      }
+
+      return new Response(JSON.stringify({ sent, failed }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle kitchen notification (existing flow)
     const { data: notification, error: notifError } = await supabase
       .from("kitchen_notifications")
       .select("*")
@@ -253,7 +332,6 @@ serve(async (req) => {
       throw new Error("Notification not found");
     }
 
-    // Get all kitchen/admin user IDs
     const { data: kitchenRoles } = await supabase
       .from("user_roles")
       .select("user_id")
@@ -267,7 +345,6 @@ serve(async (req) => {
 
     const userIds = kitchenRoles.map(r => r.user_id);
 
-    // Get push subscriptions for these users
     const { data: subscriptions } = await supabase
       .from("push_subscriptions")
       .select("*")
@@ -295,16 +372,11 @@ serve(async (req) => {
         };
 
         const { authorization } = await generateVapidAuth(
-          sub.endpoint,
-          vapidSubject,
-          VAPID_PUBLIC_KEY,
-          VAPID_PRIVATE_KEY
+          sub.endpoint, vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
         );
 
         const { body: encryptedBody } = await encryptPayload(
-          JSON.stringify(payloadObj),
-          sub.p256dh,
-          sub.auth
+          JSON.stringify(payloadObj), sub.p256dh, sub.auth
         );
 
         const response = await fetch(sub.endpoint, {
@@ -321,7 +393,6 @@ serve(async (req) => {
         if (response.status === 201 || response.status === 200) {
           sent++;
         } else if (response.status === 410 || response.status === 404) {
-          // Subscription expired, remove it
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
           failed++;
         } else {

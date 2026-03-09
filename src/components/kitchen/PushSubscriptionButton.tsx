@@ -127,21 +127,6 @@ export const PushSubscriptionButton = () => {
     return null;
   }
 
-  if (!canSubscribe) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        disabled
-        className="w-full gap-2 opacity-50 cursor-not-allowed"
-        title="Kun tilgængelig for køkkenpersonale"
-      >
-        <BellOff className="w-4 h-4 text-muted-foreground" />
-        Notifikationer (kun køkken)
-      </Button>
-    );
-  }
-
   return (
     <Button
       variant={isSubscribed ? "outline" : "default"}

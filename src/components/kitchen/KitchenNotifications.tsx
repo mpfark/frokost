@@ -100,15 +100,13 @@ export const KitchenNotifications = () => {
           <h4 className="text-sm font-semibold">Notifikationer</h4>
           <div className="flex items-center gap-1">
             {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllAsRead}>
-                <Check className="w-3 h-3 mr-1" />
-                Markér læst
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={markAllAsRead} title="Markér alle læst">
+                <Check className="w-3.5 h-3.5" />
               </Button>
             )}
             {notifications.length > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={deleteAll}>
-                <Trash2 className="w-3 h-3 mr-1" />
-                Slet alle
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={deleteAll} title="Slet alle">
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             )}
           </div>

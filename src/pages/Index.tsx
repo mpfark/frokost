@@ -135,10 +135,10 @@ const Index = () => {
                 variant={activeTab === "calendar" ? "default" : "ghost"}
                 size="icon"
                 onClick={() => setActiveTab("calendar")}
-                className="md:w-auto md:px-4"
+                className="lg:w-auto lg:px-4"
               >
                 <Calendar className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">Min plan</span>
+                <span className="hidden lg:inline ml-2">Min plan</span>
               </Button>
 
               <Button
@@ -146,11 +146,11 @@ const Index = () => {
                 size="icon"
                 onClick={() => isAdmin && setActiveTab("outlook")}
                 disabled={!isAdmin}
-                className={`md:w-auto md:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+                className={`lg:w-auto lg:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                 title={!isAdmin ? "Kun tilgængelig for administratorer" : "Forplejning"}
               >
                 <CalendarDays className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">Forplejning</span>
+                <span className="hidden lg:inline ml-2">Forplejning</span>
               </Button>
 
               {canAccessKitchen && (
@@ -158,10 +158,10 @@ const Index = () => {
                   variant={activeTab === "kitchen" ? "default" : "ghost"}
                   size="icon"
                   onClick={() => setActiveTab("kitchen")}
-                  className="md:w-auto md:px-4"
+                  className="lg:w-auto lg:px-4"
                 >
                   <ChefHat className="w-4 h-4" />
-                  <span className="hidden md:inline ml-2">Køkken</span>
+                  <span className="hidden lg:inline ml-2">Køkken</span>
                 </Button>
               )}
 
@@ -170,10 +170,10 @@ const Index = () => {
                   variant={activeTab === "admin" ? "default" : "ghost"}
                   size="icon"
                   onClick={() => setActiveTab("admin")}
-                  className="md:w-auto md:px-4"
+                  className="lg:w-auto lg:px-4"
                 >
                   <Settings className="w-4 h-4" />
-                  <span className="hidden md:inline ml-2">Admin</span>
+                  <span className="hidden lg:inline ml-2">Admin</span>
                 </Button>
               )}
 
@@ -181,10 +181,10 @@ const Index = () => {
                 variant={activeTab === "profile" ? "default" : "ghost"}
                 size="icon" 
                 onClick={() => setActiveTab("profile")}
-                className="md:w-auto md:px-4"
+                className="lg:w-auto lg:px-4"
               >
                 <UserIcon className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
+                <span className="hidden lg:inline ml-2">{fullName || "Profil"}</span>
               </Button>
 
               {canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />}

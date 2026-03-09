@@ -314,7 +314,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                       {dayEvents.map((event) => (
                         <div
                           key={event.id}
-                          className="border rounded-lg p-3 flex flex-col gap-2 bg-card"
+                          className="border rounded-lg p-3 flex flex-col gap-2 bg-card min-h-[120px]"
                         >
                           {/* Top Row: Title and Attendee Count */}
                           <div className="flex justify-between items-start gap-2">
@@ -344,7 +344,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                           </div>
 
                           {/* Action Row */}
-                          <div className="flex gap-1 mt-auto">
+                          <div className="flex items-center justify-end gap-2 mt-auto">
                             {(() => {
                               const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
                               const order = existingOrders[orderKey];
@@ -357,7 +357,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                 };
                                 const info = statusLabels[order.status] || { label: order.status, className: "" };
                                 return (
-                                  <div className="flex items-center gap-2 w-full">
+                                  <>
                                     <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
                                       {order.status === "pending" && <Clock className="w-3 h-3" />}
                                       {order.status === "confirmed" && <Check className="w-3 h-3" />}
@@ -367,7 +367,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-9 text-xs ml-auto"
+                                        className="h-9 text-xs"
                                         onClick={async () => {
                                           const { error } = await supabase
                                             .from("catering_orders")
@@ -385,7 +385,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                         Annullér
                                       </Button>
                                     )}
-                                  </div>
+                                  </>
                                 );
                               }
                               return (

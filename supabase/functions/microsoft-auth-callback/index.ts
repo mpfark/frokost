@@ -132,6 +132,46 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Create Microsoft Graph subscription for calendar change notifications
+    try {
+      const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/calendar-webhook`;
+      const expirationDateTime = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 - 60000).toISOString();
+
+      const subRes = await fetch("https://graph.microsoft.com/v1.0/subscriptions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          changeType: "created,updated,deleted",
+          notificationUrl: webhookUrl,
+          resource: "me/events",
+          expirationDateTime,
+        }),
+      });
+
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        await serviceClient
+          .from("graph_subscriptions")
+          .upsert(
+            {
+              user_id: user.id,
+              subscription_id: subData.id,
+              expires_at: subData.expirationDateTime,
+            },
+            { onConflict: "user_id" }
+          );
+        console.log("Graph subscription created for user:", user.id);
+      } else {
+        console.error("Failed to create Graph subscription:", await subRes.text());
+      }
+    } catch (subError) {
+      console.error("Graph subscription error:", subError);
+      // Non-fatal — user can still use the calendar without webhook
+    }
+
     return new Response(
       JSON.stringify({ success: true }),
       {

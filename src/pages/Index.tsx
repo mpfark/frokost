@@ -116,7 +116,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-1 sm:gap-2 md:d:d:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button 
               onClick={() => setActiveTab("calendar")} 
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -130,7 +130,7 @@ const Index = () => {
             </button>
 
             {/* Navigation */}
-            <div className="flex items-center 1 sm:gap-ga1 sm:gap-p-2 ml-auto">
+            <div className="flex items-center gap-1 sm:gap-2 ml-auto">
               <Button
                 variant={activeTab === "calendar" ? "default" : "ghost"}
                 size="icon"
@@ -176,10 +176,7 @@ const Index = () => {
                   <span className="hidden md:inline ml-2">Admin</span>
                 </Button>
               )}
-            </div>
 
-            {/* Profile & Logout */}
-            <div className="flex items-1 sm:gap-center gap-2">
               <Button 
                 variant={activeTab === "profile" ? "default" : "ghost"}
                 size="icon" 
@@ -189,7 +186,9 @@ const Index = () => {
                 <UserIcon className="w-4 h-4" />
                 <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
+
               {canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />}
+
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>

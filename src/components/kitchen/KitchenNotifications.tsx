@@ -98,12 +98,20 @@ export const KitchenNotifications = () => {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h4 className="text-sm font-semibold">Notifikationer</h4>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllAsRead}>
-              <Check className="w-3 h-3 mr-1" />
-              Markér alle læst
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllAsRead}>
+                <Check className="w-3 h-3 mr-1" />
+                Markér læst
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={deleteAll}>
+                <Trash2 className="w-3 h-3 mr-1" />
+                Slet alle
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="max-h-80">
           {notifications.length === 0 ? (

@@ -130,8 +130,8 @@ const Index = () => {
             </button>
 
             {/* Navigation */}
-            <div className="flex items-center 1 sm:gap-ga1 gap-1 sm:ga
- gap-1 sm:ga
+            <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+              <Button
                 variant={activeTab === "calendar" ? "default" : "ghost"}
                 size="icon"
                 onClick={() => setActiveTab("calendar")}
@@ -176,10 +176,8 @@ const Index = () => {
                   <span className="hidden md:inline ml-2">Admin</span>
                 </Button>
               )}
-            </div>
 
-            {/* Profile & Logout */}
-            <div className="flex items-1 sm:gap-center gap-2"center gap-1 sm:<Button 
+              <Button 
                 variant={activeTab === "profile" ? "default" : "ghost"}
                 size="icon" 
                 onClick={() => setActiveTab("profile")}
@@ -188,7 +186,9 @@ const Index = () => {
                 <UserIcon className="w-4 h-4" />
                 <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
+
               {canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />}
+
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>

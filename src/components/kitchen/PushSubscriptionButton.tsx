@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BellRing, BellOff } from "lucide-react";
 import { toast } from "sonner";
-import { useUserRole } from "@/hooks/useUserRole";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
 
@@ -23,8 +22,7 @@ export const PushSubscriptionButton = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSupported, setIsSupported] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const { isAdmin, isKitchen } = useUserRole(userId ?? undefined);
-  const canSubscribe = isAdmin || isKitchen;
+  // All users can subscribe to push notifications
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -126,21 +124,6 @@ export const PushSubscriptionButton = () => {
 
   if (!isSupported) {
     return null;
-  }
-
-  if (!canSubscribe) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        disabled
-        className="w-full gap-2 opacity-50 cursor-not-allowed"
-        title="Kun tilgængelig for køkkenpersonale"
-      >
-        <BellOff className="w-4 h-4 text-muted-foreground" />
-        Notifikationer (kun køkken)
-      </Button>
-    );
   }
 
   return (

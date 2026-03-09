@@ -5,6 +5,7 @@ import { AuthForm } from "@/components/AuthForm";
 import { LunchCalendar } from "@/components/LunchCalendar";
 import { KitchenView } from "@/components/KitchenView";
 import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
+import { UserNotifications } from "@/components/UserNotifications";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { PasswordChange } from "@/components/PasswordChange";
 import { OutlookCalendar } from "@/components/OutlookCalendar";
@@ -189,6 +190,7 @@ const Index = () => {
                 <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
               {canAccessKitchen && <KitchenNotifications />}
+              <UserNotifications />
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>

@@ -69,11 +69,11 @@ export const KitchenNotifications = () => {
     fetchNotifications();
   };
 
-  const deleteNotification = async (id: string) => {
+  const deleteAll = async () => {
     await supabase
       .from("kitchen_notifications")
       .delete()
-      .eq("id", id);
+      .neq("id", "");
     fetchNotifications();
   };
 

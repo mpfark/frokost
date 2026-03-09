@@ -132,16 +132,6 @@ export const KitchenNotifications = () => {
                       {formatDistanceToNow(parseISO(n.created_at), { addSuffix: true, locale: da })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    {!n.is_read && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => markAsRead(n.id)}>
-                        <Check className="w-3 h-3" />
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => deleteNotification(n.id)}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
                 </div>
               ))}
             </div>

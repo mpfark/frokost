@@ -105,7 +105,7 @@ export const KitchenNotifications = () => {
               </Button>
             )}
             {notifications.length > 0 && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={deleteAll} title="Slet alle">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); e.preventDefault(); deleteAll(); }} title="Slet alle">
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             )}

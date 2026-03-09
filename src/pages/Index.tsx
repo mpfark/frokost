@@ -188,9 +188,6 @@ const Index = () => {
                 <UserIcon className="w-4 h-4" />
                 <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
-              <TooltipProvider>
-                <NotificationBell />
-              </TooltipProvider>
               {canAccessKitchen && <KitchenNotifications />}
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />

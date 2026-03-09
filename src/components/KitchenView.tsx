@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CateringOrdersSection, type CateringOrder } from "@/components/kitchen/CateringOrdersSection";
-import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
+
 
 interface Guest {
   id: string;
@@ -590,7 +590,7 @@ export const KitchenView = () => {
             Lukkede dage
           </TabsTrigger>
         </TabsList>
-        <KitchenNotifications />
+        
       </div>
 
       {/* Day Tab Content */}

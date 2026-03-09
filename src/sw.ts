@@ -28,7 +28,7 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json();
-    const options: NotificationOptions = {
+    const options = {
       body: data.body || '',
       icon: data.icon || '/pwa-192x192.png',
       badge: data.badge || '/pwa-192x192.png',
@@ -36,7 +36,7 @@ self.addEventListener('push', (event) => {
       data: data.data || {},
       vibrate: [200, 100, 200],
       requireInteraction: true,
-    };
+    } as any;
 
     event.waitUntil(
       self.registration.showNotification(data.title || 'Plusfrokost', options)

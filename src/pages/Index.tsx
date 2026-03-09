@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
+import { NotificationBell } from "@/components/NotificationBell";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -186,6 +188,9 @@ const Index = () => {
                 <UserIcon className="w-4 h-4" />
                 <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
+              <TooltipProvider>
+                <NotificationBell />
+              </TooltipProvider>
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>

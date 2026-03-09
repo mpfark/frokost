@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BellRing, BellOff } from "lucide-react";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
-// This key will be set after generating VAPID keys
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -22,6 +22,15 @@ export const PushSubscriptionButton = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSupported, setIsSupported] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const { isAdmin, isKitchen } = useUserRole(userId ?? undefined);
+  const canSubscribe = isAdmin || isKitchen;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -81,7 +90,7 @@ export const PushSubscriptionButton = () => {
       if (error) throw error;
 
       setIsSubscribed(true);
-      toast.success("Push-notifikationer aktiveret! Du får besked om nye bestillinger.");
+      toast.success("Push-notifikationer aktiveret!");
     } catch (err: any) {
       console.error("Push subscription error:", err);
       toast.error("Kunne ikke aktivere notifikationer");
@@ -116,7 +125,22 @@ export const PushSubscriptionButton = () => {
   };
 
   if (!isSupported) {
-    return null; // Don't show button if push not supported
+    return null;
+  }
+
+  if (!canSubscribe) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled
+        className="w-full gap-2 opacity-50 cursor-not-allowed"
+        title="Kun tilgængelig for køkkenpersonale"
+      >
+        <BellOff className="w-4 h-4 text-muted-foreground" />
+        Notifikationer (kun køkken)
+      </Button>
+    );
   }
 
   return (
@@ -125,7 +149,7 @@ export const PushSubscriptionButton = () => {
       size="sm"
       onClick={isSubscribed ? unsubscribe : subscribe}
       disabled={isLoading}
-      className="gap-2"
+      className="w-full gap-2"
     >
       {isSubscribed ? (
         <>

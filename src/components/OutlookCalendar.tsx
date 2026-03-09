@@ -203,7 +203,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
     if (orphanedIds.length > 0) {
       for (const id of orphanedIds) {
-        await supabase.from("catering_orders").delete().eq("id", id);
+        await supabase.from("catering_orders").update({ status: "cancelled" }).eq("id", id);
       }
       toast.info(`${orphanedIds.length} forplejningsbestilling${orphanedIds.length > 1 ? "er" : ""} annulleret — mødet er fjernet fra din kalender`);
       // Re-fetch orders to update UI

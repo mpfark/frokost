@@ -190,6 +190,7 @@ const Index = () => {
                 <span className="hidden md:inline ml-2">{fullName || "Profil"}</span>
               </Button>
               {canAccessKitchen && <KitchenNotifications />}
+              <UserNotifications />
               <Button onClick={handleSignOut} variant="outline" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>

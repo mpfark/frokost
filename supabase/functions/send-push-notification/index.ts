@@ -27,11 +27,18 @@ serve(async (req) => {
       });
     }
 
-    // Hardcoded VAPID keys (generated via Web Crypto API)
-    const vapidPublicKey = "BHLgv4OOllFl3_FyJteJYj-GUnNFqnsci8Vle8TBNDqnNCDX8RLaLZWEodKIguwAt7BDEDXfu04A1Z-bnoicsdc";
-    const vapidPrivateKey = "u92mxXjp4nhiOUieGTqQV30rZiJ8ZuV-BClQsEnSYkE";
+    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
 
-    console.log("Using hardcoded VAPID keys");
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      console.error("VAPID keys not configured in secrets");
+      return new Response(JSON.stringify({ error: "An internal error occurred" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Using VAPID keys from environment secrets");
 
     webpush.setVapidDetails(
       "mailto:admin@plusfrokost.dk",

@@ -92,8 +92,7 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
   rawSig.set(rPadded, 0);
   rawSig.set(sPadded, 32);
 
-  const sigB64 = btoa(String.fromCharCode(...rawSig)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const token = `${unsignedToken}.${sigB64}`;
+  const sigB64 = bytesToB64url(rawSig);
 
   return {
     authorization: `vapid t=${token}, k=${publicKey}`,

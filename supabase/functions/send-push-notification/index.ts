@@ -19,38 +19,19 @@ serve(async (req) => {
 
     const body = await req.json();
 
-    // Special mode: generate new VAPID keys using web-push
-    if (body.action === "generate_keys") {
-      const keys = webpush.generateVAPIDKeys();
-      console.log("Generated new VAPID keys, publicKey:", keys.publicKey);
-      return new Response(JSON.stringify({
-        publicKey: keys.publicKey,
-        privateKey: keys.privateKey,
-        note: "Update frontend with publicKey, store both in vapid_keys table"
-      }), {
+    // Diagnostic mode: return public key for verification
+    if (body.action === "get_public_key") {
+      const pubKey = Deno.env.get("VAPID_PUBLIC_KEY");
+      return new Response(JSON.stringify({ publicKey: pubKey }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Load VAPID keys from database
-    const { data: vapidRow, error: vapidError } = await supabase
-      .from("vapid_keys")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+    // Hardcoded VAPID keys (generated via Web Crypto API)
+    const vapidPublicKey = "BHLgv4OOllFl3_FyJteJYj-GUnNFqnsci8Vle8TBNDqnNCDX8RLaLZWEodKIguwAt7BDEDXfu04A1Z-bnoicsdc";
+    const vapidPrivateKey = "u92mxXjp4nhiOUieGTqQV30rZiJ8ZuV-BClQsEnSYkE";
 
-    if (vapidError || !vapidRow) {
-      throw new Error("VAPID keys not found in database: " + vapidError?.message);
-    }
-
-    // Use the base64url keys directly (stored as application_server_key and private_key_base64)
-    const vapidPublicKey = vapidRow.application_server_key;
-    // Try private_key_base64 first, fall back to JWK d value
-    const vapidPrivateKey = vapidRow.private_key_jwk?.d_base64 || vapidRow.private_key_jwk?.d;
-
-    console.log("VAPID public key:", vapidPublicKey);
-    console.log("VAPID private key (first 10 chars):", vapidPrivateKey?.substring(0, 10));
+    console.log("Using hardcoded VAPID keys");
 
     webpush.setVapidDetails(
       "mailto:admin@plusfrokost.dk",

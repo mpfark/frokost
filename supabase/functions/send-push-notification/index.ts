@@ -78,6 +78,31 @@ serve(async (req) => {
       return { sent, failed };
     }
 
+    // Handle test push
+    if (body.test_push && body.target_user_id) {
+      const { data: subscriptions } = await supabase
+        .from("push_subscriptions").select("*").eq("user_id", body.target_user_id);
+
+      if (!subscriptions?.length) {
+        return new Response(JSON.stringify({ sent: 0, reason: "no_subscriptions" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = await sendToSubscriptions(subscriptions, {
+        title: "🧪 Test Push",
+        body: "Push-notifikationer virker! 🎉",
+        icon: "/pwa-192x192.png",
+        badge: "/pwa-192x192.png",
+        tag: `test-${Date.now()}`,
+        data: { url: "/" },
+      });
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Handle user-targeted notification
     if (user_notification_id && target_user_id) {
       const { data: userNotif } = await supabase

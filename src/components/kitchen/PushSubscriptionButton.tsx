@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BellRing, BellOff } from "lucide-react";
 import { toast } from "sonner";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "BEXt7OgrBwqdc-C5F6Ynb97H_cfx7ytQinaX7TI-Dzl2MwcguYXeSdoen8QEzXhQhaDGbhsFHJ9_yPoA4NWK2EU";
+const VAPID_PUBLIC_KEY = "BHLgv4OOllFl3_FyJteJYj-GUnNFqnsci8Vle8TBNDqnNCDX8RLaLZWEodKIguwAt7BDEDXfu04A1Z-bnoicsdc";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);

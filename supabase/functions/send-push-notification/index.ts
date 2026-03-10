@@ -7,11 +7,24 @@ const corsHeaders = {
 };
 
 // Web Push utilities using Web Crypto API
+function b64urlToBytes(b64url: string): Uint8Array {
+  const padding = "=".repeat((4 - (b64url.length % 4)) % 4);
+  const b64 = (b64url + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+function bytesToB64url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 async function generateVapidAuth(endpoint: string, vapidSubject: string, publicKey: string, privateKey: string) {
   const urlObj = new URL(endpoint);
   const audience = `${urlObj.protocol}//${urlObj.host}`;
 
-  // Create JWT header and payload
   const header = { typ: "JWT", alg: "ES256" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -20,23 +33,17 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
     sub: vapidSubject,
   };
 
-  const encodeBase64Url = (data: string) =>
-    btoa(data).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  const headerB64 = encodeBase64Url(JSON.stringify(header));
-  const payloadB64 = encodeBase64Url(JSON.stringify(payload));
+  const headerB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(header)));
+  const payloadB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
   const unsignedToken = `${headerB64}.${payloadB64}`;
 
-  // Import private key
-  const privateKeyBytes = Uint8Array.from(atob(privateKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-  
-  // Build JWK for the private key
-  const publicKeyBytes = Uint8Array.from(atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-  // Uncompressed public key is 65 bytes: 0x04 + x(32) + y(32)
-  const x = btoa(String.fromCharCode(...publicKeyBytes.slice(1, 33))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const y = btoa(String.fromCharCode(...publicKeyBytes.slice(33, 65))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const d = privateKey; // Already base64url
+  // Decode public key (65 bytes uncompressed: 0x04 + x(32) + y(32))
+  const publicKeyBytes = b64urlToBytes(publicKey);
+  const x = bytesToB64url(publicKeyBytes.slice(1, 33));
+  const y = bytesToB64url(publicKeyBytes.slice(33, 65));
+  const d = privateKey; // Already base64url from JWK export
 
+  console.log(`VAPID debug: pubKey=${publicKey.length}chars, pubBytes=${publicKeyBytes.length}, x=${x.length}chars, y=${y.length}chars, d=${d.length}chars`);
   const jwk = { kty: "EC", crv: "P-256", x, y, d, ext: true };
 
   const cryptoKey = await crypto.subtle.importKey(
@@ -86,8 +93,7 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
   rawSig.set(rPadded, 0);
   rawSig.set(sPadded, 32);
 
-  const sigB64 = btoa(String.fromCharCode(...rawSig)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const token = `${unsignedToken}.${sigB64}`;
+  const sigB64 = bytesToB64url(rawSig);
 
   return {
     authorization: `vapid t=${token}, k=${publicKey}`,
@@ -96,8 +102,8 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
 
 async function encryptPayload(payload: string, p256dhKey: string, authSecret: string) {
   // Decode subscription keys
-  const clientPublicKeyBytes = Uint8Array.from(atob(p256dhKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-  const authBytes = Uint8Array.from(atob(authSecret.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const clientPublicKeyBytes = b64urlToBytes(p256dhKey);
+  const authBytes = b64urlToBytes(authSecret);
 
   // Generate ephemeral ECDH key pair
   const localKeyPair = await crypto.subtle.generateKey(

@@ -1,0 +1,2 @@
+DROP TRIGGER IF EXISTS send_push_on_user_notification ON public.user_notifications;
+DROP TRIGGER IF EXISTS send_push_on_kitchen_notification ON public.kitchen_notifications;

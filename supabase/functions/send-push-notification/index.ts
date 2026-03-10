@@ -37,22 +37,33 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
   const payloadB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
   const unsignedToken = `${headerB64}.${payloadB64}`;
 
-  // Decode public key (65 bytes uncompressed: 0x04 + x(32) + y(32))
-  const publicKeyBytes = b64urlToBytes(publicKey);
-  const x = bytesToB64url(publicKeyBytes.slice(1, 33));
-  const y = bytesToB64url(publicKeyBytes.slice(33, 65));
-  const d = privateKey; // Already base64url from JWK export
+  // Import private key - supports both PKCS8 (base64) and JWK d-parameter (base64url) formats
+  const privateKeyBytes = b64urlToBytes(privateKey);
+  let cryptoKey: CryptoKey;
 
-  console.log(`VAPID: pubKeyLen=${publicKey.length}, pubBytes=${publicKeyBytes.length}, x=${x}(${x.length}), y=${y}(${y.length}), dLen=${d.length}, dFirst5=${d.substring(0,5)}`);
-  const jwk = { kty: "EC", crv: "P-256", x, y, d, ext: true };
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"]
-  );
+  if (privateKeyBytes.length > 32) {
+    // PKCS8 format (full encoded key)
+    cryptoKey = await crypto.subtle.importKey(
+      "pkcs8",
+      privateKeyBytes,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["sign"]
+    );
+  } else {
+    // Raw d-parameter (32 bytes) - build JWK
+    const publicKeyBytes = b64urlToBytes(publicKey);
+    const x = bytesToB64url(publicKeyBytes.slice(1, 33));
+    const y = bytesToB64url(publicKeyBytes.slice(33, 65));
+    const jwk = { kty: "EC", crv: "P-256", x, y, d: privateKey, ext: true };
+    cryptoKey = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["sign"]
+    );
+  }
 
   const signatureBuffer = await crypto.subtle.sign(
     { name: "ECDSA", hash: "SHA-256" },

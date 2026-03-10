@@ -43,7 +43,6 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
   const y = bytesToB64url(publicKeyBytes.slice(33, 65));
   const d = privateKey; // Already base64url from JWK export
 
-  console.log(`VAPID debug: pubKey=${publicKey.length}chars, pubBytes=${publicKeyBytes.length}, x=${x.length}chars, y=${y.length}chars, d=${d.length}chars`);
   const jwk = { kty: "EC", crv: "P-256", x, y, d, ext: true };
 
   const cryptoKey = await crypto.subtle.importKey(

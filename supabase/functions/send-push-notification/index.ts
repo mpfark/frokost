@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  importVapidKeys,
-  ApplicationServer,
-} from "jsr:@negrel/webpush@0.5";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +17,21 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
+    const body = await req.json();
+
+    // Special mode: generate new VAPID keys using web-push
+    if (body.action === "generate_keys") {
+      const keys = webpush.generateVAPIDKeys();
+      console.log("Generated new VAPID keys, publicKey:", keys.publicKey);
+      return new Response(JSON.stringify({
+        publicKey: keys.publicKey,
+        privateKey: keys.privateKey,
+        note: "Update frontend with publicKey, store both in vapid_keys table"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Load VAPID keys from database
     const { data: vapidRow, error: vapidError } = await supabase
       .from("vapid_keys")
@@ -32,24 +44,21 @@ serve(async (req) => {
       throw new Error("VAPID keys not found in database: " + vapidError?.message);
     }
 
-    // Reconstruct the format expected by importVapidKeys
-    const keysForImport = {
-      publicKey: vapidRow.public_key_jwk,
-      privateKey: vapidRow.private_key_jwk,
-    };
+    // Use the base64url keys directly (stored as application_server_key and private_key_base64)
+    const vapidPublicKey = vapidRow.application_server_key;
+    // Try private_key_base64 first, fall back to JWK d value
+    const vapidPrivateKey = vapidRow.private_key_jwk?.d_base64 || vapidRow.private_key_jwk?.d;
 
-    console.log("Importing VAPID keys, publicKey.kty:", keysForImport.publicKey.kty, "crv:", keysForImport.publicKey.crv);
-    
-    const vapidKeys = await importVapidKeys(keysForImport);
-    console.log("VAPID keys imported successfully");
+    console.log("VAPID public key:", vapidPublicKey);
+    console.log("VAPID private key (first 10 chars):", vapidPrivateKey?.substring(0, 10));
 
-    const appServer = await ApplicationServer.new({
-      contactInformation: "mailto:admin@plusfrokost.dk",
-      vapidKeys,
-    });
-    console.log("ApplicationServer created successfully");
+    webpush.setVapidDetails(
+      "mailto:admin@plusfrokost.dk",
+      vapidPublicKey,
+      vapidPrivateKey
+    );
 
-    const { notification_id, user_notification_id, target_user_id } = await req.json();
+    const { notification_id, user_notification_id, target_user_id } = body;
 
     async function sendToSubscriptions(
       subscriptions: any[],
@@ -60,24 +69,25 @@ serve(async (req) => {
 
       for (const sub of subscriptions) {
         try {
-          const subscriber = appServer.subscribe({
+          const pushSubscription = {
             endpoint: sub.endpoint,
             keys: {
               p256dh: sub.p256dh,
               auth: sub.auth,
             },
-          });
+          };
 
-          await subscriber.pushTextMessage(
+          const topic = ((payloadObj.tag as string) || "default").substring(0, 32);
+          await webpush.sendNotification(
+            pushSubscription,
             JSON.stringify(payloadObj),
-            { ttl: 86400, urgency: "normal", topic: (payloadObj.tag as string) || "default" }
+            { TTL: 86400, urgency: "normal" as any, topic }
           );
           sent++;
           console.log(`Push sent to subscription ${sub.id}`);
         } catch (err: any) {
-          console.error(`Push error for sub ${sub.id}:`, err?.message || err);
-          // Clean up gone subscriptions
-          if (err?.statusCode === 404 || err?.statusCode === 410 || err?.message?.includes("Gone")) {
+          console.error(`Push error for sub ${sub.id}: statusCode=${err?.statusCode}, body=${err?.body}, message=${err?.message}`);
+          if (err?.statusCode === 404 || err?.statusCode === 410) {
             await supabase.from("push_subscriptions").delete().eq("id", sub.id);
             console.log(`Deleted expired subscription ${sub.id}`);
           }

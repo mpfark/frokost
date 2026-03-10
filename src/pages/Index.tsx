@@ -94,10 +94,6 @@ const Index = () => {
     fetchProfile();
   }, [user?.id]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logget ud");
-  };
 
   if (isLoading || isRoleLoading) {
     return (

@@ -2,8 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   importVapidKeys,
-  buildPushPayload,
-} from "jsr:@negrel/webpush@0.6";
+  ApplicationServer,
+  PushMessageError,
+} from "jsr:@negrel/webpush@0.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,26 +17,29 @@ serve(async (req) => {
   }
 
   try {
-    const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
-    const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
+    const VAPID_KEYS_JSON = Deno.env.get("VAPID_KEYS_JSON");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    if (!VAPID_KEYS_JSON) {
       throw new Error("VAPID keys not configured");
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Import VAPID keys using the library
-    const vapidKeys = await importVapidKeys({
-      publicKey: VAPID_PUBLIC_KEY,
-      privateKey: VAPID_PRIVATE_KEY,
+    // Import VAPID keys from JWK format
+    const exportedKeys = JSON.parse(VAPID_KEYS_JSON);
+    const vapidKeys = await importVapidKeys(exportedKeys);
+
+    // Create application server
+    const appServer = await ApplicationServer.new({
+      contactInformation: "mailto:admin@plusfrokost.dk",
+      vapidKeys,
     });
 
     const { notification_id, user_notification_id, target_user_id } = await req.json();
 
-    // Helper to send push to a list of subscriptions
+    // Helper to send push to subscriptions
     async function sendToSubscriptions(
       subscriptions: any[],
       payloadObj: Record<string, unknown>
@@ -45,38 +49,23 @@ serve(async (req) => {
 
       for (const sub of subscriptions) {
         try {
-          const pushSubscription = {
+          const subscriber = appServer.subscribe({
             endpoint: sub.endpoint,
             keys: {
               p256dh: sub.p256dh,
               auth: sub.auth,
             },
-          };
+          });
 
-          const payload = await buildPushPayload(
-            {
-              ...pushSubscription,
-              // @ts-ignore - webpush expects slightly different format
-              expirationTime: null,
-            },
-            vapidKeys,
+          await subscriber.pushTextMessage(
             JSON.stringify(payloadObj),
-            { adminContact: "mailto:admin@plusfrokost.dk", ttl: 86400 }
+            { ttl: 86400, urgency: "normal", topic: payloadObj.tag as string || "default" }
           );
-
-          const response = await fetch(sub.endpoint, payload);
-
-          if (response.status === 201 || response.status === 200) {
-            sent++;
-          } else if (response.status === 410 || response.status === 404) {
-            await supabase.from("push_subscriptions").delete().eq("id", sub.id);
-            failed++;
-          } else {
-            const body = await response.text();
-            console.error(`Push failed for ${sub.endpoint}: ${response.status} ${body}`);
-            failed++;
-          }
+          sent++;
         } catch (err) {
+          if (err instanceof PushMessageError && err.isGone()) {
+            await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+          }
           console.error(`Push error for subscription ${sub.id}:`, err);
           failed++;
         }
@@ -85,7 +74,7 @@ serve(async (req) => {
       return { sent, failed };
     }
 
-    // Handle user-targeted notification (e.g. order confirmed)
+    // Handle user-targeted notification
     if (user_notification_id && target_user_id) {
       const { data: userNotif } = await supabase
         .from("user_notifications")
@@ -110,22 +99,21 @@ serve(async (req) => {
         });
       }
 
-      const payloadObj = {
+      const result = await sendToSubscriptions(subscriptions, {
         title: "✅ Forplejning godkendt",
         body: userNotif.message,
         icon: "/pwa-192x192.png",
         badge: "/pwa-192x192.png",
         tag: `user-${userNotif.id}`,
         data: { url: "/" },
-      };
+      });
 
-      const result = await sendToSubscriptions(subscriptions, payloadObj);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Handle kitchen notification (existing flow)
+    // Handle kitchen notification
     const { data: notification, error: notifError } = await supabase
       .from("kitchen_notifications")
       .select("*")
@@ -160,16 +148,15 @@ serve(async (req) => {
       });
     }
 
-    const payloadObj = {
+    const result = await sendToSubscriptions(subscriptions, {
       title: notification.type === "new_order" ? "🍽️ Ny forplejningsbestilling" : "⚠️ Forplejning annulleret",
       body: notification.message,
       icon: "/pwa-192x192.png",
       badge: "/pwa-192x192.png",
       tag: `catering-${notification.id}`,
       data: { url: "/" },
-    };
+    });
 
-    const result = await sendToSubscriptions(subscriptions, payloadObj);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

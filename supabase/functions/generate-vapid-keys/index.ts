@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { generateVapidKeys } from "jsr:@negrel/webpush@0.6";
+import {
+  generateVapidKeys,
+  exportVapidKeys,
+  exportApplicationServerKey,
+} from "jsr:@negrel/webpush@0.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,13 +16,20 @@ serve(async (req) => {
   }
 
   try {
-    const vapidKeys = await generateVapidKeys();
+    // Generate extractable VAPID keys
+    const keys = await generateVapidKeys({ extractable: true });
+    
+    // Export in JWK format (for storage/import)
+    const exportedKeys = await exportVapidKeys(keys);
+    
+    // Export application server key (for frontend push subscription)
+    const applicationServerKey = await exportApplicationServerKey(keys);
 
     return new Response(JSON.stringify({
-      publicKey: vapidKeys.publicKey,
-      privateKey: vapidKeys.privateKey,
-      note: "Save these as VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets"
-    }), {
+      vapidKeysJson: JSON.stringify(exportedKeys),
+      applicationServerKey,
+      note: "Save 'vapidKeysJson' as VAPID_KEYS_JSON secret. Use 'applicationServerKey' in your frontend PushSubscriptionButton."
+    }, null, 2), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

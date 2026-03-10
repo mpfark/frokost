@@ -75,7 +75,15 @@ serve(async (req) => {
           sent++;
           console.log(`Push sent to subscription ${sub.id}`);
         } catch (err: any) {
-          console.error(`Push error for sub ${sub.id}:`, err?.message || err);
+          // Log FCM response body for debugging
+          try {
+            if (err?.response) {
+              const body = await err.response.text();
+              console.error(`Push error for sub ${sub.id}: status=${err.response.status}, body=${body}`);
+            } else {
+              console.error(`Push error for sub ${sub.id}:`, err?.message || err);
+            }
+          } catch { console.error(`Push error for sub ${sub.id}:`, err); }
           // Clean up gone subscriptions
           if (err?.statusCode === 404 || err?.statusCode === 410 || err?.message?.includes("Gone")) {
             await supabase.from("push_subscriptions").delete().eq("id", sub.id);

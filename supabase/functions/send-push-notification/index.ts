@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  importVapidKeys,
-  ApplicationServer,
-} from "jsr:@negrel/webpush@0.5";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,23 +29,18 @@ serve(async (req) => {
       throw new Error("VAPID keys not found in database: " + vapidError?.message);
     }
 
-    // Reconstruct the format expected by importVapidKeys
-    const keysForImport = {
-      publicKey: vapidRow.public_key_jwk,
-      privateKey: vapidRow.private_key_jwk,
-    };
+    // Extract keys for web-push: applicationServerKey (public) and d (private)
+    const vapidPublicKey = vapidRow.application_server_key;
+    const vapidPrivateKey = vapidRow.private_key_jwk.d;
 
-    console.log("Importing VAPID keys, publicKey.kty:", keysForImport.publicKey.kty, "crv:", keysForImport.publicKey.crv);
-    console.log("DB application_server_key:", vapidRow.application_server_key);
-    
-    const vapidKeys = await importVapidKeys(keysForImport);
-    console.log("VAPID keys imported successfully");
+    console.log("VAPID public key:", vapidPublicKey);
+    console.log("VAPID private key length:", vapidPrivateKey.length);
 
-    const appServer = await ApplicationServer.new({
-      contactInformation: "mailto:admin@plusfrokost.dk",
-      vapidKeys,
-    });
-    console.log("ApplicationServer created successfully");
+    webpush.setVapidDetails(
+      "mailto:admin@plusfrokost.dk",
+      vapidPublicKey,
+      vapidPrivateKey
+    );
 
     const { notification_id, user_notification_id, target_user_id } = await req.json();
 
@@ -61,32 +53,25 @@ serve(async (req) => {
 
       for (const sub of subscriptions) {
         try {
-          const subscriber = appServer.subscribe({
+          const pushSubscription = {
             endpoint: sub.endpoint,
             keys: {
               p256dh: sub.p256dh,
               auth: sub.auth,
             },
-          });
+          };
 
-          await subscriber.pushTextMessage(
+          await webpush.sendNotification(
+            pushSubscription,
             JSON.stringify(payloadObj),
-            { ttl: 86400, urgency: "normal", topic: (payloadObj.tag as string) || "default" }
+            { TTL: 86400, urgency: "normal", topic: (payloadObj.tag as string) || "default" }
           );
           sent++;
           console.log(`Push sent to subscription ${sub.id}`);
         } catch (err: any) {
-          // Log FCM response body for debugging
-          try {
-            if (err?.response) {
-              const body = await err.response.text();
-              console.error(`Push error for sub ${sub.id}: status=${err.response.status}, body=${body}`);
-            } else {
-              console.error(`Push error for sub ${sub.id}:`, err?.message || err);
-            }
-          } catch { console.error(`Push error for sub ${sub.id}:`, err); }
+          console.error(`Push error for sub ${sub.id}: status=${err?.statusCode}, body=${err?.body}`);
           // Clean up gone subscriptions
-          if (err?.statusCode === 404 || err?.statusCode === 410 || err?.message?.includes("Gone")) {
+          if (err?.statusCode === 404 || err?.statusCode === 410) {
             await supabase.from("push_subscriptions").delete().eq("id", sub.id);
             console.log(`Deleted expired subscription ${sub.id}`);
           }

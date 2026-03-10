@@ -28,8 +28,25 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     // Import VAPID keys from JWK format
+    console.log("VAPID_KEYS_JSON type:", typeof VAPID_KEYS_JSON);
+    console.log("VAPID_KEYS_JSON length:", VAPID_KEYS_JSON.length);
+    console.log("VAPID_KEYS_JSON first 100 chars:", VAPID_KEYS_JSON.substring(0, 100));
+    
     const exportedKeys = JSON.parse(VAPID_KEYS_JSON);
-    const vapidKeys = await importVapidKeys(exportedKeys);
+    console.log("Parsed keys type:", typeof exportedKeys);
+    console.log("Parsed keys has publicKey:", !!exportedKeys.publicKey);
+    console.log("Parsed keys has privateKey:", !!exportedKeys.privateKey);
+    console.log("publicKey type:", typeof exportedKeys.publicKey);
+    console.log("privateKey type:", typeof exportedKeys.privateKey);
+    
+    // If keys are strings (double-stringified), parse them
+    const keysToImport = {
+      publicKey: typeof exportedKeys.publicKey === 'string' ? JSON.parse(exportedKeys.publicKey) : exportedKeys.publicKey,
+      privateKey: typeof exportedKeys.privateKey === 'string' ? JSON.parse(exportedKeys.privateKey) : exportedKeys.privateKey,
+    };
+    console.log("keysToImport publicKey kty:", keysToImport.publicKey?.kty);
+    
+    const vapidKeys = await importVapidKeys(keysToImport);
 
     // Create application server
     const appServer = await ApplicationServer.new({

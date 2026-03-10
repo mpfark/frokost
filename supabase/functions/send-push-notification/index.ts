@@ -61,7 +61,7 @@ serve(async (req) => {
             },
           };
 
-          await webpush.sendNotification(
+          const topic = ((payloadObj.tag as string) || "default").substring(0, 32);
             pushSubscription,
             JSON.stringify(payloadObj),
             { TTL: 86400, urgency: "normal", topic: (payloadObj.tag as string) || "default" }

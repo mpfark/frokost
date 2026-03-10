@@ -39,6 +39,7 @@ serve(async (req) => {
     };
 
     console.log("Importing VAPID keys, publicKey.kty:", keysForImport.publicKey.kty, "crv:", keysForImport.publicKey.crv);
+    console.log("DB application_server_key:", vapidRow.application_server_key);
     
     const vapidKeys = await importVapidKeys(keysForImport);
     console.log("VAPID keys imported successfully");

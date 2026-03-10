@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { generateVapidKeys } from "jsr:@negrel/webpush@0.6";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,30 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    // Generate ECDSA P-256 key pair for VAPID
-    const keyPair = await crypto.subtle.generateKey(
-      { name: "ECDSA", namedCurve: "P-256" },
-      true,
-      ["sign", "verify"]
-    );
-
-    const publicKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
-    const privateKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
-
-    // Convert to URL-safe base64 (application server key format)
-    const publicKey = publicKeyJwk.x + publicKeyJwk.y; // This isn't right for VAPID
-
-    // Export raw public key
-    const rawPublicKey = await crypto.subtle.exportKey("raw", keyPair.publicKey);
-    const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(rawPublicKey)))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    // Export private key as base64url (d parameter from JWK)
-    const privateKeyBase64 = privateKeyJwk.d!;
+    const vapidKeys = await generateVapidKeys();
 
     return new Response(JSON.stringify({
-      publicKey: publicKeyBase64,
-      privateKey: privateKeyBase64,
+      publicKey: vapidKeys.publicKey,
+      privateKey: vapidKeys.privateKey,
       note: "Save these as VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -188,10 +188,6 @@ const Index = () => {
               </Button>
 
               {canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />}
-
-              <Button onClick={handleSignOut} variant="outline" size="icon">
-                <LogOut className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>

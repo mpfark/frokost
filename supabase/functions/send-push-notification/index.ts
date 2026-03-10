@@ -101,8 +101,8 @@ async function generateVapidAuth(endpoint: string, vapidSubject: string, publicK
 
 async function encryptPayload(payload: string, p256dhKey: string, authSecret: string) {
   // Decode subscription keys
-  const clientPublicKeyBytes = Uint8Array.from(atob(p256dhKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-  const authBytes = Uint8Array.from(atob(authSecret.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const clientPublicKeyBytes = b64urlToBytes(p256dhKey);
+  const authBytes = b64urlToBytes(authSecret);
 
   // Generate ephemeral ECDH key pair
   const localKeyPair = await crypto.subtle.generateKey(

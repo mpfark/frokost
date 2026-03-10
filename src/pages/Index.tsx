@@ -13,7 +13,6 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";
-import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
 

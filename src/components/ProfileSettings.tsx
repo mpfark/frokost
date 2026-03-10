@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Smartphone, Palmtree, CalendarIcon, BellRing, BellOff } from "lucide-react";
+import { Loader2, Smartphone, Palmtree, CalendarIcon, BellRing, BellOff, LogOut } from "lucide-react";
 import { PushSubscriptionButton } from "@/components/kitchen/PushSubscriptionButton";
 import { profileSchema } from "@/lib/validations";
 import {
@@ -460,6 +460,20 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
               <Smartphone className="w-4 h-4" />
               Installer appen på telefonen
             </Link>
+          </Button>
+        </div>
+
+        <div className="pt-4 border-t">
+          <Button
+            variant="outline"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              toast.success("Logget ud");
+            }}
+          >
+            <LogOut className="w-4 h-4" />
+            Log ud
           </Button>
         </div>
       </CardContent>

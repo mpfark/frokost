@@ -12,7 +12,7 @@ import { OutlookCalendar } from "@/components/OutlookCalendar";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";
+import { UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -95,10 +95,6 @@ const Index = () => {
     fetchProfile();
   }, [user?.id]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logget ud");
-  };
 
   if (isLoading || isRoleLoading) {
     return (
@@ -188,10 +184,6 @@ const Index = () => {
               </Button>
 
               {canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />}
-
-              <Button onClick={handleSignOut} variant="outline" size="icon">
-                <LogOut className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>

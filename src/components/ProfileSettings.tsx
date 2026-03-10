@@ -462,6 +462,20 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             </Link>
           </Button>
         </div>
+
+        <div className="pt-4 border-t">
+          <Button
+            variant="outline"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              toast.success("Logget ud");
+            }}
+          >
+            <LogOut className="w-4 h-4" />
+            Log ud
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

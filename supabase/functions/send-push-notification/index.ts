@@ -69,7 +69,7 @@ serve(async (req) => {
           sent++;
           console.log(`Push sent to subscription ${sub.id}`);
         } catch (err: any) {
-          console.error(`Push error for sub ${sub.id}: status=${err?.statusCode}, body=${err?.body}`);
+          console.error(`Push error for sub ${sub.id}: statusCode=${err?.statusCode}, body=${err?.body}, message=${err?.message}`);
           // Clean up gone subscriptions
           if (err?.statusCode === 404 || err?.statusCode === 410) {
             await supabase.from("push_subscriptions").delete().eq("id", sub.id);

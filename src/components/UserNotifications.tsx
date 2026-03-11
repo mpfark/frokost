@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { PushSubscriptionButton } from "@/components/kitchen/PushSubscriptionButton";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { da } from "date-fns/locale";
 

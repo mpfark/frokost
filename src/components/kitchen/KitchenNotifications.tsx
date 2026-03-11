@@ -144,6 +144,9 @@ export const KitchenNotifications = () => {
             </div>
           )}
         </ScrollArea>
+        <div className="border-t px-4 py-3">
+          <PushSubscriptionButton />
+        </div>
       </PopoverContent>
     </Popover>
   );

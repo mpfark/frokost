@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed, ChevronLeft, ChevronRight, Clock, Check, Trash2 } from "lucide-react";
+import { CalendarDays, MapPin, Users, AlertCircle, RefreshCw, Link, Unlink, UtensilsCrossed, ChevronLeft, ChevronRight, Clock, Check, Trash2, Pencil } from "lucide-react";
 import { format, parseISO, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay, isWeekend } from "date-fns";
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
@@ -462,16 +462,18 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                         <>
                                           <Button
                                             variant="outline"
-                                            size="sm"
-                                            className="h-9 text-xs"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            title="Rediger"
                                             onClick={() => setEditingOrder({ event, order })}
                                           >
-                                            Rediger
+                                            <Pencil className="w-3.5 h-3.5" />
                                           </Button>
                                           <Button
                                             variant="outline"
-                                            size="sm"
-                                            className="h-9 text-xs"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive"
+                                            title="Annullér"
                                             onClick={async () => {
                                               const { error } = await supabase
                                                 .from("catering_orders")
@@ -485,8 +487,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                               }
                                             }}
                                           >
-                                            <Trash2 className="w-3 h-3 mr-1" />
-                                            Annullér
+                                            <Trash2 className="w-3.5 h-3.5" />
                                           </Button>
                                         </>
                                       )}
@@ -496,12 +497,12 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                               return (
                                 <Button
                                   variant="outline"
-                                  size="sm"
-                                  className="h-9 text-xs"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Bestil forplejning"
                                   onClick={() => setCateringEvent(event)}
                                 >
-                                  <UtensilsCrossed className="w-3 h-3 mr-1" />
-                                  Bestil
+                                  <UtensilsCrossed className="w-3.5 h-3.5" />
                                 </Button>
                               );
                             })()}

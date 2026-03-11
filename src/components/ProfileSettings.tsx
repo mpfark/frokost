@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Smartphone, Palmtree, CalendarIcon, BellRing, BellOff, LogOut } from "lucide-react";
-import { PushSubscriptionButton } from "@/components/kitchen/PushSubscriptionButton";
+import { PushSubscriptionButton } from "@/components/PushSubscriptionButton";
 import { profileSchema } from "@/lib/validations";
 import {
   Dialog,

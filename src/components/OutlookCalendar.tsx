@@ -36,7 +36,8 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [errorType, setErrorType] = useState<string | null>(null);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [existingOrders, setExistingOrders] = useState<Record<string, { status: string; id: string }>>({});
+  const [existingOrders, setExistingOrders] = useState<Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null }>>({});
+  const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: { id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null } } | null>(null);
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
 
   // Check if user has connected Microsoft account
@@ -152,16 +153,16 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
     const { data } = await supabase
       .from("catering_orders")
-      .select("id, meeting_subject, meeting_date, meeting_time, status")
+      .select("id, meeting_subject, meeting_date, meeting_time, status, person_count, catering_types, dietary_notes, comment")
       .eq("user_id", user.id)
       .gte("meeting_date", weekStart)
       .lte("meeting_date", weekEnd);
 
     if (data) {
-      const orderMap: Record<string, { status: string; id: string }> = {};
+      const orderMap: Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null }> = {};
       data.forEach((o) => {
         const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
-        orderMap[key] = { status: o.status, id: o.id };
+        orderMap[key] = { status: o.status, id: o.id, person_count: o.person_count, catering_types: o.catering_types, dietary_notes: o.dietary_notes, comment: o.comment };
       });
       setExistingOrders(orderMap);
     }
@@ -247,16 +248,16 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         const weekEnd = format(addDays(currentWeekStart, 5), "yyyy-MM-dd");
         const { data: ordersData } = await supabase
           .from("catering_orders")
-          .select("id, meeting_subject, meeting_date, meeting_time, status")
+          .select("id, meeting_subject, meeting_date, meeting_time, status, person_count, catering_types, dietary_notes, comment")
           .eq("user_id", user.id)
           .gte("meeting_date", weekStart)
           .lte("meeting_date", weekEnd);
 
         if (ordersData) {
-          const orderMap: Record<string, { status: string; id: string }> = {};
+          const orderMap: Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null }> = {};
           ordersData.forEach((o) => {
             const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
-            orderMap[key] = { status: o.status, id: o.id };
+            orderMap[key] = { status: o.status, id: o.id, person_count: o.person_count, catering_types: o.catering_types, dietary_notes: o.dietary_notes, comment: o.comment };
           });
           setExistingOrders(orderMap);
 
@@ -451,35 +452,45 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                 };
                                 const info = statusLabels[order.status] || { label: order.status, className: "" };
                                 return (
-                                  <>
-                                    <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
-                                      {order.status === "pending" && <Clock className="w-3 h-3" />}
-                                      {order.status === "confirmed" && <Check className="w-3 h-3" />}
-                                      {info.label}
-                                    </Badge>
-                                    {order.status === "pending" && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 text-xs"
-                                        onClick={async () => {
-                                          const { error } = await supabase
-                                            .from("catering_orders")
-                                            .update({ status: "cancelled" })
-                                            .eq("id", order.id);
-                                          if (error) {
-                                            toast.error("Kunne ikke annullere bestilling");
-                                          } else {
-                                            toast.success("Bestilling annulleret");
-                                            fetchExistingOrders();
-                                          }
-                                        }}
-                                      >
-                                        <Trash2 className="w-3 h-3 mr-1" />
-                                        Annullér
-                                      </Button>
-                                    )}
-                                  </>
+                                    <>
+                                      <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
+                                        {order.status === "pending" && <Clock className="w-3 h-3" />}
+                                        {order.status === "confirmed" && <Check className="w-3 h-3" />}
+                                        {info.label}
+                                      </Badge>
+                                      {(order.status === "pending" || order.status === "confirmed") && (
+                                        <>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-9 text-xs"
+                                            onClick={() => setEditingOrder({ event, order })}
+                                          >
+                                            Rediger
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-9 text-xs"
+                                            onClick={async () => {
+                                              const { error } = await supabase
+                                                .from("catering_orders")
+                                                .update({ status: "cancelled" })
+                                                .eq("id", order.id);
+                                              if (error) {
+                                                toast.error("Kunne ikke annullere bestilling");
+                                              } else {
+                                                toast.success("Bestilling annulleret");
+                                                fetchExistingOrders();
+                                              }
+                                            }}
+                                          >
+                                            <Trash2 className="w-3 h-3 mr-1" />
+                                            Annullér
+                                          </Button>
+                                        </>
+                                      )}
+                                    </>
                                 );
                               }
                               return (
@@ -518,6 +529,21 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
           location: cateringEvent.location,
           attendeeCount: cateringEvent.attendeeCount,
         }}
+      />
+    )}
+
+    {editingOrder && (
+      <CateringOrderDialog
+        open={!!editingOrder}
+        onOpenChange={(open) => { if (!open) { setEditingOrder(null); fetchExistingOrders(); } }}
+        meeting={{
+          subject: editingOrder.event.subject,
+          date: format(parseISO(editingOrder.event.startTime), "yyyy-MM-dd"),
+          time: `${formatTime(editingOrder.event.startTime)} - ${formatTime(editingOrder.event.endTime)}`,
+          location: editingOrder.event.location,
+          attendeeCount: editingOrder.event.attendeeCount,
+        }}
+        existingOrder={editingOrder.order}
       />
     )}
     </>

@@ -36,7 +36,8 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [errorType, setErrorType] = useState<string | null>(null);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [existingOrders, setExistingOrders] = useState<Record<string, { status: string; id: string }>>({});
+  const [existingOrders, setExistingOrders] = useState<Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null }>>({});
+  const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: { id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null } } | null>(null);
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
 
   // Check if user has connected Microsoft account

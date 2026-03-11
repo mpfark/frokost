@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { PushSubscriptionButton } from "@/components/kitchen/PushSubscriptionButton";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { da } from "date-fns/locale";
 
@@ -131,6 +132,9 @@ export const UserNotifications = () => {
             </div>
           )}
         </ScrollArea>
+        <div className="border-t px-4 py-3">
+          <PushSubscriptionButton />
+        </div>
       </PopoverContent>
     </Popover>
   );

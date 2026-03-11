@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,13 @@ interface CateringOrderDialogProps {
     location?: string;
     attendeeCount: number;
   };
+  existingOrder?: {
+    id: string;
+    person_count: number;
+    catering_types: string[];
+    dietary_notes: string | null;
+    comment: string | null;
+  } | null;
 }
 
 const CATERING_OPTIONS = [
@@ -38,12 +45,29 @@ const DIETARY_OPTIONS = [
   { id: "vegan", label: "Vegansk" },
 ] as const;
 
-export const CateringOrderDialog = ({ open, onOpenChange, meeting }: CateringOrderDialogProps) => {
+export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder }: CateringOrderDialogProps) => {
+  const isEditing = !!existingOrder;
+
   const [personCount, setPersonCount] = useState(meeting.attendeeCount || 1);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form when dialog opens or existingOrder changes
+  useEffect(() => {
+    if (open && existingOrder) {
+      setPersonCount(existingOrder.person_count);
+      setSelectedTypes(existingOrder.catering_types);
+      setSelectedDietary(existingOrder.dietary_notes ? existingOrder.dietary_notes.split(", ") : []);
+      setComment(existingOrder.comment || "");
+    } else if (open && !existingOrder) {
+      setPersonCount(meeting.attendeeCount || 1);
+      setSelectedTypes([]);
+      setSelectedDietary([]);
+      setComment("");
+    }
+  }, [open, existingOrder]);
 
   const toggleType = (id: string) => {
     setSelectedTypes((prev) =>
@@ -73,28 +97,36 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting }: CateringOrd
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Ikke logget ind");
 
-      const { error } = await supabase.from("catering_orders").insert({
-        user_id: user.id,
-        meeting_subject: meeting.subject.slice(0, 200),
-        meeting_date: meeting.date,
-        meeting_time: meeting.time,
-        meeting_location: meeting.location?.slice(0, 200) || null,
+      const orderData = {
         person_count: personCount,
         catering_types: selectedTypes,
         dietary_notes: selectedDietary.length > 0 ? selectedDietary.join(", ") : null,
         comment: comment.trim().slice(0, 500) || null,
-      });
+      };
 
-      if (error) throw error;
+      if (isEditing) {
+        const { error } = await supabase
+          .from("catering_orders")
+          .update(orderData)
+          .eq("id", existingOrder.id);
+        if (error) throw error;
+        toast.success("Bestilling opdateret!");
+      } else {
+        const { error } = await supabase.from("catering_orders").insert({
+          ...orderData,
+          user_id: user.id,
+          meeting_subject: meeting.subject.slice(0, 200),
+          meeting_date: meeting.date,
+          meeting_time: meeting.time,
+          meeting_location: meeting.location?.slice(0, 200) || null,
+        });
+        if (error) throw error;
+        toast.success("Forplejning bestilt!");
+      }
 
-      toast.success("Forplejning bestilt!");
       onOpenChange(false);
-      // Reset form
-      setSelectedTypes([]);
-      setSelectedDietary([]);
-      setComment("");
     } catch (err: any) {
-      toast.error(err.message || "Kunne ikke bestille forplejning");
+      toast.error(err.message || "Kunne ikke gemme forplejning");
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +138,7 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting }: CateringOrd
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UtensilsCrossed className="w-5 h-5 text-primary" />
-            Bestil forplejning
+            {isEditing ? "Opdatér forplejning" : "Bestil forplejning"}
           </DialogTitle>
           <DialogDescription>
             {meeting.subject} — {meeting.time}
@@ -188,10 +220,10 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting }: CateringOrd
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Bestiller...
+                {isEditing ? "Opdaterer..." : "Bestiller..."}
               </>
             ) : (
-              "Bestil forplejning"
+              isEditing ? "Opdatér bestilling" : "Bestil forplejning"
             )}
           </Button>
         </DialogFooter>

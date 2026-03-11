@@ -289,7 +289,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   }, [signups]);
 
   // Debounce utility for realtime updates
-  const debounceTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const debounceTimeoutRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
   
   const debouncedFetch = useCallback((key: string, fn: () => void, delay: number = 300) => {
     if (debounceTimeoutRef.current[key]) {

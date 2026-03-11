@@ -30,7 +30,7 @@ export default function SetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     let mounted = true;
     let sessionEstablished = false;
 

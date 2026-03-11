@@ -131,6 +131,9 @@ export const UserNotifications = () => {
             </div>
           )}
         </ScrollArea>
+        <div className="border-t px-4 py-3">
+          <PushSubscriptionButton />
+        </div>
       </PopoverContent>
     </Popover>
   );

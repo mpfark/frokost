@@ -531,6 +531,21 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
         }}
       />
     )}
+
+    {editingOrder && (
+      <CateringOrderDialog
+        open={!!editingOrder}
+        onOpenChange={(open) => { if (!open) { setEditingOrder(null); fetchExistingOrders(); } }}
+        meeting={{
+          subject: editingOrder.event.subject,
+          date: format(parseISO(editingOrder.event.startTime), "yyyy-MM-dd"),
+          time: `${formatTime(editingOrder.event.startTime)} - ${formatTime(editingOrder.event.endTime)}`,
+          location: editingOrder.event.location,
+          attendeeCount: editingOrder.event.attendeeCount,
+        }}
+        existingOrder={editingOrder.order}
+      />
+    )}
     </>
   );
 };

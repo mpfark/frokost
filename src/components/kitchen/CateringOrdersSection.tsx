@@ -171,6 +171,15 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
                     <Check className="w-3 h-3 mr-1" />
                     Leveret
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-destructive hover:text-destructive"
+                    onClick={() => updateStatus(order.id, "cancelled")}
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Annullér
+                  </Button>
                 </div>
               )}
             </div>

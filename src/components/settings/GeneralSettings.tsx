@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Building2, MapPin, Plus, X } from "lucide-react";
+import { MeetingRoomSelector } from "./MeetingRoomSelector";
 
 export const GeneralSettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");

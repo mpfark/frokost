@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
-import { startOfDay, addDays, isSameDay, parseISO } from "date-fns";
+import { AlertCircle, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { startOfDay, addDays } from "date-fns";
 import { WeekDayGrid } from "./catering/WeekDayGrid";
 import { CateringDialogs } from "./catering/CateringDialogs";
 import { useWeekNavigation } from "./catering/useWeekNavigation";
@@ -16,7 +16,11 @@ interface RoomResult {
   error: string | null;
 }
 
-export const RoomCalendarsView = () => {
+export interface RoomCalendarsViewRef {
+  refresh: () => void;
+}
+
+export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
   const [roomResults, setRoomResults] = useState<RoomResult[]>([]);
   const [roomNames, setRoomNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);

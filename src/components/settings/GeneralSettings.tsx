@@ -105,6 +105,7 @@ export const GeneralSettings = () => {
         allowed_domain: allowedDomain.toLowerCase(),
         weeks_to_display: weeksToDisplay,
         allowed_locations: allowedLocations,
+        resource_room_emails: resourceRoomEmails,
       };
 
       if (existing) {

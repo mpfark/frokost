@@ -89,9 +89,24 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  const fetchAllowedLocations = async () => {
-    const { data } = await supabase.from("company_settings").select("allowed_locations").single();
-    if (data) setAllowedLocations((data as any).allowed_locations || []);
+  const fetchRoomDisplayNames = async () => {
+    try {
+      const { data: settings } = await supabase.from("company_settings").select("resource_room_emails").single();
+      const roomEmails: string[] = (settings as any)?.resource_room_emails || [];
+      if (roomEmails.length === 0) return;
+
+      const { data } = await supabase.functions.invoke("get-meeting-rooms");
+      if (data?.rooms) {
+        const configuredEmailsLower = new Set(roomEmails.map((e: string) => e.toLowerCase()));
+        const names = data.rooms
+          .filter((r: any) => configuredEmailsLower.has((r.emailAddress || "").toLowerCase()))
+          .map((r: any) => r.displayName)
+          .filter(Boolean);
+        setRoomDisplayNames(names);
+      }
+    } catch (err) {
+      console.error("Failed to fetch room display names:", err);
+    }
   };
 
   const autoCancelOrphanedOrders = async (fetchedEvents: CalendarEvent[], orders: Record<string, ExistingOrder>) => {

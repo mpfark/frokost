@@ -176,10 +176,6 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
       return;
     }
 
-    if (differenceInDays(endDay, today) > 60) {
-      toast.error("Du kan maksimalt melde ferie 60 dage frem");
-      return;
-    }
 
     setIsSubmittingVacation(true);
 

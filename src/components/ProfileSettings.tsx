@@ -269,7 +269,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   }
 
   const today = startOfDay(new Date());
-  const maxDate = addDays(today, 60);
+  
 
   return (
     <Card>

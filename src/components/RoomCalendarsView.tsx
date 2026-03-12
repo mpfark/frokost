@@ -130,22 +130,25 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
       {roomResults.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">Ingen mødelokaler fundet</p>
       ) : (
-        <div className="space-y-6">
+        <Tabs value={activeRoom || roomResults[0]?.roomEmail} onValueChange={setActiveRoom}>
+          <TabsList className="w-full mb-3 flex-wrap h-auto gap-1">
+            {roomResults.map((room) => (
+              <TabsTrigger key={room.roomEmail} value={room.roomEmail} className="flex-1 text-xs">
+                {roomNames[room.roomEmail] || room.roomEmail}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
           {roomResults.map((room) => {
             const roomDisplayName = roomNames[room.roomEmail] || room.roomEmail;
-            // Enrich events with room name as location if missing
             const enrichedEvents = room.events
               .filter((e) => !e.isAllDay)
               .map((e) => ({ ...e, location: e.location || roomDisplayName }));
 
             return (
-              <div key={room.roomEmail}>
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  {roomDisplayName}
-                </h3>
+              <TabsContent key={room.roomEmail} value={room.roomEmail} className="mt-0">
                 {room.error ? (
-                  <p className="text-xs text-destructive pl-6">{room.error}</p>
+                  <p className="text-xs text-destructive">{room.error}</p>
                 ) : (
                   <WeekDayGrid
                     weekDays={weekDays}
@@ -157,10 +160,10 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
                     showLocation={false}
                   />
                 )}
-              </div>
+              </TabsContent>
             );
           })}
-        </div>
+        </Tabs>
       )}
 
       <CateringDialogs

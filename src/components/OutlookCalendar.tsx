@@ -328,6 +328,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
   return (
     <>
+    <Tabs defaultValue="my-meetings" className="w-full">
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">

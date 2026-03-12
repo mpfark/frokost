@@ -29,6 +29,35 @@ interface ProfileSettingsProps {
   userId: string;
 }
 
+const MicrosoftDisconnect = ({ userId }: { userId: string }) => {
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.from("microsoft_tokens").select("id").eq("user_id", userId).maybeSingle()
+      .then(({ data }) => setIsConnected(!!data));
+  }, [userId]);
+
+  const disconnect = async () => {
+    await Promise.all([
+      supabase.from("microsoft_tokens").delete().eq("user_id", userId),
+      supabase.from("graph_subscriptions").delete().eq("user_id", userId),
+    ]);
+    setIsConnected(false);
+    toast.success("Kalenderforbindelse afbrudt");
+  };
+
+  if (!isConnected) return null;
+
+  return (
+    <div className="pt-4 border-t">
+      <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={disconnect}>
+        <Unlink className="w-4 h-4" />
+        Afbryd kalenderforbindelse
+      </Button>
+    </div>
+  );
+};
+
 export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);

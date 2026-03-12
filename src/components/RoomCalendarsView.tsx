@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
-import { startOfDay, addDays, isSameDay, parseISO } from "date-fns";
+import { AlertCircle, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { startOfDay, addDays } from "date-fns";
 import { WeekDayGrid } from "./catering/WeekDayGrid";
 import { CateringDialogs } from "./catering/CateringDialogs";
 import { useWeekNavigation } from "./catering/useWeekNavigation";
@@ -16,7 +16,11 @@ interface RoomResult {
   error: string | null;
 }
 
-export const RoomCalendarsView = () => {
+export interface RoomCalendarsViewRef {
+  refresh: () => void;
+}
+
+export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
   const [roomResults, setRoomResults] = useState<RoomResult[]>([]);
   const [roomNames, setRoomNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -64,10 +68,16 @@ export const RoomCalendarsView = () => {
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    refresh: fetchRoomCalendars,
+  }));
+
   useEffect(() => {
     fetchRoomCalendars();
     fetchExistingOrders();
   }, [weekOffset]);
+
+  RoomCalendarsView.displayName = "RoomCalendarsView";
 
   if (isLoading) {
     return (
@@ -106,14 +116,9 @@ export const RoomCalendarsView = () => {
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <p className="text-sm text-muted-foreground">{weekLabel}</p>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w + 1)}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={fetchRoomCalendars} disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w + 1)}>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </div>
 
       {roomResults.length === 0 ? (
@@ -160,4 +165,6 @@ export const RoomCalendarsView = () => {
       />
     </>
   );
-};
+});
+
+RoomCalendarsView.displayName = "RoomCalendarsView";

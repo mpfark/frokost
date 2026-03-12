@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, AlertCircle, RefreshCw, Link, Unlink, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, AlertCircle, RefreshCw, Link, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO, startOfDay, addDays, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RoomCalendarsView } from "./RoomCalendarsView";
+import { RoomCalendarsView, type RoomCalendarsViewRef } from "./RoomCalendarsView";
 import { WeekDayGrid } from "./catering/WeekDayGrid";
 import { CateringDialogs } from "./catering/CateringDialogs";
 import { useWeekNavigation } from "./catering/useWeekNavigation";
@@ -29,6 +29,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: ExistingOrder } | null>(null);
+  const roomCalendarsRef = useRef<RoomCalendarsViewRef>(null);
 
   const { weekOffset, setWeekOffset, currentWeekStart, weekDays, weekLabel } = useWeekNavigation(selectedDate);
   const { existingOrders, fetchExistingOrders } = useCateringOrders(currentWeekStart);
@@ -164,9 +165,18 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                 Forplejning
               </CardTitle>
               <div className="flex items-center gap-1">
-                {isConnected && activeSubTab === "my-meetings" && (
+                {activeSubTab === "my-meetings" && isConnected && (
                   <Button variant="ghost" size="icon" onClick={fetchEvents} disabled={isLoading}>
                     <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                  </Button>
+                )}
+                {activeSubTab === "rooms" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => roomCalendarsRef.current?.refresh()}
+                  >
+                    <RefreshCw className="w-4 h-4" />
                   </Button>
                 )}
               </div>
@@ -244,7 +254,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
             </TabsContent>
 
             <TabsContent value="rooms" className="mt-0">
-              <RoomCalendarsView />
+              <RoomCalendarsView ref={roomCalendarsRef} />
             </TabsContent>
           </CardContent>
         </Card>

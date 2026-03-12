@@ -254,7 +254,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
             </TabsContent>
 
             <TabsContent value="rooms" className="mt-0">
-              <RoomCalendarsView />
+              <RoomCalendarsView ref={roomCalendarsRef} />
             </TabsContent>
           </CardContent>
         </Card>

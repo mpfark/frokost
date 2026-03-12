@@ -165,14 +165,9 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
               </CardTitle>
               <div className="flex items-center gap-1">
                 {isConnected && activeSubTab === "my-meetings" && (
-                  <>
-                    <Button variant="ghost" size="icon" onClick={fetchEvents} disabled={isLoading}>
-                      <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={disconnectMicrosoft} title="Afbryd forbindelse">
-                      <Unlink className="w-4 h-4" />
-                    </Button>
-                  </>
+                  <Button variant="ghost" size="icon" onClick={fetchEvents} disabled={isLoading}>
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                  </Button>
                 )}
               </div>
             </div>

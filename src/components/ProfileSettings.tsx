@@ -454,6 +454,9 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
           <PushSubscriptionButton />
         </div>
 
+        {/* Microsoft Calendar disconnect */}
+        <MicrosoftDisconnect userId={userId} />
+
         <div className="pt-4 border-t">
           <Button asChild variant="outline" className="w-full">
             <Link to="/install" className="flex items-center gap-2">

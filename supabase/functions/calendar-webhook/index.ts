@@ -91,12 +91,42 @@ Deno.serve(async (req) => {
     const clientId = Deno.env.get("AZURE_CLIENT_ID")!;
     const clientSecret = Deno.env.get("AZURE_CLIENT_SECRET")!;
 
-    // Get allowed locations from company settings
+    // Get configured room emails from company settings
     const { data: companySettings } = await serviceClient
       .from("company_settings")
-      .select("allowed_locations")
+      .select("resource_room_emails")
       .single();
-    const allowedLocations: string[] = (companySettings as any)?.allowed_locations || [];
+    const resourceRoomEmails: string[] = (companySettings as any)?.resource_room_emails || [];
+
+    // Fetch room display names from Graph API for filtering
+    let roomDisplayNames: string[] = [];
+    if (resourceRoomEmails.length > 0) {
+      try {
+        const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+        const tokenBody = new URLSearchParams({
+          client_id: clientId, client_secret: clientSecret,
+          grant_type: "client_credentials", scope: "https://graph.microsoft.com/.default",
+        });
+        const tokenRes = await fetch(tokenUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: tokenBody.toString() });
+        if (tokenRes.ok) {
+          const tokenData2 = await tokenRes.json();
+          const appToken = tokenData2.access_token;
+          const placesRes = await fetch("https://graph.microsoft.com/v1.0/places/microsoft.graph.room", {
+            headers: { Authorization: `Bearer ${appToken}`, "Content-Type": "application/json" },
+          });
+          if (placesRes.ok) {
+            const placesData = await placesRes.json();
+            const configuredEmailsLower = new Set(resourceRoomEmails.map(e => e.toLowerCase()));
+            roomDisplayNames = (placesData.value || [])
+              .filter((r: any) => configuredEmailsLower.has((r.emailAddress || "").toLowerCase()))
+              .map((r: any) => r.displayName)
+              .filter(Boolean);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch room display names for webhook:", e);
+      }
+    }
 
     // Group notifications by subscriptionId to avoid duplicate work
     const subscriptionIds = [...new Set(notifications.map((n: any) => n.subscriptionId))];

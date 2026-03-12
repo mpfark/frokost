@@ -40,6 +40,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [weekOffset, setWeekOffset] = useState(0);
   const [existingOrders, setExistingOrders] = useState<Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null; user_id: string; orderer_name: string | null }>>({});
   const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: { id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null } } | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState("my-meetings");
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
 
   // Check if user has connected Microsoft account
@@ -328,7 +329,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
   return (
     <>
-    <Tabs defaultValue="my-meetings" className="w-full">
+    <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -349,7 +350,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
             )}
           </div>
         </div>
-        {isConnected && (
+        {isConnected && activeSubTab === "my-meetings" && (
           <div className="flex items-center justify-between mt-1">
             <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w - 1)}>
               <ChevronLeft className="w-4 h-4" />

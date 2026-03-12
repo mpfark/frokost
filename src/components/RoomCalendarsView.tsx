@@ -116,14 +116,9 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <p className="text-sm text-muted-foreground">{weekLabel}</p>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w + 1)}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={fetchRoomCalendars} disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w + 1)}>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </div>
 
       {roomResults.length === 0 ? (

@@ -94,7 +94,10 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     if (data) setAllowedLocations((data as any).allowed_locations || []);
   };
 
-  const autoCancelOrphanedOrders = async (fetchedEvents: CalendarEvent[], orders: Record<string, { status: string; id: string }>) => {
+  const autoCancelOrphanedOrders = async (fetchedEvents: CalendarEvent[], orders: Record<string, ExistingOrder>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const eventKeys = new Set<string>();
     fetchedEvents.forEach((e) => {
       if (e.isAllDay || !e.location) return;
@@ -106,7 +109,10 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     });
     const orphanedIds: string[] = [];
     for (const [key, order] of Object.entries(orders)) {
-      if ((order.status === "pending" || order.status === "confirmed") && !eventKeys.has(key)) orphanedIds.push(order.id);
+      // Only auto-cancel orders created by the current user
+      if (order.user_id === user.id && (order.status === "pending" || order.status === "confirmed") && !eventKeys.has(key)) {
+        orphanedIds.push(order.id);
+      }
     }
     if (orphanedIds.length > 0) {
       for (const id of orphanedIds) await supabase.from("catering_orders").update({ status: "cancelled" }).eq("id", id);

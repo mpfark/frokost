@@ -213,9 +213,8 @@ const Index = () => {
               </div>
             </TabsContent>
             <TabsContent value="profile">
-              <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="max-w-lg mx-auto">
                 <ProfileSettings userId={user.id} />
-                <PasswordChange />
               </div>
             </TabsContent>
           </Tabs>

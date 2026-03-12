@@ -350,7 +350,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
             )}
           </div>
         </div>
-        {isConnected && (
+        {isConnected && activeSubTab === "my-meetings" && (
           <div className="flex items-center justify-between mt-1">
             <Button variant="ghost" size="icon" onClick={() => setWeekOffset((w) => w - 1)}>
               <ChevronLeft className="w-4 h-4" />

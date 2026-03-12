@@ -424,10 +424,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
                         onSelect={setVacationEndDate}
                         disabled={(date) => {
                           const dateStart = startOfDay(date);
-                          return (
-                            isBefore(dateStart, vacationStartDate || today) ||
-                            isBefore(maxDate, dateStart)
-                          );
+                          return isBefore(dateStart, vacationStartDate || today);
                         }}
                         initialFocus
                         locale={da}

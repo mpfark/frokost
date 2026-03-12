@@ -351,7 +351,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full">
                 <Palmtree className="w-4 h-4 mr-2" />
-                Meld ferie
+                Meld fravær
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">

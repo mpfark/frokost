@@ -9,6 +9,8 @@ import { format, parseISO, startOfDay, addDays, startOfWeek, endOfWeek, isSameDa
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
 import { CateringOrderDialog } from "./CateringOrderDialog";
+import { RoomCalendarsView } from "./RoomCalendarsView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CalendarEvent {
   id: string;
@@ -326,6 +328,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
   return (
     <>
+    <Tabs defaultValue="my-meetings" className="w-full">
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -356,9 +359,14 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-        )}
+         )}
+        <TabsList className="w-full mt-2">
+          <TabsTrigger value="my-meetings" className="flex-1">Dine møder</TabsTrigger>
+          <TabsTrigger value="rooms" className="flex-1">Mødelokaler</TabsTrigger>
+        </TabsList>
       </CardHeader>
       <CardContent>
+        <TabsContent value="my-meetings" className="mt-0">
         {isConnected === null ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
@@ -422,7 +430,6 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                           key={event.id}
                           className="border rounded-lg p-3 flex flex-col gap-2 bg-card min-h-[120px]"
                         >
-                          {/* Top Row: Title and Attendee Count */}
                           <div className="flex justify-between items-start gap-2">
                             <h4 className="text-sm font-semibold leading-tight line-clamp-2" title={event.subject}>
                               {event.subject}
@@ -434,8 +441,6 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                               </div>
                             )}
                           </div>
-
-                          {/* Metadata Row */}
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -448,8 +453,6 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                               </span>
                             )}
                           </div>
-
-                          {/* Action Row */}
                           <div className="flex items-center justify-end gap-2 mt-auto">
                             {(() => {
                               const orderKey = `${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}|${(event.location || "").toLowerCase()}`;
@@ -534,8 +537,14 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
             })}
           </div>
         )}
+        </TabsContent>
+
+        <TabsContent value="rooms" className="mt-0">
+          <RoomCalendarsView />
+        </TabsContent>
       </CardContent>
     </Card>
+    </Tabs>
 
     {cateringEvent && (
       <CateringOrderDialog

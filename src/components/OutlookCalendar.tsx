@@ -29,6 +29,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: ExistingOrder } | null>(null);
+  const roomCalendarsRef = useRef<RoomCalendarsViewRef>(null);
 
   const { weekOffset, setWeekOffset, currentWeekStart, weekDays, weekLabel } = useWeekNavigation(selectedDate);
   const { existingOrders, fetchExistingOrders } = useCateringOrders(currentWeekStart);

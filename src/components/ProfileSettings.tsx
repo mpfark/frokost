@@ -356,9 +356,9 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Meld ferie</DialogTitle>
+                <DialogTitle>Meld fravær</DialogTitle>
                 <DialogDescription>
-                  Vælg en periode, og du bliver automatisk frameldt frokost på alle hverdage.
+                  Vælg en periode (ferie, barsel, mv.), og du bliver automatisk frameldt frokost på alle hverdage.
                 </DialogDescription>
               </DialogHeader>
               

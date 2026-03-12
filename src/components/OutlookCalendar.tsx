@@ -26,7 +26,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("my-meetings");
-  const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
+  const [roomDisplayNames, setRoomDisplayNames] = useState<string[]>([]);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: ExistingOrder } | null>(null);
   const roomCalendarsRef = useRef<RoomCalendarsViewRef>(null);
@@ -89,9 +89,24 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  const fetchAllowedLocations = async () => {
-    const { data } = await supabase.from("company_settings").select("allowed_locations").single();
-    if (data) setAllowedLocations((data as any).allowed_locations || []);
+  const fetchRoomDisplayNames = async () => {
+    try {
+      const { data: settings } = await supabase.from("company_settings").select("resource_room_emails").single();
+      const roomEmails: string[] = (settings as any)?.resource_room_emails || [];
+      if (roomEmails.length === 0) return;
+
+      const { data } = await supabase.functions.invoke("get-meeting-rooms");
+      if (data?.rooms) {
+        const configuredEmailsLower = new Set(roomEmails.map((e: string) => e.toLowerCase()));
+        const names = data.rooms
+          .filter((r: any) => configuredEmailsLower.has((r.emailAddress || "").toLowerCase()))
+          .map((r: any) => r.displayName)
+          .filter(Boolean);
+        setRoomDisplayNames(names);
+      }
+    } catch (err) {
+      console.error("Failed to fetch room display names:", err);
+    }
   };
 
   const autoCancelOrphanedOrders = async (fetchedEvents: CalendarEvent[], orders: Record<string, ExistingOrder>) => {
@@ -121,7 +136,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  useEffect(() => { checkConnection(); fetchAllowedLocations(); }, []);
+  useEffect(() => { checkConnection(); fetchRoomDisplayNames(); }, []);
 
   useEffect(() => {
     if (isConnected && activeSubTab === "my-meetings") {
@@ -149,13 +164,13 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   }, [isConnected, selectedDate, weekOffset, activeSubTab]);
 
-  // Filter events for "my meetings" view
+  // Filter events for "my meetings" view — only show events in configured meeting rooms
   const filteredEvents = events
     .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
     .filter((e) => {
-      if (allowedLocations.length > 0) {
+      if (roomDisplayNames.length > 0) {
         const loc = (e.location || "").toLowerCase();
-        return allowedLocations.some(al => loc.includes(al.toLowerCase()));
+        return roomDisplayNames.some(name => loc.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(loc));
       }
       return true;
     });

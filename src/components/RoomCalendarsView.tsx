@@ -68,10 +68,16 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    refresh: fetchRoomCalendars,
+  }));
+
   useEffect(() => {
     fetchRoomCalendars();
     fetchExistingOrders();
   }, [weekOffset]);
+
+  RoomCalendarsView.displayName = "RoomCalendarsView";
 
   if (isLoading) {
     return (

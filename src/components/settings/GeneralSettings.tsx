@@ -37,6 +37,7 @@ export const GeneralSettings = () => {
         setAllowedDomain(data.allowed_domain);
         setWeeksToDisplay(data.weeks_to_display || 3);
         setAllowedLocations((data as any).allowed_locations || []);
+        setResourceRoomEmails((data as any).resource_room_emails || []);
       }
     } catch (error: any) {
       toast({

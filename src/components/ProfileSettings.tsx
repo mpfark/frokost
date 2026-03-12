@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Smartphone, Palmtree, CalendarIcon, BellRing, BellOff, LogOut } from "lucide-react";
+import { Loader2, Smartphone, Palmtree, CalendarIcon, BellRing, BellOff, LogOut, Unlink, CalendarDays } from "lucide-react";
 import { PushSubscriptionButton } from "@/components/PushSubscriptionButton";
 import { profileSchema } from "@/lib/validations";
 import {
@@ -28,6 +28,35 @@ import { da } from "date-fns/locale";
 interface ProfileSettingsProps {
   userId: string;
 }
+
+const MicrosoftDisconnect = ({ userId }: { userId: string }) => {
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.from("microsoft_tokens").select("id").eq("user_id", userId).maybeSingle()
+      .then(({ data }) => setIsConnected(!!data));
+  }, [userId]);
+
+  const disconnect = async () => {
+    await Promise.all([
+      supabase.from("microsoft_tokens").delete().eq("user_id", userId),
+      supabase.from("graph_subscriptions").delete().eq("user_id", userId),
+    ]);
+    setIsConnected(false);
+    toast.success("Kalenderforbindelse afbrudt");
+  };
+
+  if (!isConnected) return null;
+
+  return (
+    <div className="pt-4 border-t">
+      <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={disconnect}>
+        <Unlink className="w-4 h-4" />
+        Afbryd kalenderforbindelse
+      </Button>
+    </div>
+  );
+};
 
 export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -453,6 +482,9 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
         <div className="pt-4 border-t">
           <PushSubscriptionButton />
         </div>
+
+        {/* Microsoft Calendar disconnect */}
+        <MicrosoftDisconnect userId={userId} />
 
         <div className="pt-4 border-t">
           <Button asChild variant="outline" className="w-full">

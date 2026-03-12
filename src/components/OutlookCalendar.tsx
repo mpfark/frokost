@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, AlertCircle, RefreshCw, Link, Unlink, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, AlertCircle, RefreshCw, Link, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO, startOfDay, addDays, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RoomCalendarsView } from "./RoomCalendarsView";
+import { RoomCalendarsView, type RoomCalendarsViewRef } from "./RoomCalendarsView";
 import { WeekDayGrid } from "./catering/WeekDayGrid";
 import { CateringDialogs } from "./catering/CateringDialogs";
 import { useWeekNavigation } from "./catering/useWeekNavigation";

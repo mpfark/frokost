@@ -62,11 +62,11 @@ export const MeetingRoomSelector = ({
   };
 
   // Auto-fetch rooms on mount if there are selected emails to show names
-  useState(() => {
+  useEffect(() => {
     if (selectedEmails.length > 0 && !hasFetched) {
       fetchRooms();
     }
-  });
+  }, []);
 
   const toggleRoom = (email: string) => {
     if (selectedEmails.includes(email)) {

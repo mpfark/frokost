@@ -199,7 +199,7 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
   };
 
   return (
-    <div className="pt-4 border-t space-y-3">
+    <div className="space-y-3">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" className="w-full">

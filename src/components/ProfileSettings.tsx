@@ -128,62 +128,74 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profilindstillinger</CardTitle>
-        <CardDescription>Administrer dit navn og dine kostpræferencer</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Fulde navn</Label>
-          <Input
-            id="fullName"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Dit fulde navn"
-          />
-        </div>
-
-        <div className="space-y-4">
-          <Label className="text-base font-semibold">Kostpræferencer</Label>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="gluten" checked={isGlutenFree} onCheckedChange={(checked) => setIsGlutenFree(checked as boolean)} />
-            <Label htmlFor="gluten" className="text-sm font-normal cursor-pointer">Glutenfri</Label>
+    <div className="space-y-6">
+      {/* Profile Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Profilindstillinger</CardTitle>
+          <CardDescription>Administrer dit navn og dine kostpræferencer</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Fulde navn</Label>
+            <Input
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Dit fulde navn"
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="lactose" checked={isLactoseFree} onCheckedChange={(checked) => setIsLactoseFree(checked as boolean)} />
-            <Label htmlFor="lactose" className="text-sm font-normal cursor-pointer">Laktosefri</Label>
+
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Kostpræferencer</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="gluten" checked={isGlutenFree} onCheckedChange={(checked) => setIsGlutenFree(checked as boolean)} />
+              <Label htmlFor="gluten" className="text-sm font-normal cursor-pointer">Glutenfri</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="lactose" checked={isLactoseFree} onCheckedChange={(checked) => setIsLactoseFree(checked as boolean)} />
+              <Label htmlFor="lactose" className="text-sm font-normal cursor-pointer">Laktosefri</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="vegetarian" checked={isVegetarian} onCheckedChange={(checked) => setIsVegetarian(checked as boolean)} />
+              <Label htmlFor="vegetarian" className="text-sm font-normal cursor-pointer">Vegetar</Label>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="vegetarian" checked={isVegetarian} onCheckedChange={(checked) => setIsVegetarian(checked as boolean)} />
-            <Label htmlFor="vegetarian" className="text-sm font-normal cursor-pointer">Vegetar</Label>
-          </div>
-        </div>
 
-        <Button onClick={handleSave} disabled={isLoading} className="w-full">
-          {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gemmer...</>) : "Gem ændringer"}
-        </Button>
+          <Button onClick={handleSave} disabled={isLoading} className="w-full">
+            {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gemmer...</>) : "Gem ændringer"}
+          </Button>
+        </CardContent>
+      </Card>
 
-        {/* Absence Section */}
-        <AbsenceManager userId={userId} />
+      {/* Absence Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Meld fravær</CardTitle>
+          <CardDescription>Registrer ferie, barsel eller andet fravær</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AbsenceManager userId={userId} />
+        </CardContent>
+      </Card>
 
-        {/* Push Notifications */}
-        <div className="pt-4 border-t">
+      {/* Functions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Funktioner</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <PushSubscriptionButton />
-        </div>
 
-        <MicrosoftDisconnect userId={userId} />
+          <MicrosoftDisconnect userId={userId} />
 
-        <div className="pt-4 border-t">
           <Button asChild variant="outline" className="w-full">
             <Link to="/install" className="flex items-center gap-2">
               <Smartphone className="w-4 h-4" />
               Installer appen på telefonen
             </Link>
           </Button>
-        </div>
 
-        <div className="pt-4 border-t">
           <Button
             variant="outline"
             className="w-full text-destructive hover:text-destructive"
@@ -195,8 +207,8 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             <LogOut className="w-4 h-4" />
             Log ud
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

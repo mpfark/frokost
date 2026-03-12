@@ -243,7 +243,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
 
       if (error) {
         console.error("Error inserting vacation optouts:", error);
-        toast.error("Kunne ikke gemme ferie");
+        toast.error("Kunne ikke gemme fravær");
       } else {
         toast.success(`Fravær registreret! Du er nu frameldt ${datesToOptout.length} dag${datesToOptout.length === 1 ? '' : 'e'}`);
         setVacationDialogOpen(false);

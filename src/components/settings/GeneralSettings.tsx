@@ -13,6 +13,7 @@ export const GeneralSettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
+  const [resourceRoomEmails, setResourceRoomEmails] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);

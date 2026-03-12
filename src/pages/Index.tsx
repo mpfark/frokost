@@ -7,7 +7,7 @@ import { KitchenView } from "@/components/KitchenView";
 import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
 import { UserNotifications } from "@/components/UserNotifications";
 import { ProfileSettings } from "@/components/ProfileSettings";
-import { PasswordChange } from "@/components/PasswordChange";
+
 import { OutlookCalendar } from "@/components/OutlookCalendar";
 import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";

@@ -226,6 +226,12 @@ export const GeneralSettings = () => {
           )}
         </div>
 
+        <MeetingRoomSelector
+          selectedEmails={resourceRoomEmails}
+          onSelectionChange={setResourceRoomEmails}
+          disabled={isLoading}
+        />
+
         <Button onClick={handleSave} disabled={isLoading} className="w-full">
           {isLoading ? "Gemmer..." : "Gem indstillinger"}
         </Button>

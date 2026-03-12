@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +60,13 @@ export const MeetingRoomSelector = ({
       setIsFetching(false);
     }
   };
+
+  // Auto-fetch rooms on mount if there are selected emails to show names
+  useEffect(() => {
+    if (selectedEmails.length > 0 && !hasFetched) {
+      fetchRooms();
+    }
+  }, []);
 
   const toggleRoom = (email: string) => {
     if (selectedEmails.includes(email)) {
@@ -140,15 +147,18 @@ export const MeetingRoomSelector = ({
         {selectedEmails.length > 0 && !hasFetched && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              {selectedEmails.length} mødelokale{selectedEmails.length !== 1 ? "r" : ""} valgt:
+              {selectedEmails.length} mødelokale{selectedEmails.length !== 1 ? "r" : ""} valgt
+              {isFetching ? " — henter navne..." : ":"}
             </p>
-            <div className="flex flex-wrap gap-1">
-              {selectedEmails.map((email) => (
-                <Badge key={email} variant="secondary" className="text-xs">
-                  {email}
-                </Badge>
-              ))}
-            </div>
+            {!isFetching && (
+              <div className="flex flex-wrap gap-1">
+                {selectedEmails.map((email) => (
+                  <Badge key={email} variant="secondary" className="text-xs">
+                    {email}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

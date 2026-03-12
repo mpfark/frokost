@@ -462,7 +462,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
                       Gemmer...
                     </>
                   ) : (
-                    "Gem ferie"
+                    "Gem fravær"
                   )}
                 </Button>
               </DialogFooter>

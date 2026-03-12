@@ -201,9 +201,9 @@ Deno.serve(async (req) => {
       const events = (calendarData.value || [])
         .filter((e: any) => !e.isAllDay && (e.attendees || []).filter((a: any) => a.type !== "resource").length > 0 && e.location?.displayName)
         .filter((e: any) => {
-          if (allowedLocations.length > 0) {
+          if (roomDisplayNames.length > 0) {
             const loc = (e.location?.displayName || "").toLowerCase();
-            return allowedLocations.some((al) => loc.includes(al.toLowerCase()));
+            return roomDisplayNames.some((name) => loc.includes(name.toLowerCase()) || name.toLowerCase().includes(loc));
           }
           return true;
         });

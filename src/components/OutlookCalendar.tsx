@@ -164,13 +164,13 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   }, [isConnected, selectedDate, weekOffset, activeSubTab]);
 
-  // Filter events for "my meetings" view
+  // Filter events for "my meetings" view — only show events in configured meeting rooms
   const filteredEvents = events
     .filter((e) => !e.isAllDay && e.attendeeCount > 0 && !!e.location)
     .filter((e) => {
-      if (allowedLocations.length > 0) {
+      if (roomDisplayNames.length > 0) {
         const loc = (e.location || "").toLowerCase();
-        return allowedLocations.some(al => loc.includes(al.toLowerCase()));
+        return roomDisplayNames.some(name => loc.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(loc));
       }
       return true;
     });

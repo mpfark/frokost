@@ -9,6 +9,8 @@ import { format, parseISO, startOfDay, addDays, startOfWeek, endOfWeek, isSameDa
 import { da } from "date-fns/locale";
 import { toast } from "sonner";
 import { CateringOrderDialog } from "./CateringOrderDialog";
+import { RoomCalendarsView } from "./RoomCalendarsView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CalendarEvent {
   id: string;

@@ -452,7 +452,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                           {/* Action Row */}
                           <div className="flex items-center justify-end gap-2 mt-auto">
                             {(() => {
-                              const orderKey = `${event.subject}|${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
+                              const orderKey = `${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}|${(event.location || "").toLowerCase()}`;
                               const order = existingOrders[orderKey];
                               if (order) {
                                 const statusLabels: Record<string, { label: string; className: string }> = {
@@ -463,46 +463,53 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                                 };
                                 const info = statusLabels[order.status] || { label: order.status, className: "" };
                                 return (
-                                    <>
-                                      <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
-                                        {order.status === "pending" && <Clock className="w-3 h-3" />}
-                                        {order.status === "confirmed" && <Check className="w-3 h-3" />}
-                                        {info.label}
-                                      </Badge>
-                                      {(order.status === "pending" || order.status === "confirmed") && (
-                                        <>
-                                          <Button
-                                            variant="outline"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            title="Rediger"
-                                            onClick={() => setEditingOrder({ event, order })}
-                                          >
-                                            <Pencil className="w-3.5 h-3.5" />
-                                          </Button>
-                                          <Button
-                                            variant="outline"
-                                            size="icon"
-                                            className="h-8 w-8 text-destructive hover:text-destructive"
-                                            title="Annullér"
-                                            onClick={async () => {
-                                              const { error } = await supabase
-                                                .from("catering_orders")
-                                                .update({ status: "cancelled" })
-                                                .eq("id", order.id);
-                                              if (error) {
-                                                toast.error("Kunne ikke annullere bestilling");
-                                              } else {
-                                                toast.success("Bestilling annulleret");
-                                                fetchExistingOrders();
-                                              }
-                                            }}
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </Button>
-                                        </>
+                                    <div className="flex flex-col items-end gap-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className={`gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 ${info.className}`}>
+                                          {order.status === "pending" && <Clock className="w-3 h-3" />}
+                                          {order.status === "confirmed" && <Check className="w-3 h-3" />}
+                                          {info.label}
+                                        </Badge>
+                                        {(order.status === "pending" || order.status === "confirmed") && (
+                                          <>
+                                            <Button
+                                              variant="outline"
+                                              size="icon"
+                                              className="h-8 w-8"
+                                              title="Rediger"
+                                              onClick={() => setEditingOrder({ event, order })}
+                                            >
+                                              <Pencil className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="icon"
+                                              className="h-8 w-8 text-destructive hover:text-destructive"
+                                              title="Annullér"
+                                              onClick={async () => {
+                                                const { error } = await supabase
+                                                  .from("catering_orders")
+                                                  .update({ status: "cancelled" })
+                                                  .eq("id", order.id);
+                                                if (error) {
+                                                  toast.error("Kunne ikke annullere bestilling");
+                                                } else {
+                                                  toast.success("Bestilling annulleret");
+                                                  fetchExistingOrders();
+                                                }
+                                              }}
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </>
+                                        )}
+                                      </div>
+                                      {order.orderer_name && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                          Bestilt af {order.orderer_name}
+                                        </span>
                                       )}
-                                    </>
+                                    </div>
                                 );
                               }
                               return (

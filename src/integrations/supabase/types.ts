@@ -94,6 +94,7 @@ export type Database = {
           reminder_day: number
           reminder_enabled: boolean
           reminder_hour: number
+          resource_room_emails: string[]
           secondary_color: string | null
           updated_at: string
           weeks_to_display: number
@@ -108,6 +109,7 @@ export type Database = {
           reminder_day?: number
           reminder_enabled?: boolean
           reminder_hour?: number
+          resource_room_emails?: string[]
           secondary_color?: string | null
           updated_at?: string
           weeks_to_display?: number
@@ -122,6 +124,7 @@ export type Database = {
           reminder_day?: number
           reminder_enabled?: boolean
           reminder_hour?: number
+          resource_room_emails?: string[]
           secondary_color?: string | null
           updated_at?: string
           weeks_to_display?: number

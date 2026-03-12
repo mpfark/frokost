@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Building2, MapPin, Plus, X } from "lucide-react";
+import { MeetingRoomSelector } from "./MeetingRoomSelector";
 
 export const GeneralSettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
   const [allowedLocations, setAllowedLocations] = useState<string[]>([]);
+  const [resourceRoomEmails, setResourceRoomEmails] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -24,7 +26,7 @@ export const GeneralSettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain, weeks_to_display, allowed_locations")
+        .select("allowed_domain, weeks_to_display, allowed_locations, resource_room_emails")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -35,6 +37,7 @@ export const GeneralSettings = () => {
         setAllowedDomain(data.allowed_domain);
         setWeeksToDisplay(data.weeks_to_display || 3);
         setAllowedLocations((data as any).allowed_locations || []);
+        setResourceRoomEmails((data as any).resource_room_emails || []);
       }
     } catch (error: any) {
       toast({
@@ -102,6 +105,7 @@ export const GeneralSettings = () => {
         allowed_domain: allowedDomain.toLowerCase(),
         weeks_to_display: weeksToDisplay,
         allowed_locations: allowedLocations,
+        resource_room_emails: resourceRoomEmails,
       };
 
       if (existing) {
@@ -221,6 +225,12 @@ export const GeneralSettings = () => {
             </div>
           )}
         </div>
+
+        <MeetingRoomSelector
+          selectedEmails={resourceRoomEmails}
+          onSelectionChange={setResourceRoomEmails}
+          disabled={isLoading}
+        />
 
         <Button onClick={handleSave} disabled={isLoading} className="w-full">
           {isLoading ? "Gemmer..." : "Gem indstillinger"}

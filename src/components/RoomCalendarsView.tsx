@@ -26,6 +26,7 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
   const [roomNames, setRoomNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [cateringEvent, setCateringEvent] = useState<CalendarEvent | null>(null);
   const [editingOrder, setEditingOrder] = useState<{ event: CalendarEvent; order: ExistingOrder } | null>(null);
 

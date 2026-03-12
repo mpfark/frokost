@@ -44,7 +44,7 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
   return (
     <div className="border rounded-lg p-3 flex flex-col gap-2 bg-card min-h-[120px]">
       <div className="flex justify-between items-start gap-2">
-        <h4 className="text-sm font-semibold leading-tight line-clamp-2" title={event.subject}>
+        <h4 className="text-sm font-semibold leading-tight line-clamp-1" title={event.subject}>
           {event.subject}
         </h4>
         {event.attendeeCount > 0 && (

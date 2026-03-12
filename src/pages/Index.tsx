@@ -213,7 +213,7 @@ const Index = () => {
               </div>
             </TabsContent>
             <TabsContent value="profile">
-              <div className="max-w-lg mx-auto">
+              <div className="max-w-4xl mx-auto">
                 <ProfileSettings userId={user.id} />
               </div>
             </TabsContent>

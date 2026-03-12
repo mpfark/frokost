@@ -252,7 +252,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
       }
     } catch (error) {
       console.error("Error submitting vacation:", error);
-      toast.error("Der opstod en fejl ved registrering af ferie");
+      toast.error("Der opstod en fejl ved registrering af fravær");
     } finally {
       setIsSubmittingVacation(false);
     }

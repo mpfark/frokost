@@ -54,17 +54,22 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
       if (fnError) throw new Error(fnError.message || "Kunne ikke hente lokalekalendere");
       if (data?.error) throw new Error(data.message || data.error);
 
-      setRoomResults(data?.rooms || []);
+      const rooms: RoomResult[] = data?.rooms || [];
+      setRoomResults(rooms);
 
       const names: Record<string, string> = {};
-      roomEmails.forEach((email: string) => {
-        const localPart = email.split("@")[0];
-        names[email] = localPart.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      rooms.forEach((room: RoomResult) => {
+        if (room.displayName) {
+          names[room.roomEmail] = room.displayName;
+        } else {
+          const localPart = room.roomEmail.split("@")[0];
+          names[room.roomEmail] = localPart.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        }
       });
       setRoomNames(names);
       // Set first room as active if none selected
-      if (!activeRoom && roomEmails.length > 0) {
-        setActiveRoom(roomEmails[0]);
+      if (!activeRoom && rooms.length > 0) {
+        setActiveRoom(rooms[0].roomEmail);
       }
     } catch (err: any) {
       console.error("Room calendar fetch error:", err);

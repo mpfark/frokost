@@ -165,9 +165,18 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                 Forplejning
               </CardTitle>
               <div className="flex items-center gap-1">
-                {isConnected && activeSubTab === "my-meetings" && (
+                {activeSubTab === "my-meetings" && isConnected && (
                   <Button variant="ghost" size="icon" onClick={fetchEvents} disabled={isLoading}>
                     <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                  </Button>
+                )}
+                {activeSubTab === "rooms" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => roomCalendarsRef.current?.refresh()}
+                  >
+                    <RefreshCw className="w-4 h-4" />
                   </Button>
                 )}
               </div>

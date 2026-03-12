@@ -147,15 +147,18 @@ export const MeetingRoomSelector = ({
         {selectedEmails.length > 0 && !hasFetched && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              {selectedEmails.length} mødelokale{selectedEmails.length !== 1 ? "r" : ""} valgt:
+              {selectedEmails.length} mødelokale{selectedEmails.length !== 1 ? "r" : ""} valgt
+              {isFetching ? " — henter navne..." : ":"}
             </p>
-            <div className="flex flex-wrap gap-1">
-              {selectedEmails.map((email) => (
-                <Badge key={email} variant="secondary" className="text-xs">
-                  {email}
-                </Badge>
-              ))}
-            </div>
+            {!isFetching && (
+              <div className="flex flex-wrap gap-1">
+                {selectedEmails.map((email) => (
+                  <Badge key={email} variant="secondary" className="text-xs">
+                    {email}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

@@ -136,7 +136,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  useEffect(() => { checkConnection(); fetchAllowedLocations(); }, []);
+  useEffect(() => { checkConnection(); fetchRoomDisplayNames(); }, []);
 
   useEffect(() => {
     if (isConnected && activeSubTab === "my-meetings") {

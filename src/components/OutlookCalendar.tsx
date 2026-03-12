@@ -198,7 +198,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
       try {
         const date = format(parseISO(e.startTime), "yyyy-MM-dd");
         const time = `${format(parseISO(e.startTime), "HH:mm")} - ${format(parseISO(e.endTime), "HH:mm")}`;
-        eventKeys.add(`${e.subject}|${date}|${time}`);
+        eventKeys.add(`${date}|${time}|${(e.location || "").toLowerCase()}`);
       } catch { /* ignore parse errors */ }
     });
 

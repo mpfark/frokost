@@ -165,4 +165,6 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
       />
     </>
   );
-};
+});
+
+RoomCalendarsView.displayName = "RoomCalendarsView";

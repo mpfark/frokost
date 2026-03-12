@@ -248,23 +248,27 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
           setIsLoading(false);
         }
 
-        // Fetch existing orders
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        // Fetch existing orders (shared across all users)
         const weekStart = format(currentWeekStart, "yyyy-MM-dd");
         const weekEnd = format(addDays(currentWeekStart, 5), "yyyy-MM-dd");
         const { data: ordersData } = await supabase
           .from("catering_orders")
-          .select("id, meeting_subject, meeting_date, meeting_time, status, person_count, catering_types, dietary_notes, comment")
-          .eq("user_id", user.id)
+          .select("id, meeting_subject, meeting_date, meeting_time, meeting_location, status, person_count, catering_types, dietary_notes, comment, user_id, profiles:user_id(full_name, email)")
           .gte("meeting_date", weekStart)
-          .lte("meeting_date", weekEnd);
+          .lte("meeting_date", weekEnd)
+          .neq("status", "cancelled");
 
         if (ordersData) {
-          const orderMap: Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null }> = {};
-          ordersData.forEach((o) => {
-            const key = `${o.meeting_subject}|${o.meeting_date}|${o.meeting_time}`;
-            orderMap[key] = { status: o.status, id: o.id, person_count: o.person_count, catering_types: o.catering_types, dietary_notes: o.dietary_notes, comment: o.comment };
+          const orderMap: Record<string, { status: string; id: string; person_count: number; catering_types: string[]; dietary_notes: string | null; comment: string | null; user_id: string; orderer_name: string | null }> = {};
+          ordersData.forEach((o: any) => {
+            const key = `${o.meeting_date}|${o.meeting_time}|${(o.meeting_location || "").toLowerCase()}`;
+            const profile = o.profiles;
+            orderMap[key] = {
+              status: o.status, id: o.id, person_count: o.person_count,
+              catering_types: o.catering_types, dietary_notes: o.dietary_notes, comment: o.comment,
+              user_id: o.user_id,
+              orderer_name: profile?.full_name || profile?.email || null,
+            };
           });
           setExistingOrders(orderMap);
 

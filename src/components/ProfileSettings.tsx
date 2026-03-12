@@ -176,10 +176,6 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
       return;
     }
 
-    if (differenceInDays(endDay, today) > 60) {
-      toast.error("Du kan maksimalt melde ferie 60 dage frem");
-      return;
-    }
 
     setIsSubmittingVacation(true);
 
@@ -247,16 +243,16 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
 
       if (error) {
         console.error("Error inserting vacation optouts:", error);
-        toast.error("Kunne ikke gemme ferie");
+        toast.error("Kunne ikke gemme fravær");
       } else {
-        toast.success(`Ferie registreret! Du er nu frameldt ${datesToOptout.length} dag${datesToOptout.length === 1 ? '' : 'e'}`);
+        toast.success(`Fravær registreret! Du er nu frameldt ${datesToOptout.length} dag${datesToOptout.length === 1 ? '' : 'e'}`);
         setVacationDialogOpen(false);
         setVacationStartDate(undefined);
         setVacationEndDate(undefined);
       }
     } catch (error) {
       console.error("Error submitting vacation:", error);
-      toast.error("Der opstod en fejl ved registrering af ferie");
+      toast.error("Der opstod en fejl ved registrering af fravær");
     } finally {
       setIsSubmittingVacation(false);
     }
@@ -273,7 +269,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
   }
 
   const today = startOfDay(new Date());
-  const maxDate = addDays(today, 60);
+  
 
   return (
     <Card>
@@ -355,14 +351,14 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full">
                 <Palmtree className="w-4 h-4 mr-2" />
-                Meld ferie
+                Meld fravær
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Meld ferie</DialogTitle>
+                <DialogTitle>Meld fravær</DialogTitle>
                 <DialogDescription>
-                  Vælg en periode, og du bliver automatisk frameldt frokost på alle hverdage.
+                  Vælg en periode (ferie, barsel, mv.), og du bliver automatisk frameldt frokost på alle hverdage.
                 </DialogDescription>
               </DialogHeader>
               
@@ -392,8 +388,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
                         selected={vacationStartDate}
                         onSelect={setVacationStartDate}
                         disabled={(date) => 
-                          isBefore(startOfDay(date), today) || 
-                          isBefore(maxDate, startOfDay(date))
+                          isBefore(startOfDay(date), today)
                         }
                         initialFocus
                         locale={da}
@@ -429,10 +424,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
                         onSelect={setVacationEndDate}
                         disabled={(date) => {
                           const dateStart = startOfDay(date);
-                          return (
-                            isBefore(dateStart, vacationStartDate || today) ||
-                            isBefore(maxDate, dateStart)
-                          );
+                          return isBefore(dateStart, vacationStartDate || today);
                         }}
                         initialFocus
                         locale={da}
@@ -470,7 +462,7 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
                       Gemmer...
                     </>
                   ) : (
-                    "Gem ferie"
+                    "Gem fravær"
                   )}
                 </Button>
               </DialogFooter>

@@ -80,6 +80,25 @@ Deno.serve(async (req) => {
     const start = startDate || new Date().toISOString();
     const end = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
+    // Fetch room display names from Graph API
+    let roomDisplayNames: Record<string, string> = {};
+    try {
+      const placesUrl = "https://graph.microsoft.com/v1.0/places/microsoft.graph.room";
+      const placesRes = await fetch(placesUrl, {
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      });
+      if (placesRes.ok) {
+        const placesData = await placesRes.json();
+        for (const room of (placesData.value || [])) {
+          if (room.emailAddress) {
+            roomDisplayNames[room.emailAddress.toLowerCase()] = room.displayName;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch room names:", e);
+    }
+
     // Fetch calendar events for each room in parallel
     const roomResults = await Promise.all(
       roomEmails.map(async (email: string) => {
@@ -95,7 +114,7 @@ Deno.serve(async (req) => {
         if (!graphRes.ok) {
           const errorText = await graphRes.text();
           console.error(`Graph API error for ${email}:`, graphRes.status, errorText);
-          return { roomEmail: email, events: [], error: `API fejl: ${graphRes.status}` };
+          return { roomEmail: email, displayName: roomDisplayNames[email.toLowerCase()] || null, events: [], error: `API fejl: ${graphRes.status}` };
         }
 
         const calendarData = await graphRes.json();
@@ -117,7 +136,7 @@ Deno.serve(async (req) => {
           };
         });
 
-        return { roomEmail: email, events, error: null };
+        return { roomEmail: email, displayName: roomDisplayNames[email.toLowerCase()] || null, events, error: null };
       })
     );
 

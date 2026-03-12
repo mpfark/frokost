@@ -13,6 +13,7 @@ import type { CalendarEvent, ExistingOrder } from "./catering/types";
 
 interface RoomResult {
   roomEmail: string;
+  displayName?: string | null;
   events: CalendarEvent[];
   error: string | null;
 }

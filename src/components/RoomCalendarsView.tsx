@@ -61,6 +61,10 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
         names[email] = localPart.replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       });
       setRoomNames(names);
+      // Set first room as active if none selected
+      if (!activeRoom && roomEmails.length > 0) {
+        setActiveRoom(roomEmails[0]);
+      }
     } catch (err: any) {
       console.error("Room calendar fetch error:", err);
       setError(err.message || "Ukendt fejl");

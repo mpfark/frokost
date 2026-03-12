@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN resource_room_emails text[] NOT NULL DEFAULT '{}'::text[];

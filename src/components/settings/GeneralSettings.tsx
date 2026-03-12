@@ -26,7 +26,7 @@ export const GeneralSettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain, weeks_to_display, allowed_locations")
+        .select("allowed_domain, weeks_to_display, allowed_locations, resource_room_emails")
         .single();
 
       if (error && error.code !== "PGRST116") {

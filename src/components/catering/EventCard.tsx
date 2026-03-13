@@ -78,10 +78,10 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 mt-auto">
+      <div className="flex items-center justify-between gap-2 mt-auto">
         {order ? (
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex flex-col gap-0.5">
               {(() => {
                 const info = STATUS_LABELS[order.status] || { label: order.status, className: "" };
                 return (
@@ -92,10 +92,21 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
                   </Badge>
                 );
               })()}
+              {order.orderer_name && (
+                <span className="text-[10px] text-muted-foreground">Bestilt af {order.orderer_name}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
               {(order.status === "pending" || order.status === "confirmed") && (
                 <>
-                  <Button variant="outline" size="icon" className="h-8 w-8" title="Rediger" onClick={() => onEdit(event, order)}>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                    title="Opdatér forplejning"
+                    onClick={() => onEdit(event, order)}
+                  >
                     <Pencil className="w-3.5 h-3.5" />
+                    <span className="text-xs">Opdatér</span>
                   </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Annullér" onClick={handleCancel}>
                     <Trash2 className="w-3.5 h-3.5" />
@@ -103,12 +114,9 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
                 </>
               )}
             </div>
-            {order.orderer_name && (
-              <span className="text-[10px] text-muted-foreground">Bestilt af {order.orderer_name}</span>
-            )}
           </div>
         ) : (
-          <Button variant="outline" size="sm" className="h-8 gap-1.5" title="Bestil forplejning" onClick={() => onOrder(event)}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 ml-auto" title="Bestil forplejning" onClick={() => onOrder(event)}>
             <UtensilsCrossed className="w-3.5 h-3.5" />
             <span className="text-xs">Bestil</span>
           </Button>

@@ -23,6 +23,8 @@ export const useCateringOrders = (currentWeekStart: Date) => {
       const orderMap: Record<string, ExistingOrder> = {};
       data.forEach((o: any) => {
         const key = buildMeetingOrderKey(o.meeting_date, o.meeting_time, o.meeting_location);
+        if (orderMap[key]) return;
+
         const profile = o.profiles;
         orderMap[key] = {
           status: o.status,

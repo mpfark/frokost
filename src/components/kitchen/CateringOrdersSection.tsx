@@ -120,12 +120,6 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
                 ))}
               </div>
 
-              {/* Dietary notes */}
-              {order.dietary_notes && (
-                <div className="text-xs text-muted-foreground">
-                  Diætønsker: {order.dietary_notes}
-                </div>
-              )}
 
               {/* Comment */}
               {order.comment && (

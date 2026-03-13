@@ -27,7 +27,6 @@ export const useCateringOrders = (currentWeekStart: Date) => {
           id: o.id,
           person_count: o.person_count,
           catering_types: o.catering_types,
-          dietary_notes: o.dietary_notes,
           comment: o.comment,
           user_id: o.user_id,
           orderer_name: profile?.full_name || profile?.email || null,

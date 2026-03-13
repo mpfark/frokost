@@ -16,7 +16,6 @@ export interface ExistingOrder {
   id: string;
   person_count: number;
   catering_types: string[];
-  dietary_notes: string | null;
   comment: string | null;
   user_id: string;
   orderer_name: string | null;

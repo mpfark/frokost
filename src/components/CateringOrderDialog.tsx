@@ -28,13 +28,11 @@ interface CateringOrderDialogProps {
 }
 
 const CATERING_OPTIONS = [
-  { id: "coffee_tea", label: "Kaffe & te" },
+  { id: "coffee_tea", label: "Kaffe og te" },
   { id: "water", label: "Vand" },
   { id: "fruit", label: "Frugt" },
-  { id: "pastry", label: "Morgenmad / wienerbrød" },
-  { id: "sandwich", label: "Sandwich" },
+  { id: "pastry", label: "Morgenbrød" },
   { id: "cake", label: "Kage" },
-  { id: "lunch", label: "Frokost" },
 ] as const;
 
 export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder }: CateringOrderDialogProps) => {
@@ -43,18 +41,20 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
   const [personCount, setPersonCount] = useState(meeting.attendeeCount || 1);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [comment, setComment] = useState("");
+  const [addToLunch, setAddToLunch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form when dialog opens or existingOrder changes
   useEffect(() => {
     if (open && existingOrder) {
       setPersonCount(existingOrder.person_count);
       setSelectedTypes(existingOrder.catering_types);
       setComment(existingOrder.comment || "");
+      setAddToLunch(false);
     } else if (open && !existingOrder) {
       setPersonCount(meeting.attendeeCount || 1);
       setSelectedTypes([]);
       setComment("");
+      setAddToLunch(false);
     }
   }, [open, existingOrder]);
 
@@ -62,6 +62,44 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
     setSelectedTypes((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
     );
+  };
+
+  const addGuestsToLunch = async (userId: string, orderId: string, guestCount: number, lunchDate: string) => {
+    // Ensure user has a lunch signup for this date
+    let { data: signup } = await supabase
+      .from("lunch_signups")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("lunch_date", lunchDate)
+      .maybeSingle();
+
+    if (!signup) {
+      const { data: newSignup, error: signupErr } = await supabase
+        .from("lunch_signups")
+        .insert({ user_id: userId, lunch_date: lunchDate })
+        .select("id")
+        .single();
+      if (signupErr) throw signupErr;
+      signup = newSignup;
+    }
+
+    // Remove any opt-out for this date
+    await supabase
+      .from("lunch_optouts")
+      .delete()
+      .eq("user_id", userId)
+      .eq("lunch_date", lunchDate);
+
+    // Add guests linked to the catering order
+    const guests = Array.from({ length: guestCount }, () => ({
+      signup_id: signup!.id,
+      catering_order_id: orderId,
+    }));
+
+    if (guests.length > 0) {
+      const { error: guestErr } = await supabase.from("guests").insert(guests);
+      if (guestErr) throw guestErr;
+    }
   };
 
   const handleSubmit = async () => {
@@ -86,24 +124,38 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         comment: comment.trim().slice(0, 500) || null,
       };
 
+      let orderId: string;
+
       if (isEditing) {
         const { error } = await supabase
           .from("catering_orders")
           .update(orderData)
           .eq("id", existingOrder.id);
         if (error) throw error;
+        orderId = existingOrder.id;
         toast.success("Bestilling opdateret!");
       } else {
-        const { error } = await supabase.from("catering_orders").insert({
+        const { data, error } = await supabase.from("catering_orders").insert({
           ...orderData,
           user_id: user.id,
           meeting_subject: meeting.subject.slice(0, 200),
           meeting_date: meeting.date,
           meeting_time: meeting.time,
           meeting_location: meeting.location?.slice(0, 200) || null,
-        });
+        }).select("id").single();
         if (error) throw error;
+        orderId = data.id;
         toast.success("Forplejning bestilt!");
+      }
+
+      // Add guests to lunch if requested
+      if (addToLunch && personCount > 0) {
+        try {
+          await addGuestsToLunch(user.id, orderId, personCount, meeting.date);
+          toast.success(`${personCount} gæst${personCount > 1 ? "er" : ""} tilføjet til frokost`);
+        } catch (err: any) {
+          toast.error("Kunne ikke tilføje gæster til frokost: " + (err.message || ""));
+        }
       }
 
       onOpenChange(false);
@@ -173,6 +225,23 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
               rows={2}
             />
           </div>
+
+          {/* Add to lunch */}
+          {!isEditing && (
+            <label className="flex items-start gap-3 p-3 rounded-md border cursor-pointer hover:bg-accent/50 transition-colors">
+              <Checkbox
+                checked={addToLunch}
+                onCheckedChange={(checked) => setAddToLunch(checked as boolean)}
+                className="mt-0.5"
+              />
+              <div>
+                <span className="text-sm font-medium">Tilføj gæsterne til dagens frokost</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {personCount} gæst{personCount > 1 ? "er" : ""} tilmeldes frokost under dit navn. De fjernes automatisk hvis bestillingen annulleres.
+                </p>
+              </div>
+            </label>
+          )}
         </div>
 
         <DialogFooter>

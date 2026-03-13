@@ -22,6 +22,7 @@ export type Database = {
           dietary_notes: string | null
           id: string
           meeting_date: string
+          meeting_external_id: string | null
           meeting_location: string | null
           meeting_subject: string
           meeting_time: string
@@ -37,6 +38,7 @@ export type Database = {
           dietary_notes?: string | null
           id?: string
           meeting_date: string
+          meeting_external_id?: string | null
           meeting_location?: string | null
           meeting_subject: string
           meeting_time: string
@@ -52,6 +54,7 @@ export type Database = {
           dietary_notes?: string | null
           id?: string
           meeting_date?: string
+          meeting_external_id?: string | null
           meeting_location?: string | null
           meeting_subject?: string
           meeting_time?: string

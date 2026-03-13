@@ -28,6 +28,7 @@ const CATERING_TYPE_LABELS: Record<string, string> = {
   fruit: "Frugt",
   pastry: "Morgenbrød",
   cake: "Kage",
+  sweets: "Noget sødt",
 };
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {

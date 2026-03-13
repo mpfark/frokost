@@ -1,60 +1,25 @@
-import { useRegisterSW } from 'virtual:pwa-register/react';
-import { toast } from 'sonner';
-import { useEffect, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
-
-// Check for updates every 5 minutes
-const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+// PWA ReloadPrompt - only active in production builds
+// In development, the PWA plugin is disabled so virtual:pwa-register/react doesn't exist
 
 export function ReloadPrompt() {
-  const {
-    needRefresh: [needRefresh],
-    offlineReady: [offlineReady],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegisteredSW(swUrl, registration) {
-      console.log('SW registered:', swUrl);
-      if (registration) {
-        // Periodically check for updates
-        setInterval(() => {
-          console.log('Checking for SW updates...');
-          registration.update();
-        }, CHECK_INTERVAL_MS);
-      }
-    },
-    onRegisterError(error) {
-      console.error('SW registration error:', error);
-    },
-  });
+  if (import.meta.env.DEV) {
+    return null;
+  }
 
-  const handleUpdate = useCallback(() => {
-    updateServiceWorker(true); // true = reload page after update
-  }, [updateServiceWorker]);
+  // Dynamic import is handled by the production build where the PWA plugin is active
+  return <ReloadPromptInner />;
+}
 
-  // Show toast when new version is available
-  useEffect(() => {
-    if (needRefresh) {
-      toast('Ny version tilgængelig', {
-        description: 'En opdatering er klar til installation.',
-        duration: Infinity, // Don't auto-dismiss
-        action: {
-          label: 'Opdater nu',
-          onClick: handleUpdate,
-        },
-        icon: <RefreshCw className="w-4 h-4" />,
-      });
-    }
-  }, [needRefresh, handleUpdate]);
+// Lazy-load the actual implementation only in production
+import { lazy, Suspense } from 'react';
 
-  // Show offline ready notification
-  useEffect(() => {
-    if (offlineReady) {
-      toast.success('Klar til offline', {
-        description: 'Appen kan nu bruges uden internet.',
-        duration: 3000,
-      });
-    }
-  }, [offlineReady]);
+const ReloadPromptInner = lazy(() => import('./ReloadPromptImpl'));
 
-  return null; // Component handles toasts, no visible UI
+export function ReloadPrompt() {
+  if (import.meta.env.DEV) return null;
+  return (
+    <Suspense fallback={null}>
+      <ReloadPromptInner />
+    </Suspense>
+  );
 }

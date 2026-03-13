@@ -16,7 +16,8 @@ export const useCateringOrders = (currentWeekStart: Date) => {
       .select("id, meeting_subject, meeting_date, meeting_time, meeting_location, status, person_count, catering_types, comment, user_id, profiles:user_id(full_name, email)")
       .gte("meeting_date", weekStart)
       .lte("meeting_date", weekEnd)
-      .neq("status", "cancelled");
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false });
 
     if (data) {
       const orderMap: Record<string, ExistingOrder> = {};

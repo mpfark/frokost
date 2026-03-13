@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
-    mode !== "development" && VitePWA({
+    VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",

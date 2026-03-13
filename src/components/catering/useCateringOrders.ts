@@ -36,8 +36,9 @@ export const useCateringOrders = (currentWeekStart: Date) => {
     }
   };
 
-  // Realtime subscription
+  // Initial fetch + realtime subscription
   useEffect(() => {
+    fetchExistingOrders();
     const channel = supabase
       .channel(`catering_orders_rt_${currentWeekStart.toISOString()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "catering_orders" }, () => fetchExistingOrders())

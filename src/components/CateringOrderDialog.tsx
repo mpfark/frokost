@@ -148,11 +148,12 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         toast.success("Forplejning bestilt!");
       }
 
-      // Add guests to lunch if requested
-      if (addToLunch && personCount > 0) {
+      // Add guests to lunch if requested (subtract 1 for the organizer who is already signed up)
+      const guestCount = personCount - 1;
+      if (addToLunch && guestCount > 0) {
         try {
-          await addGuestsToLunch(user.id, orderId, personCount, meeting.date);
-          toast.success(`${personCount} gæst${personCount > 1 ? "er" : ""} tilføjet til frokost`);
+          await addGuestsToLunch(user.id, orderId, guestCount, meeting.date);
+          toast.success(`${guestCount} gæst${guestCount > 1 ? "er" : ""} tilføjet til frokost`);
         } catch (err: any) {
           toast.error("Kunne ikke tilføje gæster til frokost: " + (err.message || ""));
         }
@@ -237,7 +238,9 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
               <div>
                 <span className="text-sm font-medium">Tilføj gæsterne til dagens frokost</span>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {personCount} gæst{personCount > 1 ? "er" : ""} tilmeldes frokost under dit navn. De fjernes automatisk hvis bestillingen annulleres.
+                  {personCount - 1 > 0
+                    ? `${personCount - 1} gæst${personCount - 1 > 1 ? "er" : ""} tilmeldes frokost under dit navn (dig selv fraregnet). De fjernes automatisk hvis bestillingen annulleres.`
+                    : "Ingen gæster at tilføje (kun dig selv i mødet)."}
                 </p>
               </div>
             </label>

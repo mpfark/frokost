@@ -23,7 +23,6 @@ interface CateringOrderDialogProps {
     id: string;
     person_count: number;
     catering_types: string[];
-    dietary_notes: string | null;
     comment: string | null;
   } | null;
 }
@@ -38,19 +37,11 @@ const CATERING_OPTIONS = [
   { id: "lunch", label: "Frokost" },
 ] as const;
 
-const DIETARY_OPTIONS = [
-  { id: "vegetarian", label: "Vegetarisk" },
-  { id: "gluten_free", label: "Glutenfri" },
-  { id: "lactose_free", label: "Laktosefri" },
-  { id: "vegan", label: "Vegansk" },
-] as const;
-
 export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder }: CateringOrderDialogProps) => {
   const isEditing = !!existingOrder;
 
   const [personCount, setPersonCount] = useState(meeting.attendeeCount || 1);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,24 +50,16 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
     if (open && existingOrder) {
       setPersonCount(existingOrder.person_count);
       setSelectedTypes(existingOrder.catering_types);
-      setSelectedDietary(existingOrder.dietary_notes ? existingOrder.dietary_notes.split(", ") : []);
       setComment(existingOrder.comment || "");
     } else if (open && !existingOrder) {
       setPersonCount(meeting.attendeeCount || 1);
       setSelectedTypes([]);
-      setSelectedDietary([]);
       setComment("");
     }
   }, [open, existingOrder]);
 
   const toggleType = (id: string) => {
     setSelectedTypes((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
-  };
-
-  const toggleDietary = (id: string) => {
-    setSelectedDietary((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
     );
   };
@@ -100,7 +83,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
       const orderData = {
         person_count: personCount,
         catering_types: selectedTypes,
-        dietary_notes: selectedDietary.length > 0 ? selectedDietary.join(", ") : null,
         comment: comment.trim().slice(0, 500) || null,
       };
 
@@ -172,25 +154,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
                   <Checkbox
                     checked={selectedTypes.includes(option.id)}
                     onCheckedChange={() => toggleType(option.id)}
-                  />
-                  <span className="text-sm">{option.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Dietary needs */}
-          <div className="space-y-2">
-            <Label>Diætønsker (valgfrit)</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {DIETARY_OPTIONS.map((option) => (
-                <label
-                  key={option.id}
-                  className="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent/50 transition-colors"
-                >
-                  <Checkbox
-                    checked={selectedDietary.includes(option.id)}
-                    onCheckedChange={() => toggleDietary(option.id)}
                   />
                   <span className="text-sm">{option.label}</span>
                 </label>

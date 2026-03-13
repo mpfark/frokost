@@ -181,6 +181,7 @@ export type Database = {
       }
       guests: {
         Row: {
+          catering_order_id: string | null
           created_at: string
           id: string
           is_gluten_free: boolean
@@ -189,6 +190,7 @@ export type Database = {
           signup_id: string
         }
         Insert: {
+          catering_order_id?: string | null
           created_at?: string
           id?: string
           is_gluten_free?: boolean
@@ -197,6 +199,7 @@ export type Database = {
           signup_id: string
         }
         Update: {
+          catering_order_id?: string | null
           created_at?: string
           id?: string
           is_gluten_free?: boolean
@@ -205,6 +208,13 @@ export type Database = {
           signup_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "guests_catering_order_id_fkey"
+            columns: ["catering_order_id"]
+            isOneToOne: false
+            referencedRelation: "catering_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "guests_signup_id_fkey"
             columns: ["signup_id"]

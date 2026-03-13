@@ -108,8 +108,9 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
             )}
           </div>
         ) : (
-          <Button variant="outline" size="icon" className="h-8 w-8" title="Bestil forplejning" onClick={() => onOrder(event)}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5" title="Bestil forplejning" onClick={() => onOrder(event)}>
             <UtensilsCrossed className="w-3.5 h-3.5" />
+            <span className="text-xs">Bestil</span>
           </Button>
         )}
       </div>

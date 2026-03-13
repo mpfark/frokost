@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, UtensilsCrossed } from "lucide-react";
+import { normalizeMeetingTime } from "@/components/catering/orderKey";
 
 interface CateringOrderDialogProps {
   open: boolean;
@@ -118,6 +119,9 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Ikke logget ind");
 
+      const normalizedMeetingTime = normalizeMeetingTime(meeting.time);
+      const normalizedMeetingLocation = meeting.location?.trim().replace(/\s+/g, " ").slice(0, 200) || null;
+
       const orderData = {
         person_count: personCount,
         catering_types: selectedTypes,
@@ -135,17 +139,50 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         orderId = existingOrder.id;
         toast.success("Bestilling opdateret!");
       } else {
-        const { data, error } = await supabase.from("catering_orders").insert({
-          ...orderData,
-          user_id: user.id,
-          meeting_subject: meeting.subject.slice(0, 200),
-          meeting_date: meeting.date,
-          meeting_time: meeting.time,
-          meeting_location: meeting.location?.slice(0, 200) || null,
-        }).select("id").single();
-        if (error) throw error;
-        orderId = data.id;
-        toast.success("Forplejning bestilt!");
+        let existingOrderQuery = supabase
+          .from("catering_orders")
+          .select("id")
+          .eq("meeting_date", meeting.date)
+          .eq("meeting_time", normalizedMeetingTime)
+          .in("status", ["pending", "confirmed"]);
+
+        existingOrderQuery = normalizedMeetingLocation
+          ? existingOrderQuery.eq("meeting_location", normalizedMeetingLocation)
+          : existingOrderQuery.is("meeting_location", null);
+
+        const { data: matchingOrders, error: matchingError } = await existingOrderQuery
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (matchingError) throw matchingError;
+
+        const existingActiveOrderId = matchingOrders?.[0]?.id;
+
+        if (existingActiveOrderId) {
+          const { error } = await supabase
+            .from("catering_orders")
+            .update(orderData)
+            .eq("id", existingActiveOrderId);
+          if (error) throw error;
+          orderId = existingActiveOrderId;
+          toast.success("Bestilling opdateret!");
+        } else {
+          const { data, error } = await supabase
+            .from("catering_orders")
+            .insert({
+              ...orderData,
+              user_id: user.id,
+              meeting_subject: meeting.subject.slice(0, 200),
+              meeting_date: meeting.date,
+              meeting_time: normalizedMeetingTime,
+              meeting_location: normalizedMeetingLocation,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
+          orderId = data.id;
+          toast.success("Forplejning bestilt!");
+        }
       }
 
       // Add guests to lunch if requested (subtract 1 for the organizer who is already signed up)

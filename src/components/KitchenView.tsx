@@ -793,6 +793,14 @@ export const KitchenView = () => {
                                             ) : (
                                               <span className="text-muted-foreground/60">Ingen restriktioner</span>
                                             )}
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => removeGuest(guest.id)}
+                                              className="h-6 w-6 p-0 text-destructive hover:text-destructive ml-auto"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
                                           </div>
                                         );
                                       })}

@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       endDate ||
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const graphUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,organizer,attendees,location,isAllDay&$orderby=start/dateTime&$top=50`;
+    const graphUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,organizer,attendees,location,isAllDay,iCalUId&$orderby=start/dateTime&$top=50`;
 
     const graphRes = await fetch(graphUrl, {
       headers: {

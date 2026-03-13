@@ -12,7 +12,7 @@ export const useCateringOrders = (currentWeekStart: Date) => {
 
     const { data } = await supabase
       .from("catering_orders")
-      .select("id, meeting_subject, meeting_date, meeting_time, meeting_location, status, person_count, catering_types, dietary_notes, comment, user_id, profiles:user_id(full_name, email)")
+      .select("id, meeting_subject, meeting_date, meeting_time, meeting_location, status, person_count, catering_types, comment, user_id, profiles:user_id(full_name, email)")
       .gte("meeting_date", weekStart)
       .lte("meeting_date", weekEnd)
       .neq("status", "cancelled");
@@ -27,7 +27,6 @@ export const useCateringOrders = (currentWeekStart: Date) => {
           id: o.id,
           person_count: o.person_count,
           catering_types: o.catering_types,
-          dietary_notes: o.dietary_notes,
           comment: o.comment,
           user_id: o.user_id,
           orderer_name: profile?.full_name || profile?.email || null,

@@ -13,7 +13,6 @@ interface CateringOrder {
   meeting_location: string | null;
   person_count: number;
   catering_types: string[];
-  dietary_notes: string | null;
   comment: string | null;
   status: string;
   created_at: string;
@@ -24,13 +23,11 @@ interface CateringOrder {
 }
 
 const CATERING_TYPE_LABELS: Record<string, string> = {
-  coffee_tea: "Kaffe & te",
+  coffee_tea: "Kaffe og te",
   water: "Vand",
   fruit: "Frugt",
-  pastry: "Morgenmad / wienerbrød",
-  sandwich: "Sandwich",
+  pastry: "Morgenbrød",
   cake: "Kage",
-  lunch: "Frokost",
 };
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -123,12 +120,6 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
                 ))}
               </div>
 
-              {/* Dietary notes */}
-              {order.dietary_notes && (
-                <div className="text-xs text-muted-foreground">
-                  Diætønsker: {order.dietary_notes}
-                </div>
-              )}
 
               {/* Comment */}
               {order.comment && (

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays } from "date-fns";
 import type { ExistingOrder } from "./types";
+import { buildMeetingOrderKey } from "./orderKey";
 
 export const useCateringOrders = (currentWeekStart: Date) => {
   const [existingOrders, setExistingOrders] = useState<Record<string, ExistingOrder>>({});
@@ -20,7 +21,7 @@ export const useCateringOrders = (currentWeekStart: Date) => {
     if (data) {
       const orderMap: Record<string, ExistingOrder> = {};
       data.forEach((o: any) => {
-        const key = `${o.meeting_date}|${o.meeting_time}|${(o.meeting_location || "").toLowerCase()}`;
+        const key = buildMeetingOrderKey(o.meeting_date, o.meeting_time, o.meeting_location);
         const profile = o.profiles;
         orderMap[key] = {
           status: o.status,

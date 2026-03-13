@@ -5,13 +5,18 @@ import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { CalendarEvent, ExistingOrder } from "./types";
+import { buildMeetingOrderKey } from "./orderKey";
 
 const formatTime = (dateTimeStr: string) => {
   try { return format(parseISO(dateTimeStr), "HH:mm"); } catch { return ""; }
 };
 
 export const getOrderKey = (event: CalendarEvent) => {
-  return `${format(parseISO(event.startTime), "yyyy-MM-dd")}|${formatTime(event.startTime)} - ${formatTime(event.endTime)}|${(event.location || "").toLowerCase()}`;
+  return buildMeetingOrderKey(
+    format(parseISO(event.startTime), "yyyy-MM-dd"),
+    `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+    event.location,
+  );
 };
 
 interface EventCardProps {

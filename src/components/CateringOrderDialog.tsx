@@ -35,6 +35,7 @@ const CATERING_OPTIONS = [
   { id: "fruit", label: "Frugt" },
   { id: "pastry", label: "Morgenbrød" },
   { id: "cake", label: "Kage" },
+  { id: "sweets", label: "Noget sødt" },
 ] as const;
 
 export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder }: CateringOrderDialogProps) => {

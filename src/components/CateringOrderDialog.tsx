@@ -238,7 +238,9 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
               <div>
                 <span className="text-sm font-medium">Tilføj gæsterne til dagens frokost</span>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {personCount} gæst{personCount > 1 ? "er" : ""} tilmeldes frokost under dit navn. De fjernes automatisk hvis bestillingen annulleres.
+                  {personCount - 1 > 0
+                    ? `${personCount - 1} gæst${personCount - 1 > 1 ? "er" : ""} tilmeldes frokost under dit navn (dig selv fraregnet). De fjernes automatisk hvis bestillingen annulleres.`
+                    : "Ingen gæster at tilføje (kun dig selv i mødet)."}
                 </p>
               </div>
             </label>

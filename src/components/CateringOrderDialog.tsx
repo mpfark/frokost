@@ -161,7 +161,7 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         if (existingActiveOrderId) {
           const { error } = await supabase
             .from("catering_orders")
-            .update(orderData)
+            .update({ ...orderData, status: "pending" })
             .eq("id", existingActiveOrderId);
           if (error) throw error;
           orderId = existingActiveOrderId;

@@ -148,11 +148,12 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         toast.success("Forplejning bestilt!");
       }
 
-      // Add guests to lunch if requested
-      if (addToLunch && personCount > 0) {
+      // Add guests to lunch if requested (subtract 1 for the organizer who is already signed up)
+      const guestCount = personCount - 1;
+      if (addToLunch && guestCount > 0) {
         try {
-          await addGuestsToLunch(user.id, orderId, personCount, meeting.date);
-          toast.success(`${personCount} gæst${personCount > 1 ? "er" : ""} tilføjet til frokost`);
+          await addGuestsToLunch(user.id, orderId, guestCount, meeting.date);
+          toast.success(`${guestCount} gæst${guestCount > 1 ? "er" : ""} tilføjet til frokost`);
         } catch (err: any) {
           toast.error("Kunne ikke tilføje gæster til frokost: " + (err.message || ""));
         }

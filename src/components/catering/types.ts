@@ -9,6 +9,7 @@ export interface CalendarEvent {
   isAllDay: boolean;
   organizer: string | null;
   attendeeCount: number;
+  externalMeetingId?: string | null;
 }
 
 export interface ExistingOrder {
@@ -19,4 +20,5 @@ export interface ExistingOrder {
   comment: string | null;
   user_id: string;
   orderer_name: string | null;
+  meeting_external_id?: string | null;
 }

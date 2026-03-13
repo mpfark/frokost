@@ -1,6 +1,6 @@
 import { format, isSameDay, parseISO } from "date-fns";
 import { da } from "date-fns/locale";
-import { EventCard, getOrderKey } from "./EventCard";
+import { EventCard, findOrderForEvent } from "./EventCard";
 import type { CalendarEvent, ExistingOrder } from "./types";
 
 interface WeekDayGridProps {
@@ -39,7 +39,7 @@ export const WeekDayGrid = ({ weekDays, events, existingOrders, onOrder, onEdit,
                   <EventCard
                     key={event.id}
                     event={event}
-                    order={existingOrders[getOrderKey(event)]}
+                    order={findOrderForEvent(event, existingOrders)}
                     onOrder={onOrder}
                     onEdit={onEdit}
                     onOrdersChanged={onOrdersChanged}

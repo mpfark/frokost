@@ -212,6 +212,7 @@ Deno.serve(async (req) => {
         isAllDay: event.isAllDay,
         organizer: event.organizer?.emailAddress?.name || null,
         attendeeCount: nonResourceAttendees.length,
+        externalMeetingId: event.iCalUId || null,
       };
     });
 

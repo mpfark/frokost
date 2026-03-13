@@ -17,8 +17,9 @@ interface CateringOrderDialogProps {
     subject: string;
     date: string;
     time: string;
-    location?: string;
+    location?: string | null;
     attendeeCount: number;
+    externalMeetingId?: string | null;
   };
   existingOrder?: {
     id: string;
@@ -66,7 +67,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
   };
 
   const addGuestsToLunch = async (userId: string, orderId: string, guestCount: number, lunchDate: string) => {
-    // Ensure user has a lunch signup for this date
     let { data: signup } = await supabase
       .from("lunch_signups")
       .select("id")
@@ -84,14 +84,12 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
       signup = newSignup;
     }
 
-    // Remove any opt-out for this date
     await supabase
       .from("lunch_optouts")
       .delete()
       .eq("user_id", userId)
       .eq("lunch_date", lunchDate);
 
-    // Add guests linked to the catering order
     const guests = Array.from({ length: guestCount }, () => ({
       signup_id: signup!.id,
       catering_order_id: orderId,
@@ -139,24 +137,37 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         orderId = existingOrder.id;
         toast.success("Bestilling opdateret!");
       } else {
-        let existingOrderQuery = supabase
-          .from("catering_orders")
-          .select("id")
-          .eq("meeting_date", meeting.date)
-          .eq("meeting_time", normalizedMeetingTime)
-          .in("status", ["pending", "confirmed"]);
+        // Try to find existing order: first by external ID, then by date/time/location
+        let existingActiveOrderId: string | null = null;
 
-        existingOrderQuery = normalizedMeetingLocation
-          ? existingOrderQuery.eq("meeting_location", normalizedMeetingLocation)
-          : existingOrderQuery.is("meeting_location", null);
+        if (meeting.externalMeetingId) {
+          const { data: extMatch } = await supabase
+            .from("catering_orders")
+            .select("id")
+            .eq("meeting_external_id", meeting.externalMeetingId)
+            .in("status", ["pending", "confirmed"])
+            .limit(1);
+          existingActiveOrderId = extMatch?.[0]?.id || null;
+        }
 
-        const { data: matchingOrders, error: matchingError } = await existingOrderQuery
-          .order("created_at", { ascending: false })
-          .limit(1);
+        if (!existingActiveOrderId) {
+          let query = supabase
+            .from("catering_orders")
+            .select("id")
+            .eq("meeting_date", meeting.date)
+            .eq("meeting_time", normalizedMeetingTime)
+            .in("status", ["pending", "confirmed"]);
 
-        if (matchingError) throw matchingError;
+          query = normalizedMeetingLocation
+            ? query.eq("meeting_location", normalizedMeetingLocation)
+            : query.is("meeting_location", null);
 
-        const existingActiveOrderId = matchingOrders?.[0]?.id;
+          const { data: matchingOrders } = await query
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          existingActiveOrderId = matchingOrders?.[0]?.id || null;
+        }
 
         if (existingActiveOrderId) {
           const { error } = await supabase
@@ -176,6 +187,7 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
               meeting_date: meeting.date,
               meeting_time: normalizedMeetingTime,
               meeting_location: normalizedMeetingLocation,
+              meeting_external_id: meeting.externalMeetingId || null,
             })
             .select("id")
             .single();
@@ -185,7 +197,7 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         }
       }
 
-      // Add guests to lunch if requested (subtract 1 for the organizer who is already signed up)
+      // Add guests to lunch if requested
       const guestCount = personCount - 1;
       if (addToLunch && guestCount > 0) {
         try {
@@ -219,7 +231,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Person count */}
           <div className="space-y-2">
             <Label htmlFor="personCount">Antal personer</Label>
             <Input
@@ -232,7 +243,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
             />
           </div>
 
-          {/* Catering types */}
           <div className="space-y-2">
             <Label>Type forplejning</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -251,7 +261,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
             </div>
           </div>
 
-          {/* Comment */}
           <div className="space-y-2">
             <Label htmlFor="comment">Kommentar (valgfrit)</Label>
             <Textarea
@@ -264,7 +273,6 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
             />
           </div>
 
-          {/* Add to lunch */}
           {!isEditing && (
             <label className="flex items-start gap-3 p-3 rounded-md border cursor-pointer hover:bg-accent/50 transition-colors">
               <Checkbox

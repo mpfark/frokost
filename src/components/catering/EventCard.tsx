@@ -11,12 +11,28 @@ const formatTime = (dateTimeStr: string) => {
   try { return format(parseISO(dateTimeStr), "HH:mm"); } catch { return ""; }
 };
 
-export const getOrderKey = (event: CalendarEvent) => {
-  return buildMeetingOrderKey(
-    format(parseISO(event.startTime), "yyyy-MM-dd"),
-    `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
-    event.location,
+/** Returns order keys to look up: external ID first, then legacy fallback */
+export const getOrderKeys = (event: CalendarEvent): string[] => {
+  const keys: string[] = [];
+  if (event.externalMeetingId) {
+    keys.push(event.externalMeetingId);
+  }
+  keys.push(
+    buildMeetingOrderKey(
+      format(parseISO(event.startTime), "yyyy-MM-dd"),
+      `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+      event.location,
+    )
   );
+  return keys;
+};
+
+/** Find order for event using external ID with legacy fallback */
+export const findOrderForEvent = (event: CalendarEvent, orders: Record<string, ExistingOrder>): ExistingOrder | undefined => {
+  for (const key of getOrderKeys(event)) {
+    if (orders[key]) return orders[key];
+  }
+  return undefined;
 };
 
 interface EventCardProps {

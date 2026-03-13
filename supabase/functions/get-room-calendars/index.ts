@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     // Fetch calendar events for each room in parallel
     const roomResults = await Promise.all(
       roomEmails.map(async (email: string) => {
-        const graphUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(email)}/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,organizer,attendees,location,isAllDay&$orderby=start/dateTime&$top=50`;
+        const graphUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(email)}/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,organizer,attendees,location,isAllDay,iCalUId&$orderby=start/dateTime&$top=50`;
 
         const graphRes = await fetch(graphUrl, {
           headers: {
@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
             isAllDay: event.isAllDay,
             organizer: event.organizer?.emailAddress?.name || null,
             attendeeCount: nonResourceAttendees.length,
+            externalMeetingId: event.iCalUId || null,
           };
         });
 

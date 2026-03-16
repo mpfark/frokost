@@ -40,6 +40,7 @@ interface UserProfile {
 
 interface UserWithRoles extends UserProfile {
   roles: string[];
+  absencePeriods?: { start: string; end: string }[];
 }
 
 const PAGE_SIZE = 50;

@@ -189,7 +189,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
 
           <TabsContent value="inactive" className="mt-4">
             <p className="text-sm text-muted-foreground mb-4">
-              Aktive brugere som ikke har tilmeldt sig frokost i den valgte periode.
+              Aktive brugere som ikke har foretaget et aktivt valg (hverken tilmelding eller framelding) i den valgte periode.
             </p>
             <Table>
               <TableHeader>

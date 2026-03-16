@@ -56,10 +56,13 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const signups = signupsRes.data || [];
       const optouts = optoutsRes.data || [];
 
-      // Find all unique user_ids from signups + optouts in the period (all active users)
+      // Build set of users excluded from statistics (reminder_enabled = false)
+      const excludedUserIds = new Set((profilesRes.data || []).map(p => p.id));
+
+      // Find all unique user_ids from signups + optouts in the period (excluding opted-out users)
       const usersWithActivity = new Set<string>();
-      signups.forEach((s) => usersWithActivity.add(s.user_id));
-      optouts.forEach((o) => usersWithActivity.add(o.user_id));
+      signups.forEach((s) => { if (!excludedUserIds.has(s.user_id)) usersWithActivity.add(s.user_id); });
+      optouts.forEach((o) => { if (!excludedUserIds.has(o.user_id)) usersWithActivity.add(o.user_id); });
       
       const activeUserCount = usersWithActivity.size || 1;
 

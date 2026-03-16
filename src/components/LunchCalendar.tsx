@@ -626,6 +626,43 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return days.some(date => !isPastDate(date) && !isDateClosed(date));
   };
 
+  // Personal week completion check
+  const userHasRespondedAllDays = (days: Date[]) => {
+    const availableDays = days.filter(date => !isDateClosed(date));
+    if (availableDays.length === 0) return false;
+    return availableDays.every(date => isSignedUp(date) || isOptedOut(date));
+  };
+
+  // Track previous completion state to only fire confetti on transition
+  const prevCompletionRef = useRef<Record<number, boolean>>({});
+  const weekCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    weeks.forEach(({ weekNumber, days }) => {
+      const isComplete = userHasRespondedAllDays(days);
+      const wasComplete = prevCompletionRef.current[weekNumber];
+      
+      // Fire confetti only on transition from incomplete to complete
+      if (isComplete && wasComplete === false) {
+        const el = weekCardRefs.current[weekNumber];
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const x = (rect.left + rect.width / 2) / window.innerWidth;
+          const y = (rect.top + rect.height / 2) / window.innerHeight;
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { x, y },
+            colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'],
+            disableForReducedMotion: true,
+          });
+        }
+      }
+      
+      prevCompletionRef.current[weekNumber] = isComplete;
+    });
+  }, [signups, optouts, closedDates]);
+
   const signupForWeek = async (days: Date[]) => {
     setIsLoading(true);
     try {

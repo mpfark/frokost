@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN restrict_signup_to_domain boolean NOT NULL DEFAULT true;

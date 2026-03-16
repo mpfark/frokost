@@ -127,7 +127,7 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
         <CardContent>
           <div className="text-2xl font-bold">{stats.totalActiveProfiles}</div>
           <p className="text-xs text-muted-foreground">
-            Aktive brugere (is_active)
+            Aktive brugere (ekskl. uden påmindelser)
           </p>
         </CardContent>
       </Card>

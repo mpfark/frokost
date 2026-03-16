@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Users, UserPlus, Plus, Trash2, Check, X, Sparkles } from "lucide-react";
+import { Users, UserPlus, Plus, Trash2, Check, X, Sparkles, PartyPopper } from "lucide-react";
+import confetti from "canvas-confetti";
 import {
   Dialog,
   DialogContent,
@@ -625,6 +626,43 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     return days.some(date => !isPastDate(date) && !isDateClosed(date));
   };
 
+  // Personal week completion check
+  const userHasRespondedAllDays = (days: Date[]) => {
+    const availableDays = days.filter(date => !isDateClosed(date));
+    if (availableDays.length === 0) return false;
+    return availableDays.every(date => isSignedUp(date) || isOptedOut(date));
+  };
+
+  // Track previous completion state to only fire confetti on transition
+  const prevCompletionRef = useRef<Record<number, boolean>>({});
+  const weekCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    weeks.forEach(({ weekNumber, days }) => {
+      const isComplete = userHasRespondedAllDays(days);
+      const wasComplete = prevCompletionRef.current[weekNumber];
+      
+      // Fire confetti only on transition from incomplete to complete
+      if (isComplete && wasComplete === false) {
+        const el = weekCardRefs.current[weekNumber];
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const x = (rect.left + rect.width / 2) / window.innerWidth;
+          const y = (rect.top + rect.height / 2) / window.innerHeight;
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { x, y },
+            colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'],
+            disableForReducedMotion: true,
+          });
+        }
+      }
+      
+      prevCompletionRef.current[weekNumber] = isComplete;
+    });
+  }, [signups, optouts, closedDates]);
+
   const signupForWeek = async (days: Date[]) => {
     setIsLoading(true);
     try {
@@ -803,7 +841,20 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
               {/* Days Grid - including "Hele ugen" as first card */}
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Hele ugen card */}
-                <div className={`border rounded-lg p-3 flex flex-col justify-center min-w-0 overflow-hidden ${!hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"}`}>
+                <div 
+                  ref={(el) => { weekCardRefs.current[weekNumber] = el; }}
+                  className={`border rounded-lg p-3 flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
+                    userHasRespondedAllDays(days) 
+                      ? "border-green-500 bg-green-50 dark:bg-green-950/20 ring-1 ring-green-500/30" 
+                      : !hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"
+                  }`}
+                >
+                  {userHasRespondedAllDays(days) && (
+                    <div className="flex items-center justify-center gap-1 mb-1.5">
+                      <PartyPopper className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                      <span className="text-[10px] font-medium text-green-600 dark:text-green-400">Komplet!</span>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1 min-w-0">
                     <Button
                       onClick={() => signupForWeek(days)}

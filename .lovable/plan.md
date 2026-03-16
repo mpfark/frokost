@@ -1,22 +1,79 @@
 
+# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Plan: Personlig konfetti-animation når bruger har svaret hele ugen
+## Problem identificeret
 
-### Idé
-Når brugeren har taget et aktivt valg (tilmeldt eller frameldt) for alle tilgængelige dage i en uge, udløses en konfetti-animation over "Hele ugen"-kortet. Dette er en personlig fejring — uafhængig af den eksisterende uge-celebration der handler om alle brugere.
+WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
 
-### Ændringer
+- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
+- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
 
-**1. Tilføj `canvas-confetti` bibliotek**
-- Letvægts-bibliotek (~5 KB) til konfetti-effekten.
+Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
 
-**2. `src/components/LunchCalendar.tsx`**
-- Tilføj en hjælpefunktion `userHasRespondedAllDays(days)` der tjekker om den aktuelle bruger har enten en signup eller optout for alle ikke-lukkede dage i ugen.
-- Track tidligere ugers status i en `useRef` så konfetti kun udløses ved overgangen fra "ikke-komplet" til "komplet" (ikke ved page load).
-- Når status skifter til komplet: affyr `confetti()` fra "Hele ugen"-kortets position.
-- Vis et lille visuelt hint (f.eks. en grøn kant eller et ✓-ikon) på "Hele ugen"-kortet når ugen er komplet.
+### Eksempel fra databasen
+| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
+|------------|---------------------|------------------------|-------------|
+| 2026-02-04 | 48                  | 47                     | 102.1%      |
+| 2026-02-05 | 48                  | 47                     | 102.1%      |
 
-### Filer der ændres
-- `package.json` — tilføj `canvas-confetti`
-- `src/components/LunchCalendar.tsx` — tilføj personlig kompletions-logik og konfetti-trigger
+---
 
+## Løsning
+
+Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
+
+### Ændring i WeekdayChart.tsx
+
+**Før (linje 88-101):**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    // Tæller ALLE brugere inkl. køkken
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+**Efter:**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    // Skip kitchen users for response rate calculation
+    if (kitchenIds.has(s.user_id)) return;
+    
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+Samme ændring for optouts-løkken (linje 103-116).
+
+---
+
+## Tekniske detaljer
+
+### Fil der ændres
+- `src/components/statistics/WeekdayChart.tsx`
+
+### Påvirkning
+- Svarprocenter vil nu maksimalt være 100%
+- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
+- Ingen ændring af eksisterende database eller andre komponenter
+
+### Alternative løsninger overvejet
+1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
+2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

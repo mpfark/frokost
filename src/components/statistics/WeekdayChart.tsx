@@ -60,16 +60,6 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         (profilesRes.data || []).filter(p => !p.reminder_enabled).map(p => p.id)
       );
 
-      // Build optout map: date -> set of user_ids with optout on that date
-      const optoutsByDate = new Map<string, Set<string>>();
-      optouts.forEach((o) => {
-        if (excludedUserIds.has(o.user_id)) return;
-        if (!optoutsByDate.has(o.lunch_date)) {
-          optoutsByDate.set(o.lunch_date, new Set());
-        }
-        optoutsByDate.get(o.lunch_date)!.add(o.user_id);
-      });
-
       // Find all unique user_ids from signups + optouts in the period (excluding opted-out users)
       const usersWithActivity = new Set<string>();
       signups.forEach((s) => { if (!excludedUserIds.has(s.user_id)) usersWithActivity.add(s.user_id); });
@@ -135,10 +125,8 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
 
         // Calculate average response rate for this weekday, adjusting population per date
         let totalDailyResponseRate = 0;
-        stats.usersWithChoice.forEach((users, date) => {
-          const absentOnDate = optoutsByDate.get(date)?.size || 0;
-          const adjustedPopulation = Math.max(activeUserCount - absentOnDate, 1);
-          const dailyRate = (users.size / adjustedPopulation) * 100;
+        stats.usersWithChoice.forEach((users) => {
+          const dailyRate = (users.size / activeUserCount) * 100;
           totalDailyResponseRate += dailyRate;
         });
         const avgResponseRateForDay = stats.dates.size > 0 ? totalDailyResponseRate / stats.dates.size : 0;

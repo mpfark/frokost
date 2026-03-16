@@ -49,8 +49,7 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         supabase
           .from("profiles")
           .select("id, reminder_enabled")
-          .eq("is_active", true)
-          .eq("reminder_enabled", false),
+          .eq("is_active", true),
       ]);
 
       const signups = signupsRes.data || [];

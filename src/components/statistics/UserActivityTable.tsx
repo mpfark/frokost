@@ -97,10 +97,12 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
 
       setTopUsers(userActivities.slice(0, 10));
 
-      // Find inactive users (only from users with reminders enabled)
+      // Find users without any active choice (no signup AND no optout)
       const usersWithSignups = new Set(Object.keys(userStats));
+      const usersWithOptouts = new Set(optouts.map((o) => o.user_id));
+      const usersWithAnyChoice = new Set([...usersWithSignups, ...usersWithOptouts]);
       const inactive = statsProfiles
-        .filter((p: any) => !usersWithSignups.has(p.id))
+        .filter((p: any) => !usersWithAnyChoice.has(p.id))
         .map((p: any) => ({
           id: p.id,
           name: p.full_name || "Ukendt",

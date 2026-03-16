@@ -37,7 +37,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const businessDays = allDays.filter((d) => !isWeekend(d)).length;
 
       const [profilesRes, signupsRes, guestsRes] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email").eq("is_active", true),
+        supabase.from("profiles").select("id, full_name, email, reminder_enabled").eq("is_active", true),
         supabase
           .from("lunch_signups")
           .select("user_id, guest_count")
@@ -53,6 +53,9 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const profiles = profilesRes.data || [];
       const signups = signupsRes.data || [];
       const guests = guestsRes.data || [];
+
+      // Filter out users with reminder_enabled = false for statistics
+      const statsProfiles = profiles.filter((p: any) => p.reminder_enabled !== false);
 
       // Count signups and guests per user
       const userStats: Record<string, { signupCount: number; guestCount: number }> = {};
@@ -72,10 +75,10 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
         userStats[userId].guestCount++;
       });
 
-      // Build top users list
-      const userActivities: UserActivity[] = profiles
-        .filter((p) => userStats[p.id])
-        .map((p) => ({
+      // Build top users list (only from users with reminders enabled)
+      const userActivities: UserActivity[] = statsProfiles
+        .filter((p: any) => userStats[p.id])
+        .map((p: any) => ({
           userId: p.id,
           name: p.full_name || "Ukendt",
           email: p.email,
@@ -83,15 +86,15 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           guestCount: userStats[p.id].guestCount,
           attendancePercent: businessDays > 0 ? Math.round((userStats[p.id].signupCount / businessDays) * 100) : 0,
         }))
-        .sort((a, b) => b.signupCount - a.signupCount);
+        .sort((a: UserActivity, b: UserActivity) => b.signupCount - a.signupCount);
 
       setTopUsers(userActivities.slice(0, 10));
 
-      // Find inactive users
+      // Find inactive users (only from users with reminders enabled)
       const usersWithSignups = new Set(Object.keys(userStats));
-      const inactive = profiles
-        .filter((p) => !usersWithSignups.has(p.id))
-        .map((p) => ({
+      const inactive = statsProfiles
+        .filter((p: any) => !usersWithSignups.has(p.id))
+        .map((p: any) => ({
           id: p.id,
           name: p.full_name || "Ukendt",
           email: p.email,

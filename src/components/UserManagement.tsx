@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ interface UserProfile {
   is_gluten_free: boolean;
   is_lactose_free: boolean;
   is_vegetarian: boolean;
+  reminder_enabled: boolean;
 }
 
 interface UserWithRoles extends UserProfile {
@@ -259,6 +260,24 @@ export const UserManagement = () => {
     }
   };
 
+  const toggleReminder = async (userId: string, currentlyEnabled: boolean) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ reminder_enabled: !currentlyEnabled })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success(currentlyEnabled ? "Påmindelser deaktiveret" : "Påmindelser aktiveret");
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openDeleteDialog = (user: UserWithRoles) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
@@ -395,6 +414,21 @@ export const UserManagement = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{isKitchen ? "Fjern køkken" : "Gør til køkken"}</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => toggleReminder(user.id, user.reminder_enabled)}
+                                  disabled={isLoading}
+                                  variant={user.reminder_enabled ? "ghost" : "outline"}
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  {user.reminder_enabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
                             </Tooltip>
                             
                             <Tooltip>

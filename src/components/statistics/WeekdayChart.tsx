@@ -34,9 +34,8 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      // Fetch signups and optouts in parallel
-      // Note: We calculate active users from signups+optouts in the period, not from profiles
-      const [signupsRes, optoutsRes] = await Promise.all([
+      // Fetch signups, optouts, and profiles with reminder_enabled in parallel
+      const [signupsRes, optoutsRes, profilesRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("lunch_date, user_id")
@@ -47,15 +46,23 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
           .select("lunch_date, user_id")
           .gte("lunch_date", startStr)
           .lte("lunch_date", endStr),
+        supabase
+          .from("profiles")
+          .select("id, reminder_enabled")
+          .eq("is_active", true)
+          .eq("reminder_enabled", false),
       ]);
 
       const signups = signupsRes.data || [];
       const optouts = optoutsRes.data || [];
 
-      // Find all unique user_ids from signups + optouts in the period (all active users)
+      // Build set of users excluded from statistics (reminder_enabled = false)
+      const excludedUserIds = new Set((profilesRes.data || []).map(p => p.id));
+
+      // Find all unique user_ids from signups + optouts in the period (excluding opted-out users)
       const usersWithActivity = new Set<string>();
-      signups.forEach((s) => usersWithActivity.add(s.user_id));
-      optouts.forEach((o) => usersWithActivity.add(o.user_id));
+      signups.forEach((s) => { if (!excludedUserIds.has(s.user_id)) usersWithActivity.add(s.user_id); });
+      optouts.forEach((o) => { if (!excludedUserIds.has(o.user_id)) usersWithActivity.add(o.user_id); });
       
       const activeUserCount = usersWithActivity.size || 1;
 
@@ -74,8 +81,9 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         weekdayStats[i] = { signups: 0, optouts: 0, dates: new Set(), usersWithChoice: new Map() };
       }
 
-      // Process signups
+      // Process signups (exclude users with reminder_enabled = false)
       signups.forEach((s) => {
+        if (excludedUserIds.has(s.user_id)) return;
         const date = parseISO(s.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {
@@ -89,8 +97,9 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         }
       });
 
-      // Process optouts
+      // Process optouts (exclude users with reminder_enabled = false)
       optouts.forEach((o) => {
+        if (excludedUserIds.has(o.user_id)) return;
         const date = parseISO(o.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {

@@ -206,11 +206,12 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
       return;
     }
 
-    // Get all active users
+    // Get all active users with reminders enabled
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from("profiles")
       .select("id, email, full_name, is_active")
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .eq("reminder_enabled", true);
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);

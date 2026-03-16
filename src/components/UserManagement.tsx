@@ -397,6 +397,21 @@ export const UserManagement = () => {
                               </TooltipTrigger>
                               <TooltipContent>{isKitchen ? "Fjern køkken" : "Gør til køkken"}</TooltipContent>
                             </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => toggleReminder(user.id, user.reminder_enabled)}
+                                  disabled={isLoading}
+                                  variant={user.reminder_enabled ? "ghost" : "outline"}
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  {user.reminder_enabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
+                            </Tooltip>
                             
                             <Tooltip>
                               <TooltipTrigger asChild>

@@ -171,37 +171,18 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   };
 
   const fetchActiveUserCount = async () => {
-    // Get the date range for displayed weeks
-    const endDate = addDays(startDate, (weeksToDisplay * 7) - 1);
-    const startStr = format(startDate, "yyyy-MM-dd");
-    const endStr = format(endDate, "yyyy-MM-dd");
+    const { count, error } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true)
+      .eq("reminder_enabled", true);
 
-    // Fetch signups and optouts for the period in parallel
-    const [signupsRes, optoutsRes] = await Promise.all([
-      supabase
-        .from("lunch_signups")
-        .select("user_id")
-        .gte("lunch_date", startStr)
-        .lte("lunch_date", endStr),
-      supabase
-        .from("lunch_optouts")
-        .select("user_id")
-        .gte("lunch_date", startStr)
-        .lte("lunch_date", endStr),
-    ]);
-
-    if (signupsRes.error || optoutsRes.error) {
-      console.error("Kunne ikke hente brugerdata:", signupsRes.error || optoutsRes.error);
+    if (error) {
+      console.error("Kunne ikke hente antal aktive brugere:", error);
       return;
     }
 
-    // Find unique users with activity in the period (all active users including kitchen)
-    const usersWithActivity = new Set<string>();
-    
-    (signupsRes.data || []).forEach(s => usersWithActivity.add(s.user_id));
-    (optoutsRes.data || []).forEach(o => usersWithActivity.add(o.user_id));
-    
-    setActiveUserCount(usersWithActivity.size || 1);
+    setActiveUserCount(count || 1);
   };
 
   const fetchGuests = async () => {

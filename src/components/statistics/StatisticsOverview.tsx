@@ -59,7 +59,10 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
           .eq("reminder_enabled", false),
       ]);
 
-      const signups = signupsRes.data || [];
+      // Build excluded user set (reminder_enabled = false)
+      const excludedUserIds = new Set((excludedProfilesRes.data || []).map(p => p.id));
+
+      const signups = (signupsRes.data || []).filter(s => !excludedUserIds.has(s.user_id));
       const guests = guestsRes.data || [];
       const optouts = optoutsRes.data || [];
 

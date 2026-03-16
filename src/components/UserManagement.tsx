@@ -72,27 +72,72 @@ export const UserManagement = () => {
       setTotalCount(count);
     }
 
-    // Fetch roles only for the profiles on this page
+    // Fetch roles and upcoming optouts for the profiles on this page
     const profileIds = (profiles || []).map(p => p.id);
     let roles: { user_id: string; role: string }[] = [];
+    let optouts: { user_id: string; lunch_date: string }[] = [];
+    const todayStr = format(startOfDay(new Date()), "yyyy-MM-dd");
     
     if (profileIds.length > 0) {
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .in("user_id", profileIds);
+      const [rolesRes, optoutsRes] = await Promise.all([
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", profileIds),
+        supabase
+          .from("lunch_optouts")
+          .select("user_id, lunch_date")
+          .in("user_id", profileIds)
+          .gte("lunch_date", todayStr)
+          .order("lunch_date"),
+      ]);
 
-      if (rolesError) {
+      if (rolesRes.error) {
         toast.error("Kunne ikke indlæse brugerroller");
         return;
       }
-      roles = rolesData || [];
+      roles = rolesRes.data || [];
+      optouts = optoutsRes.data || [];
     }
 
-    // Combine profiles with their roles
+    // Group optouts into contiguous periods per user
+    const userOptouts = new Map<string, string[]>();
+    optouts.forEach((o) => {
+      if (!userOptouts.has(o.user_id)) userOptouts.set(o.user_id, []);
+      userOptouts.get(o.user_id)!.push(o.lunch_date);
+    });
+
+    const groupIntoPeriods = (dates: string[]): { start: string; end: string }[] => {
+      if (dates.length === 0) return [];
+      const sorted = [...dates].sort();
+      const periods: { start: string; end: string }[] = [];
+      let periodStart = sorted[0];
+      let periodEnd = sorted[0];
+
+      for (let i = 1; i < sorted.length; i++) {
+        // Check if this date is the next weekday after periodEnd
+        let nextExpected = parseISO(periodEnd);
+        do {
+          nextExpected = addDays(nextExpected, 1);
+        } while (isWeekend(nextExpected));
+        
+        if (sorted[i] === format(nextExpected, "yyyy-MM-dd")) {
+          periodEnd = sorted[i];
+        } else {
+          periods.push({ start: periodStart, end: periodEnd });
+          periodStart = sorted[i];
+          periodEnd = sorted[i];
+        }
+      }
+      periods.push({ start: periodStart, end: periodEnd });
+      return periods;
+    };
+
+    // Combine profiles with their roles and absence periods
     const usersWithRoles: UserWithRoles[] = (profiles || []).map((profile) => ({
       ...profile,
       roles: roles?.filter((r) => r.user_id === profile.id).map((r) => r.role) || [],
+      absencePeriods: groupIntoPeriods(userOptouts.get(profile.id) || []),
     }));
 
     setUsers(usersWithRoles);

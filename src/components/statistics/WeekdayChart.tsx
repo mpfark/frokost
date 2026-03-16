@@ -56,7 +56,19 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const optouts = optoutsRes.data || [];
 
       // Build set of users excluded from statistics (reminder_enabled = false)
-      const excludedUserIds = new Set((profilesRes.data || []).map(p => p.id));
+      const excludedUserIds = new Set(
+        (profilesRes.data || []).filter(p => !p.reminder_enabled).map(p => p.id)
+      );
+
+      // Build optout map: date -> set of user_ids with optout on that date
+      const optoutsByDate = new Map<string, Set<string>>();
+      optouts.forEach((o) => {
+        if (excludedUserIds.has(o.user_id)) return;
+        if (!optoutsByDate.has(o.lunch_date)) {
+          optoutsByDate.set(o.lunch_date, new Set());
+        }
+        optoutsByDate.get(o.lunch_date)!.add(o.user_id);
+      });
 
       // Find all unique user_ids from signups + optouts in the period (excluding opted-out users)
       const usersWithActivity = new Set<string>();

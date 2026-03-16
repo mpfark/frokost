@@ -1,79 +1,41 @@
 
-# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Problem identificeret
+## Plan: Per-bruger påmindelsesindstilling + statistik-ekskludering
 
-WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
+### Problem
+Reminder-systemet sender til alle aktive brugere uden tilmeldinger, men nogle brugere (f.eks. deltidsansatte, køkkenpersonale) bør ikke modtage påmindelser. Disse "falske inaktive" skævvrider også statistikken.
 
-- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
-- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
+### Løsning
+Tilføj et `reminder_enabled`-flag per bruger. Brugere med `reminder_enabled = false`:
+- Modtager ingen ugentlige påmindelser
+- Udgår af statistik (svarprocent, "uden tilmeldinger"-listen, brugeraktivitetstabellen)
 
-Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
+### Ændringer
 
-### Eksempel fra databasen
-| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
-|------------|---------------------|------------------------|-------------|
-| 2026-02-04 | 48                  | 47                     | 102.1%      |
-| 2026-02-05 | 48                  | 47                     | 102.1%      |
+**1. Database-migration**
+- Tilføj `reminder_enabled boolean NOT NULL DEFAULT true` til `profiles`-tabellen.
 
----
+**2. UserManagement.tsx — admin UI**
+- Tilføj en klokke-ikon-knap per bruger (samme mønster som admin/køkken-knapperne).
+- Aktiv = modtager påmindelser (default). Klik slår til/fra.
+- Tooltip: "Modtager påmindelser" / "Ingen påmindelser".
 
-## Løsning
+**3. Edge function: send-weekly-lunch-reminder**
+- Tilføj `.eq("reminder_enabled", true)` til profil-queryen, så brugere med flaget slået fra springes over.
 
-Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
+**4. Statistik — ekskluder brugere uden påmindelser**
+- `WeekdayChart.tsx`: Hent `reminder_enabled` fra profiler og filtrér brugere med `false` fra beregningen af svarprocent.
+- `UserActivityTable.tsx`: Ekskluder brugere med `reminder_enabled = false` fra "uden tilmeldinger"-listen og top-10-listen.
+- `StatisticsOverview.tsx`: Ekskluder fra KPI-beregninger (hvis relevant).
 
-### Ændring i WeekdayChart.tsx
+### Tekniske detaljer
 
-**Før (linje 88-101):**
-```typescript
-signups.forEach((s) => {
-  const date = parseISO(s.lunch_date);
-  const dayIndex = getDay(date);
-  if (dayIndex >= 1 && dayIndex <= 5) {
-    weekdayStats[dayIndex].signups++;
-    weekdayStats[dayIndex].dates.add(s.lunch_date);
-    // Tæller ALLE brugere inkl. køkken
-    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
-      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
-    }
-    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
-  }
-});
-```
+**Filer der ændres:**
+- SQL migration: 1 kolonne
+- `src/components/UserManagement.tsx`: Toggle-knap + save-logik
+- `supabase/functions/send-weekly-lunch-reminder/index.ts`: Filter i query
+- `src/components/statistics/WeekdayChart.tsx`: Filtrér population
+- `src/components/statistics/UserActivityTable.tsx`: Filtrér population
 
-**Efter:**
-```typescript
-signups.forEach((s) => {
-  const date = parseISO(s.lunch_date);
-  const dayIndex = getDay(date);
-  if (dayIndex >= 1 && dayIndex <= 5) {
-    // Skip kitchen users for response rate calculation
-    if (kitchenIds.has(s.user_id)) return;
-    
-    weekdayStats[dayIndex].signups++;
-    weekdayStats[dayIndex].dates.add(s.lunch_date);
-    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
-      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
-    }
-    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
-  }
-});
-```
+**Ingen breaking changes** — default er `true`, så alle eksisterende brugere fortsætter som hidtil.
 
-Samme ændring for optouts-løkken (linje 103-116).
-
----
-
-## Tekniske detaljer
-
-### Fil der ændres
-- `src/components/statistics/WeekdayChart.tsx`
-
-### Påvirkning
-- Svarprocenter vil nu maksimalt være 100%
-- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
-- Ingen ændring af eksisterende database eller andre komponenter
-
-### Alternative løsninger overvejet
-1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
-2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

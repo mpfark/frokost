@@ -36,7 +36,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const allDays = eachDayOfInterval({ start: startDate, end: endDate });
       const businessDays = allDays.filter((d) => !isWeekend(d)).length;
 
-      const [profilesRes, signupsRes, guestsRes] = await Promise.all([
+      const [profilesRes, signupsRes, guestsRes, optoutsRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name, email, reminder_enabled").eq("is_active", true),
         supabase
           .from("lunch_signups")
@@ -48,6 +48,11 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           .select("id, signup_id, lunch_signups!inner(user_id, lunch_date)")
           .gte("lunch_signups.lunch_date", startStr)
           .lte("lunch_signups.lunch_date", endStr),
+        supabase
+          .from("lunch_optouts")
+          .select("user_id")
+          .gte("lunch_date", startStr)
+          .lte("lunch_date", endStr),
       ]);
 
       const profiles = profilesRes.data || [];

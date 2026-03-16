@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Building2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { MeetingRoomSelector } from "./MeetingRoomSelector";
 
 export const GeneralSettings = () => {

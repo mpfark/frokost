@@ -36,7 +36,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const allDays = eachDayOfInterval({ start: startDate, end: endDate });
       const businessDays = allDays.filter((d) => !isWeekend(d)).length;
 
-      const [profilesRes, signupsRes, guestsRes] = await Promise.all([
+      const [profilesRes, signupsRes, guestsRes, optoutsRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name, email, reminder_enabled").eq("is_active", true),
         supabase
           .from("lunch_signups")
@@ -48,11 +48,18 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           .select("id, signup_id, lunch_signups!inner(user_id, lunch_date)")
           .gte("lunch_signups.lunch_date", startStr)
           .lte("lunch_signups.lunch_date", endStr),
+        supabase
+          .from("lunch_optouts")
+          .select("user_id")
+          .gte("lunch_date", startStr)
+          .lte("lunch_date", endStr),
       ]);
 
       const profiles = profilesRes.data || [];
       const signups = signupsRes.data || [];
       const guests = guestsRes.data || [];
+
+      const optouts = optoutsRes.data || [];
 
       // Filter out users with reminder_enabled = false for statistics
       const statsProfiles = profiles.filter((p: any) => p.reminder_enabled !== false);
@@ -90,10 +97,12 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
 
       setTopUsers(userActivities.slice(0, 10));
 
-      // Find inactive users (only from users with reminders enabled)
+      // Find users without any active choice (no signup AND no optout)
       const usersWithSignups = new Set(Object.keys(userStats));
+      const usersWithOptouts = new Set(optouts.map((o) => o.user_id));
+      const usersWithAnyChoice = new Set([...usersWithSignups, ...usersWithOptouts]);
       const inactive = statsProfiles
-        .filter((p: any) => !usersWithSignups.has(p.id))
+        .filter((p: any) => !usersWithAnyChoice.has(p.id))
         .map((p: any) => ({
           id: p.id,
           name: p.full_name || "Ukendt",
@@ -132,7 +141,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           <TabsList>
             <TabsTrigger value="top">Top 10 aktive</TabsTrigger>
             <TabsTrigger value="inactive">
-              Uden tilmeldinger ({inactiveUsers.length})
+              Uden aktive valg ({inactiveUsers.length})
             </TabsTrigger>
           </TabsList>
 
@@ -180,7 +189,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
 
           <TabsContent value="inactive" className="mt-4">
             <p className="text-sm text-muted-foreground mb-4">
-              Aktive brugere som ikke har tilmeldt sig frokost i den valgte periode.
+              Aktive brugere som ikke har foretaget et aktivt valg (hverken tilmelding eller framelding) i den valgte periode.
             </p>
             <Table>
               <TableHeader>

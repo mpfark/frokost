@@ -1,27 +1,79 @@
 
+# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Plan: Fix svarprocent-nævner og "Uden tilmeldinger"-definition
+## Problem identificeret
 
-### Problem
-WeekdayChart bruger `usersWithActivity` (brugere der har lavet mindst ét valg i perioden) som nævner — ikke det totale antal aktive profiler. Hvis 40 ud af 50 har svaret, bliver nævneren 40, og mandag viser 40/40 = 100%. Den korrekte beregning er 40/50 = 80%.
+WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
 
-Derudover skal "Uden tilmeldinger" i UserActivityTable ændres til "Uden aktive valg" — dvs. brugere der hverken har tilmeldt sig eller frameldt sig.
+- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
+- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
 
-### Databaseverifikation
-Tjekket med faktiske data denne uge: 50 aktive profiler, 40 med valg pr. dag → korrekt svarprocent er ~80%.
+Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
 
-### Ændringer
+### Eksempel fra databasen
+| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
+|------------|---------------------|------------------------|-------------|
+| 2026-02-04 | 48                  | 47                     | 102.1%      |
+| 2026-02-05 | 48                  | 47                     | 102.1%      |
 
-**1. WeekdayChart.tsx**
-- Ændr `activeUserCount` fra `usersWithActivity.size` til antal profiler med `reminder_enabled = true`.
-- Hent dette tal fra `profilesRes.data` i stedet for at bygge et set fra signups/optouts.
+---
 
-**2. UserActivityTable.tsx**
-- Ændr "Uden tilmeldinger"-listen til at vise brugere uden nogen aktive valg (hverken signup eller optout).
-- Hent optouts i perioden og tjek om brugeren har mindst ét valg.
-- Opdater label fra "Uden tilmeldinger" til "Uden aktive valg".
+## Løsning
 
-### Filer der ændres
-- `src/components/statistics/WeekdayChart.tsx` — brug totalt antal aktive profiler som nævner
-- `src/components/statistics/UserActivityTable.tsx` — inkludér optouts i aktivitetstjek
+Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
 
+### Ændring i WeekdayChart.tsx
+
+**Før (linje 88-101):**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    // Tæller ALLE brugere inkl. køkken
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+**Efter:**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    // Skip kitchen users for response rate calculation
+    if (kitchenIds.has(s.user_id)) return;
+    
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+Samme ændring for optouts-løkken (linje 103-116).
+
+---
+
+## Tekniske detaljer
+
+### Fil der ændres
+- `src/components/statistics/WeekdayChart.tsx`
+
+### Påvirkning
+- Svarprocenter vil nu maksimalt være 100%
+- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
+- Ingen ændring af eksisterende database eller andre komponenter
+
+### Alternative løsninger overvejet
+1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
+2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

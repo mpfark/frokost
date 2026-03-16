@@ -1,79 +1,30 @@
 
-# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Problem identificeret
+## Plan: Filtrér interne kollegaer fra gæstetilmelding til frokost
 
-WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
+### Problem
+Når man tilføjer mødedeltagere som gæster til frokost, tælles kollegaer med @pluskontoret.dk også med — men de har allerede selv tilmeldt sig frokost via appen.
 
-- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
-- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
+### Løsning
+Udvid kalender-dataen fra Microsoft Graph med en liste af deltagernes e-mails, så frontend kan beregne hvor mange der er *eksterne* gæster (ikke fra virksomhedens domæne).
 
-Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
+### Ændringer
 
-### Eksempel fra databasen
-| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
-|------------|---------------------|------------------------|-------------|
-| 2026-02-04 | 48                  | 47                     | 102.1%      |
-| 2026-02-05 | 48                  | 47                     | 102.1%      |
+**1. Edge functions: Returnér attendee-emails**
+- `get-calendar-events/index.ts` og `get-room-calendars/index.ts`: Tilføj et nyt felt `attendeeEmails: string[]` med e-mails for ikke-resource deltagere. Behold `attendeeCount` uændret (bruges til forplejning generelt).
 
----
+**2. Types: Udvid CalendarEvent**
+- `src/components/catering/types.ts`: Tilføj `attendeeEmails?: string[]` til `CalendarEvent`.
 
-## Løsning
+**3. CateringOrderDialog: Beregn eksterne gæster**
+- Hent `allowed_domain` fra `company_settings` (allerede tilgængeligt eller via en simpel query).
+- Beregn `externalGuestCount` = antal deltagere hvis e-mail *ikke* ender på `@{allowed_domain}` (minus bestilleren selv).
+- Brug dette tal i teksten under "Tilføj gæsterne til dagens frokost" og i `addGuestsToLunch`-kaldet.
+- Vis tydeligt: "X eksterne gæster tilmeldes frokost (Y kollegaer fra @pluskontoret.dk er fraregnet)".
 
-Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
+### Tekniske detaljer
+- Microsoft Graph returnerer allerede `attendees[].emailAddress.address` — vi skal bare mappe det ud.
+- Domænet hentes fra `company_settings.allowed_domain` via en enkelt SELECT.
+- Ingen database-migration nødvendig.
+- `attendeeCount` (til forplejning/antal personer) forbliver uændret — det er kun gæste-frokost-logikken der filtrerer.
 
-### Ændring i WeekdayChart.tsx
-
-**Før (linje 88-101):**
-```typescript
-signups.forEach((s) => {
-  const date = parseISO(s.lunch_date);
-  const dayIndex = getDay(date);
-  if (dayIndex >= 1 && dayIndex <= 5) {
-    weekdayStats[dayIndex].signups++;
-    weekdayStats[dayIndex].dates.add(s.lunch_date);
-    // Tæller ALLE brugere inkl. køkken
-    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
-      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
-    }
-    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
-  }
-});
-```
-
-**Efter:**
-```typescript
-signups.forEach((s) => {
-  const date = parseISO(s.lunch_date);
-  const dayIndex = getDay(date);
-  if (dayIndex >= 1 && dayIndex <= 5) {
-    // Skip kitchen users for response rate calculation
-    if (kitchenIds.has(s.user_id)) return;
-    
-    weekdayStats[dayIndex].signups++;
-    weekdayStats[dayIndex].dates.add(s.lunch_date);
-    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
-      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
-    }
-    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
-  }
-});
-```
-
-Samme ændring for optouts-løkken (linje 103-116).
-
----
-
-## Tekniske detaljer
-
-### Fil der ændres
-- `src/components/statistics/WeekdayChart.tsx`
-
-### Påvirkning
-- Svarprocenter vil nu maksimalt være 100%
-- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
-- Ingen ændring af eksisterende database eller andre komponenter
-
-### Alternative løsninger overvejet
-1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
-2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

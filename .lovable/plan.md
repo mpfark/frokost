@@ -1,79 +1,27 @@
 
-# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Problem identificeret
+## Plan: Fix svarprocent-beregning i WeekdayChart
 
-WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
+### Problem
+Beregningen trækker fraværende brugere (optouts) fra populationen (nævneren), men tæller dem samtidig med i tælleren (`usersWithChoice`). Det giver over 100%: en bruger der melder fravær tæller som "har svaret" men reducerer også den population man dividerer med.
 
-- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
-- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
+Eksempel: 40 brugere, 40 har svaret (inkl. 2 optouts). Nuværende beregning: `40 / (40 - 2) = 105%`.
 
-Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
+### Løsning
+Forenkl beregningen:
+- **Nævner (population)**: Antal aktive profiler med `reminder_enabled = true` — fast tal, ingen fradrag for optouts
+- **Tæller**: Antal unikke brugere der har foretaget et valg (signup ELLER optout) på den dato
 
-### Eksempel fra databasen
-| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
-|------------|---------------------|------------------------|-------------|
-| 2026-02-04 | 48                  | 47                     | 102.1%      |
-| 2026-02-05 | 48                  | 47                     | 102.1%      |
-
----
-
-## Løsning
-
-Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
+Altså: `svarprocent = brugere_der_har_svaret / alle_aktive_brugere * 100`
 
 ### Ændring i WeekdayChart.tsx
 
-**Før (linje 88-101):**
+Fjern linje 63-71 (`optoutsByDate`-opbygningen) og linje 139-140 (`absentOnDate`-justeringen). Erstat med simpel beregning:
+
 ```typescript
-signups.forEach((s) => {
-  const date = parseISO(s.lunch_date);
-  const dayIndex = getDay(date);
-  if (dayIndex >= 1 && dayIndex <= 5) {
-    weekdayStats[dayIndex].signups++;
-    weekdayStats[dayIndex].dates.add(s.lunch_date);
-    // Tæller ALLE brugere inkl. køkken
-    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
-      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
-    }
-    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
-  }
-});
+const dailyRate = (users.size / activeUserCount) * 100;
 ```
 
-**Efter:**
-```typescript
-signups.forEach((s) => {
-  const date = parseISO(s.lunch_date);
-  const dayIndex = getDay(date);
-  if (dayIndex >= 1 && dayIndex <= 5) {
-    // Skip kitchen users for response rate calculation
-    if (kitchenIds.has(s.user_id)) return;
-    
-    weekdayStats[dayIndex].signups++;
-    weekdayStats[dayIndex].dates.add(s.lunch_date);
-    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
-      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
-    }
-    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
-  }
-});
-```
+### Filer der ændres
+- `src/components/statistics/WeekdayChart.tsx` — fjern population-justering, brug fast nævner
 
-Samme ændring for optouts-løkken (linje 103-116).
-
----
-
-## Tekniske detaljer
-
-### Fil der ændres
-- `src/components/statistics/WeekdayChart.tsx`
-
-### Påvirkning
-- Svarprocenter vil nu maksimalt være 100%
-- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
-- Ingen ændring af eksisterende database eller andre komponenter
-
-### Alternative løsninger overvejet
-1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
-2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

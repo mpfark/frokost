@@ -438,6 +438,7 @@ export type Database = {
           is_gluten_free: boolean
           is_lactose_free: boolean
           is_vegetarian: boolean
+          reminder_enabled: boolean
           updated_at: string
           webflow_id: string | null
           webflow_synced: boolean
@@ -451,6 +452,7 @@ export type Database = {
           is_gluten_free?: boolean
           is_lactose_free?: boolean
           is_vegetarian?: boolean
+          reminder_enabled?: boolean
           updated_at?: string
           webflow_id?: string | null
           webflow_synced?: boolean
@@ -464,6 +466,7 @@ export type Database = {
           is_gluten_free?: boolean
           is_lactose_free?: boolean
           is_vegetarian?: boolean
+          reminder_enabled?: boolean
           updated_at?: string
           webflow_id?: string | null
           webflow_synced?: boolean

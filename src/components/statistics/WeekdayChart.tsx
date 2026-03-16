@@ -34,9 +34,8 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      // Fetch signups and optouts in parallel
-      // Note: We calculate active users from signups+optouts in the period, not from profiles
-      const [signupsRes, optoutsRes] = await Promise.all([
+      // Fetch signups, optouts, and profiles with reminder_enabled in parallel
+      const [signupsRes, optoutsRes, profilesRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("lunch_date, user_id")
@@ -47,6 +46,11 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
           .select("lunch_date, user_id")
           .gte("lunch_date", startStr)
           .lte("lunch_date", endStr),
+        supabase
+          .from("profiles")
+          .select("id, reminder_enabled")
+          .eq("is_active", true)
+          .eq("reminder_enabled", false),
       ]);
 
       const signups = signupsRes.data || [];

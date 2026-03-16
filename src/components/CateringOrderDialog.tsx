@@ -297,9 +297,13 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
               <div>
                 <span className="text-sm font-medium">Tilføj gæsterne til dagens frokost</span>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {personCount - 1 > 0
-                    ? `${personCount - 1} gæst${personCount - 1 > 1 ? "er" : ""} tilmeldes frokost under dit navn (dig selv fraregnet). De fjernes automatisk hvis bestillingen annulleres.`
-                    : "Ingen gæster at tilføje (kun dig selv i mødet)."}
+                  {externalGuestCount > 0
+                    ? `${externalGuestCount} ekstern${externalGuestCount > 1 ? "e" : ""} gæst${externalGuestCount > 1 ? "er" : ""} tilmeldes frokost under dit navn.${
+                        meeting.attendeeEmails && allowedDomain
+                          ? ` Kollegaer fra @${allowedDomain} er fraregnet.`
+                          : ""
+                      } De fjernes automatisk hvis bestillingen annulleres.`
+                    : "Ingen eksterne gæster at tilføje (alle deltagere er fra virksomheden)."}
                 </p>
               </div>
             </label>

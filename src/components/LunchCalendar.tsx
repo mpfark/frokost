@@ -841,7 +841,20 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
               {/* Days Grid - including "Hele ugen" as first card */}
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Hele ugen card */}
-                <div className={`border rounded-lg p-3 flex flex-col justify-center min-w-0 overflow-hidden ${!hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"}`}>
+                <div 
+                  ref={(el) => { weekCardRefs.current[weekNumber] = el; }}
+                  className={`border rounded-lg p-3 flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
+                    userHasRespondedAllDays(days) 
+                      ? "border-green-500 bg-green-50 dark:bg-green-950/20 ring-1 ring-green-500/30" 
+                      : !hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"
+                  }`}
+                >
+                  {userHasRespondedAllDays(days) && (
+                    <div className="flex items-center justify-center gap-1 mb-1.5">
+                      <PartyPopper className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                      <span className="text-[10px] font-medium text-green-600 dark:text-green-400">Komplet!</span>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1 min-w-0">
                     <Button
                       onClick={() => signupForWeek(days)}

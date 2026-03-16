@@ -129,8 +129,6 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
           const dailyRate = (users.size / activeUserCount) * 100;
           totalDailyResponseRate += dailyRate;
         });
-          totalDailyResponseRate += dailyRate;
-        });
         const avgResponseRateForDay = stats.dates.size > 0 ? totalDailyResponseRate / stats.dates.size : 0;
 
         if (stats.dates.size > 0) {

@@ -212,12 +212,11 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         }
       }
 
-      // Add guests to lunch if requested
-      const guestCount = personCount - 1;
-      if (addToLunch && guestCount > 0) {
+      // Add guests to lunch if requested — only external guests
+      if (addToLunch && externalGuestCount > 0) {
         try {
-          await addGuestsToLunch(user.id, orderId, guestCount, meeting.date);
-          toast.success(`${guestCount} gæst${guestCount > 1 ? "er" : ""} tilføjet til frokost`);
+          await addGuestsToLunch(user.id, orderId, externalGuestCount, meeting.date);
+          toast.success(`${externalGuestCount} ekstern${externalGuestCount > 1 ? "e" : ""} gæst${externalGuestCount > 1 ? "er" : ""} tilføjet til frokost`);
         } catch (err: any) {
           toast.error("Kunne ikke tilføje gæster til frokost: " + (err.message || ""));
         }

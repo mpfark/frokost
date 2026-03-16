@@ -125,10 +125,10 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
 
         // Calculate average response rate for this weekday, adjusting population per date
         let totalDailyResponseRate = 0;
-        stats.usersWithChoice.forEach((users, date) => {
-          const absentOnDate = optoutsByDate.get(date)?.size || 0;
-          const adjustedPopulation = Math.max(activeUserCount - absentOnDate, 1);
-          const dailyRate = (users.size / adjustedPopulation) * 100;
+        stats.usersWithChoice.forEach((users) => {
+          const dailyRate = (users.size / activeUserCount) * 100;
+          totalDailyResponseRate += dailyRate;
+        });
           totalDailyResponseRate += dailyRate;
         });
         const avgResponseRateForDay = stats.dates.size > 0 ? totalDailyResponseRate / stats.dates.size : 0;

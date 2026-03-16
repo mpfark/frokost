@@ -37,7 +37,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const businessDays = allDays.filter((d) => !isWeekend(d)).length;
 
       const [profilesRes, signupsRes, guestsRes] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email").eq("is_active", true),
+        supabase.from("profiles").select("id, full_name, email, reminder_enabled").eq("is_active", true),
         supabase
           .from("lunch_signups")
           .select("user_id, guest_count")

@@ -19,6 +19,7 @@ interface CateringOrderDialogProps {
     time: string;
     location?: string | null;
     attendeeCount: number;
+    attendeeEmails?: string[];
     externalMeetingId?: string | null;
   };
   existingOrder?: {

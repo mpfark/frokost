@@ -1,29 +1,79 @@
 
+# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Plan: Synkronisér animation med statistik + auto-frameld ved fravær
+## Problem identificeret
 
-### Problem 1: Animation bruger forkert population
-`LunchCalendar.tsx` linje 173-204: `fetchActiveUserCount` tæller unikke brugere med aktivitet i perioden i stedet for at bruge det faste antal profiler med `reminder_enabled = true`. Det er præcis samme fejl som WeekdayChart havde.
+WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
 
-### Problem 2: Fravær fjerner ikke eksisterende tilmeldinger
-`AbsenceManager.tsx` linje 149: Datoer hvor brugeren allerede er tilmeldt frokost springes over (`!signupSet.has(d)`). I stedet skal eksisterende tilmeldinger (og tilhørende gæster) slettes, og erstattes med optouts.
+- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
+- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
 
-### Ændringer
+Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
 
-**1. `src/components/LunchCalendar.tsx` — Fix `fetchActiveUserCount`**
-- Erstat hele funktionen: i stedet for at tælle brugere med aktivitet, hent antal profiler med `is_active = true` og `reminder_enabled = true`.
-- Simpel query: `supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_active", true).eq("reminder_enabled", true)`
-- Sæt `activeUserCount` til dette tal.
+### Eksempel fra databasen
+| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
+|------------|---------------------|------------------------|-------------|
+| 2026-02-04 | 48                  | 47                     | 102.1%      |
+| 2026-02-05 | 48                  | 47                     | 102.1%      |
 
-**2. `src/components/profile/AbsenceManager.tsx` — Auto-frameld ved fravær**
-- Linje 149: Fjern `!signupSet.has(d)` filteret, så datoer med eksisterende tilmeldinger også inkluderes.
-- Tilføj efter linje 147: Slet eksisterende tilmeldinger for de valgte datoer (dette sletter også gæster via cascade/trigger).
-- Ny logik i `handleSubmit`:
-  1. Find datoer med eksisterende signups: `datesToRemoveSignup = allWeekdays.filter(d => !closedSet.has(d) && signupSet.has(d) && !optoutSet.has(d))`
-  2. Slet disse signups: `supabase.from("lunch_signups").delete().eq("user_id", userId).in("lunch_date", datesToRemoveSignup)`
-  3. Opret optouts for alle ikke-lukkede, ikke-allerede-frameldte datoer: `datesToOptout = allWeekdays.filter(d => !closedSet.has(d) && !optoutSet.has(d))`
+---
 
-### Filer der ændres
-- `src/components/LunchCalendar.tsx` — fetchActiveUserCount
-- `src/components/profile/AbsenceManager.tsx` — handleSubmit
+## Løsning
 
+Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
+
+### Ændring i WeekdayChart.tsx
+
+**Før (linje 88-101):**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    // Tæller ALLE brugere inkl. køkken
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+**Efter:**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    // Skip kitchen users for response rate calculation
+    if (kitchenIds.has(s.user_id)) return;
+    
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+Samme ændring for optouts-løkken (linje 103-116).
+
+---
+
+## Tekniske detaljer
+
+### Fil der ændres
+- `src/components/statistics/WeekdayChart.tsx`
+
+### Påvirkning
+- Svarprocenter vil nu maksimalt være 100%
+- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
+- Ingen ændring af eksisterende database eller andre komponenter
+
+### Alternative løsninger overvejet
+1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
+2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

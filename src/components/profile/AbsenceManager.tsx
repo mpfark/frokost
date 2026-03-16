@@ -146,12 +146,28 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
       const optoutSet = new Set(existingOptouts?.map(o => o.lunch_date) || []);
       const signupSet = new Set(existingSignups?.map(s => s.lunch_date) || []);
 
-      const datesToOptout = allWeekdays.filter(d => !closedSet.has(d) && !optoutSet.has(d) && !signupSet.has(d));
+      const datesToOptout = allWeekdays.filter(d => !closedSet.has(d) && !optoutSet.has(d));
+      const datesToRemoveSignup = datesToOptout.filter(d => signupSet.has(d));
 
       if (datesToOptout.length === 0) {
-        toast.info("Alle hverdage i perioden er enten lukket, allerede frameldt, eller du er allerede tilmeldt");
+        toast.info("Alle hverdage i perioden er enten lukket eller allerede frameldt");
         setIsSubmitting(false);
         return;
+      }
+
+      // Remove existing signups (and guests via cascade) for dates being opted out
+      if (datesToRemoveSignup.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("lunch_signups")
+          .delete()
+          .eq("user_id", userId)
+          .in("lunch_date", datesToRemoveSignup);
+        if (deleteError) {
+          console.error("Error removing signups:", deleteError);
+          toast.error("Kunne ikke fjerne eksisterende tilmeldinger");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const { error } = await supabase.from("lunch_optouts").insert(datesToOptout.map(date => ({ user_id: userId, lunch_date: date })));

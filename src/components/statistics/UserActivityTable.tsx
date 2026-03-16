@@ -75,10 +75,10 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
         userStats[userId].guestCount++;
       });
 
-      // Build top users list
-      const userActivities: UserActivity[] = profiles
-        .filter((p) => userStats[p.id])
-        .map((p) => ({
+      // Build top users list (only from users with reminders enabled)
+      const userActivities: UserActivity[] = statsProfiles
+        .filter((p: any) => userStats[p.id])
+        .map((p: any) => ({
           userId: p.id,
           name: p.full_name || "Ukendt",
           email: p.email,
@@ -86,7 +86,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           guestCount: userStats[p.id].guestCount,
           attendancePercent: businessDays > 0 ? Math.round((userStats[p.id].signupCount / businessDays) * 100) : 0,
         }))
-        .sort((a, b) => b.signupCount - a.signupCount);
+        .sort((a: UserActivity, b: UserActivity) => b.signupCount - a.signupCount);
 
       setTopUsers(userActivities.slice(0, 10));
 

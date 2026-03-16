@@ -9,6 +9,7 @@ export interface CalendarEvent {
   isAllDay: boolean;
   organizer: string | null;
   attendeeCount: number;
+  attendeeEmails?: string[];
   externalMeetingId?: string | null;
 }
 

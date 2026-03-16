@@ -49,7 +49,7 @@ export const AuthForm = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain")
+        .select("allowed_domain, restrict_signup_to_domain")
         .single();
 
       if (error && error.code !== "PGRST116") {

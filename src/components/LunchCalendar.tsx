@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Users, UserPlus, Plus, Trash2, Check, X, Sparkles } from "lucide-react";
+import { Users, UserPlus, Plus, Trash2, Check, X, Sparkles, PartyPopper } from "lucide-react";
+import confetti from "canvas-confetti";
 import {
   Dialog,
   DialogContent,

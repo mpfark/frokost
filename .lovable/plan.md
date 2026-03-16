@@ -1,28 +1,79 @@
 
+# Plan: Ret svarprocent-beregning i WeekdayChart
 
-## Plan: Omdøb "Tilladt domæne" til "Internt domæne" + tilføj valgfri domænebegrænsning
+## Problem identificeret
 
-### Ændringer
+WeekdayChart.tsx har en inkonsistens i beregningen af svarprocent:
 
-**1. Database-migration**
-- Tilføj kolonne `restrict_signup_to_domain boolean NOT NULL DEFAULT true` til `company_settings`.
-- Default `true` sikrer bagudkompatibilitet (eksisterende adfærd bevares).
+- **Tæller**: Inkluderer ALLE brugere (inkl. køkkenbrugere) der har tilmeldt/afmeldt sig
+- **Nævner**: Ekskluderer køkkenbrugere fra "aktive brugere i perioden"
 
-**2. GeneralSettings.tsx**
-- Omdøb label fra "Tilladt e-mail-domæne" til "Internt domæne".
-- Opdater beskrivelsestekst til noget generelt om at identificere virksomhedens domæne.
-- Tilføj en Switch/Checkbox under domænefeltet: "Begræns tilmelding til dette domæne" med forklarende tekst.
-- Gem den nye indstilling sammen med resten af payload.
+Dette resulterer i svarprocenter over 100% når køkkenbrugere tilmelder sig.
 
-**3. AuthForm.tsx**
-- Hent `restrict_signup_to_domain` sammen med `allowed_domain` fra `company_settings`.
-- Hvis `restrict_signup_to_domain` er `false`, spring domænevalidering over ved signup (brug standard signUpSchema i stedet for domænebegrænset schema).
+### Eksempel fra databasen
+| Dato       | Brugere inkl. køkken | Nævner (ekskl. køkken) | Fejlagtig % |
+|------------|---------------------|------------------------|-------------|
+| 2026-02-04 | 48                  | 47                     | 102.1%      |
+| 2026-02-05 | 48                  | 47                     | 102.1%      |
 
-**4. CateringOrderDialog.tsx**
-- Ingen ændring nødvendig — bruger allerede `allowed_domain` til at filtrere interne/eksterne gæster, uafhængigt af signup-begrænsning.
+---
 
-### Tekniske detaljer
-- Kolonne: `restrict_signup_to_domain boolean NOT NULL DEFAULT true`
-- Feltet `allowed_domain` beholdes som det er i databasen (ingen rename) — kun UI-label ændres.
-- `validations.ts` behøver ingen ændring; `AuthForm` vælger bare hvilken schema der bruges.
+## Løsning
 
+Filtrér køkkenbrugere fra OGSÅ i tælleren - altså når vi tæller brugere der har svaret pr. dag.
+
+### Ændring i WeekdayChart.tsx
+
+**Før (linje 88-101):**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    // Tæller ALLE brugere inkl. køkken
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+**Efter:**
+```typescript
+signups.forEach((s) => {
+  const date = parseISO(s.lunch_date);
+  const dayIndex = getDay(date);
+  if (dayIndex >= 1 && dayIndex <= 5) {
+    // Skip kitchen users for response rate calculation
+    if (kitchenIds.has(s.user_id)) return;
+    
+    weekdayStats[dayIndex].signups++;
+    weekdayStats[dayIndex].dates.add(s.lunch_date);
+    if (!weekdayStats[dayIndex].usersWithChoice.has(s.lunch_date)) {
+      weekdayStats[dayIndex].usersWithChoice.set(s.lunch_date, new Set());
+    }
+    weekdayStats[dayIndex].usersWithChoice.get(s.lunch_date)!.add(s.user_id);
+  }
+});
+```
+
+Samme ændring for optouts-løkken (linje 103-116).
+
+---
+
+## Tekniske detaljer
+
+### Fil der ændres
+- `src/components/statistics/WeekdayChart.tsx`
+
+### Påvirkning
+- Svarprocenter vil nu maksimalt være 100%
+- Køkkenbrugeres tilmeldinger/afmeldinger vises stadig i grafen (signupAvg/optoutAvg), men tælles ikke i svarprocent
+- Ingen ændring af eksisterende database eller andre komponenter
+
+### Alternative løsninger overvejet
+1. **Inkludér køkkenbrugere i nævneren**: Afvist, da køkkenbrugere ikke forventes at skulle svare
+2. **Vis køkkenbrugeres svar separat**: Overkomplekst for dette use case

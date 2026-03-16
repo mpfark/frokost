@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Building2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { MeetingRoomSelector } from "./MeetingRoomSelector";
 
 export const GeneralSettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
+  const [restrictSignupToDomain, setRestrictSignupToDomain] = useState(true);
   const [resourceRoomEmails, setResourceRoomEmails] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -23,7 +25,7 @@ export const GeneralSettings = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain, weeks_to_display, resource_room_emails")
+        .select("allowed_domain, weeks_to_display, resource_room_emails, restrict_signup_to_domain")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -34,6 +36,7 @@ export const GeneralSettings = () => {
         setAllowedDomain(data.allowed_domain);
         setWeeksToDisplay(data.weeks_to_display || 3);
         setResourceRoomEmails((data as any).resource_room_emails || []);
+        setRestrictSignupToDomain((data as any).restrict_signup_to_domain ?? true);
       }
     } catch (error: any) {
       toast({
@@ -86,6 +89,7 @@ export const GeneralSettings = () => {
         allowed_domain: allowedDomain.toLowerCase(),
         weeks_to_display: weeksToDisplay,
         resource_room_emails: resourceRoomEmails,
+        restrict_signup_to_domain: restrictSignupToDomain,
       };
 
       if (existing) {
@@ -135,7 +139,7 @@ export const GeneralSettings = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="domain">Tilladt e-mail-domæne</Label>
+          <Label htmlFor="domain">Internt domæne</Label>
           <div className="flex gap-2">
             <span className="flex items-center text-muted-foreground">@</span>
             <Input
@@ -147,8 +151,23 @@ export const GeneralSettings = () => {
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            Kun brugere med e-mailadresser fra dette domæne vil kunne tilmelde sig
+            Virksomhedens e-mail-domæne bruges til at identificere interne kollegaer
           </p>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="restrict-signup">Begræns tilmelding til dette domæne</Label>
+            <p className="text-sm text-muted-foreground">
+              Når aktiveret, kan kun brugere med @{allowedDomain || "domæne"} tilmelde sig
+            </p>
+          </div>
+          <Switch
+            id="restrict-signup"
+            checked={restrictSignupToDomain}
+            onCheckedChange={setRestrictSignupToDomain}
+            disabled={isLoading}
+          />
         </div>
 
         <div className="space-y-2">

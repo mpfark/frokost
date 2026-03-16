@@ -18,6 +18,7 @@ export const AuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [allowedDomain, setAllowedDomain] = useState("");
+  const [restrictSignupToDomain, setRestrictSignupToDomain] = useState(true);
   const [inviteValid, setInviteValid] = useState(false);
   const [inviteChecking, setInviteChecking] = useState(false);
   const [emailFromInvite, setEmailFromInvite] = useState(false);
@@ -48,7 +49,7 @@ export const AuthForm = () => {
     try {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("allowed_domain")
+        .select("allowed_domain, restrict_signup_to_domain")
         .single();
 
       if (error && error.code !== "PGRST116") {
@@ -57,6 +58,7 @@ export const AuthForm = () => {
 
       if (data) {
         setAllowedDomain(data.allowed_domain);
+        setRestrictSignupToDomain((data as any).restrict_signup_to_domain ?? true);
       }
     } catch (error: any) {
       console.error("Error fetching company settings:", error);
@@ -128,19 +130,29 @@ export const AuthForm = () => {
           return;
         }
 
-        // Validate with domain schema
-        const signUpWithInviteSchema = createSignUpWithInviteSchema(allowedDomain);
-        const validationResult = signUpWithInviteSchema.safeParse({
-          email,
-          password,
-          fullName,
-          inviteCode,
-        });
+        // Validate with domain schema (only if domain restriction is enabled)
+        if (restrictSignupToDomain && allowedDomain) {
+          const signUpWithInviteSchema = createSignUpWithInviteSchema(allowedDomain);
+          const validationResult = signUpWithInviteSchema.safeParse({
+            email,
+            password,
+            fullName,
+            inviteCode,
+          });
 
-        if (!validationResult.success) {
-          toast.error(validationResult.error.errors[0].message);
-          setIsLoading(false);
-          return;
+          if (!validationResult.success) {
+            toast.error(validationResult.error.errors[0].message);
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          // Basic validation without domain check
+          const validationResult = signUpSchema.safeParse({ email, password, fullName });
+          if (!validationResult.success) {
+            toast.error(validationResult.error.errors[0].message);
+            setIsLoading(false);
+            return;
+          }
         }
 
         // Validate invite one more time before signup using secure edge function

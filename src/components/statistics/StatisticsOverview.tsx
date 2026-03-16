@@ -31,7 +31,7 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [signupsRes, guestsRes, optoutsRes, activeProfilesRes] = await Promise.all([
+      const [signupsRes, guestsRes, optoutsRes, activeProfilesRes, excludedProfilesRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("id, user_id, lunch_date, guest_count, marked_absent_at")
@@ -50,10 +50,19 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
         supabase
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
+          .eq("is_active", true)
+          .eq("reminder_enabled", true),
+        supabase
+          .from("profiles")
+          .select("id")
+          .eq("is_active", true)
+          .eq("reminder_enabled", false),
       ]);
 
-      const signups = signupsRes.data || [];
+      // Build excluded user set (reminder_enabled = false)
+      const excludedUserIds = new Set((excludedProfilesRes.data || []).map(p => p.id));
+
+      const signups = (signupsRes.data || []).filter(s => !excludedUserIds.has(s.user_id));
       const guests = guestsRes.data || [];
       const optouts = optoutsRes.data || [];
 
@@ -118,7 +127,7 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
         <CardContent>
           <div className="text-2xl font-bold">{stats.totalActiveProfiles}</div>
           <p className="text-xs text-muted-foreground">
-            Aktive brugere (is_active)
+            Aktive brugere (ekskl. uden påmindelser)
           </p>
         </CardContent>
       </Card>

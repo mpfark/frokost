@@ -18,6 +18,7 @@ export const AuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [allowedDomain, setAllowedDomain] = useState("");
+  const [restrictSignupToDomain, setRestrictSignupToDomain] = useState(true);
   const [inviteValid, setInviteValid] = useState(false);
   const [inviteChecking, setInviteChecking] = useState(false);
   const [emailFromInvite, setEmailFromInvite] = useState(false);

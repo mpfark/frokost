@@ -47,6 +47,19 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
   const [comment, setComment] = useState("");
   const [addToLunch, setAddToLunch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [allowedDomain, setAllowedDomain] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.from("company_settings").select("allowed_domain").single().then(({ data }) => {
+      if (data) setAllowedDomain(data.allowed_domain);
+    });
+  }, []);
+
+  const externalGuestCount = (() => {
+    if (!meeting.attendeeEmails || !allowedDomain) return personCount - 1;
+    const domainSuffix = `@${allowedDomain.toLowerCase()}`;
+    return meeting.attendeeEmails.filter(e => !e.endsWith(domainSuffix)).length;
+  })();
 
   useEffect(() => {
     if (open && existingOrder) {

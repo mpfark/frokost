@@ -81,8 +81,9 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         weekdayStats[i] = { signups: 0, optouts: 0, dates: new Set(), usersWithChoice: new Map() };
       }
 
-      // Process signups
+      // Process signups (exclude users with reminder_enabled = false)
       signups.forEach((s) => {
+        if (excludedUserIds.has(s.user_id)) return;
         const date = parseISO(s.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {

@@ -130,19 +130,29 @@ export const AuthForm = () => {
           return;
         }
 
-        // Validate with domain schema
-        const signUpWithInviteSchema = createSignUpWithInviteSchema(allowedDomain);
-        const validationResult = signUpWithInviteSchema.safeParse({
-          email,
-          password,
-          fullName,
-          inviteCode,
-        });
+        // Validate with domain schema (only if domain restriction is enabled)
+        if (restrictSignupToDomain && allowedDomain) {
+          const signUpWithInviteSchema = createSignUpWithInviteSchema(allowedDomain);
+          const validationResult = signUpWithInviteSchema.safeParse({
+            email,
+            password,
+            fullName,
+            inviteCode,
+          });
 
-        if (!validationResult.success) {
-          toast.error(validationResult.error.errors[0].message);
-          setIsLoading(false);
-          return;
+          if (!validationResult.success) {
+            toast.error(validationResult.error.errors[0].message);
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          // Basic validation without domain check
+          const validationResult = signUpSchema.safeParse({ email, password, fullName });
+          if (!validationResult.success) {
+            toast.error(validationResult.error.errors[0].message);
+            setIsLoading(false);
+            return;
+          }
         }
 
         // Validate invite one more time before signup using secure edge function

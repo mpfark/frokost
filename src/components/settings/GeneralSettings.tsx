@@ -139,7 +139,7 @@ export const GeneralSettings = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="domain">Tilladt e-mail-domæne</Label>
+          <Label htmlFor="domain">Internt domæne</Label>
           <div className="flex gap-2">
             <span className="flex items-center text-muted-foreground">@</span>
             <Input
@@ -151,8 +151,23 @@ export const GeneralSettings = () => {
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            Kun brugere med e-mailadresser fra dette domæne vil kunne tilmelde sig
+            Virksomhedens e-mail-domæne bruges til at identificere interne kollegaer
           </p>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="restrict-signup">Begræns tilmelding til dette domæne</Label>
+            <p className="text-sm text-muted-foreground">
+              Når aktiveret, kan kun brugere med @{allowedDomain || "domæne"} tilmelde sig
+            </p>
+          </div>
+          <Switch
+            id="restrict-signup"
+            checked={restrictSignupToDomain}
+            onCheckedChange={setRestrictSignupToDomain}
+            disabled={isLoading}
+          />
         </div>
 
         <div className="space-y-2">

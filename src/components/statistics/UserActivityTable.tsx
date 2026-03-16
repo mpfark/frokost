@@ -54,6 +54,9 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const signups = signupsRes.data || [];
       const guests = guestsRes.data || [];
 
+      // Filter out users with reminder_enabled = false for statistics
+      const statsProfiles = profiles.filter((p: any) => p.reminder_enabled !== false);
+
       // Count signups and guests per user
       const userStats: Record<string, { signupCount: number; guestCount: number }> = {};
 

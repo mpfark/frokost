@@ -31,7 +31,7 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [signupsRes, guestsRes, optoutsRes, activeProfilesRes] = await Promise.all([
+      const [signupsRes, guestsRes, optoutsRes, activeProfilesRes, excludedProfilesRes] = await Promise.all([
         supabase
           .from("lunch_signups")
           .select("id, user_id, lunch_date, guest_count, marked_absent_at")
@@ -50,7 +50,13 @@ export const StatisticsOverview = ({ startDate, endDate }: StatisticsOverviewPro
         supabase
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
+          .eq("is_active", true)
+          .eq("reminder_enabled", true),
+        supabase
+          .from("profiles")
+          .select("id")
+          .eq("is_active", true)
+          .eq("reminder_enabled", false),
       ]);
 
       const signups = signupsRes.data || [];

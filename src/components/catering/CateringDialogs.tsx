@@ -26,6 +26,7 @@ export const CateringDialogs = ({ cateringEvent, editingOrder, onCateringClose, 
             time: `${formatTime(cateringEvent.startTime)} - ${formatTime(cateringEvent.endTime)}`,
             location: cateringEvent.location,
             attendeeCount: cateringEvent.attendeeCount,
+            attendeeEmails: cateringEvent.attendeeEmails,
             externalMeetingId: cateringEvent.externalMeetingId,
           }}
         />

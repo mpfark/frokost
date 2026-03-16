@@ -59,6 +59,8 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
       const signups = signupsRes.data || [];
       const guests = guestsRes.data || [];
 
+      const optouts = optoutsRes.data || [];
+
       // Filter out users with reminder_enabled = false for statistics
       const statsProfiles = profiles.filter((p: any) => p.reminder_enabled !== false);
 

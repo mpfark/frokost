@@ -12,6 +12,7 @@ import { MeetingRoomSelector } from "./MeetingRoomSelector";
 export const GeneralSettings = () => {
   const [allowedDomain, setAllowedDomain] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
+  const [restrictSignupToDomain, setRestrictSignupToDomain] = useState(true);
   const [resourceRoomEmails, setResourceRoomEmails] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);

@@ -97,8 +97,9 @@ export const WeekdayChart = ({ startDate, endDate }: WeekdayChartProps) => {
         }
       });
 
-      // Process optouts
+      // Process optouts (exclude users with reminder_enabled = false)
       optouts.forEach((o) => {
+        if (excludedUserIds.has(o.user_id)) return;
         const date = parseISO(o.lunch_date);
         const dayIndex = getDay(date);
         if (dayIndex >= 1 && dayIndex <= 5) {

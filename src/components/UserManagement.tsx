@@ -260,6 +260,24 @@ export const UserManagement = () => {
     }
   };
 
+  const toggleReminder = async (userId: string, currentlyEnabled: boolean) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ reminder_enabled: !currentlyEnabled })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success(currentlyEnabled ? "Påmindelser deaktiveret" : "Påmindelser aktiveret");
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openDeleteDialog = (user: UserWithRoles) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);

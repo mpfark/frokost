@@ -90,11 +90,11 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
 
       setTopUsers(userActivities.slice(0, 10));
 
-      // Find inactive users
+      // Find inactive users (only from users with reminders enabled)
       const usersWithSignups = new Set(Object.keys(userStats));
-      const inactive = profiles
-        .filter((p) => !usersWithSignups.has(p.id))
-        .map((p) => ({
+      const inactive = statsProfiles
+        .filter((p: any) => !usersWithSignups.has(p.id))
+        .map((p: any) => ({
           id: p.id,
           name: p.full_name || "Ukendt",
           email: p.email,

@@ -89,6 +89,7 @@ export const GeneralSettings = () => {
         allowed_domain: allowedDomain.toLowerCase(),
         weeks_to_display: weeksToDisplay,
         resource_room_emails: resourceRoomEmails,
+        restrict_signup_to_domain: restrictSignupToDomain,
       };
 
       if (existing) {

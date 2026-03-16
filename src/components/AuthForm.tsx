@@ -58,6 +58,7 @@ export const AuthForm = () => {
 
       if (data) {
         setAllowedDomain(data.allowed_domain);
+        setRestrictSignupToDomain((data as any).restrict_signup_to_domain ?? true);
       }
     } catch (error: any) {
       console.error("Error fetching company settings:", error);

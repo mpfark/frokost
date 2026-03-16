@@ -412,6 +412,22 @@ export const UserManagement = () => {
                                 {user.is_lactose_free && <Badge variant="secondary" className="text-xs">Laktosefri</Badge>}
                                 {user.is_vegetarian && <Badge variant="secondary" className="text-xs">Vegetar</Badge>}
                               </div>
+                              {user.absencePeriods && user.absencePeriods.length > 0 && (
+                                <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                                  {user.absencePeriods.map((period, i) => {
+                                    const startDate = parseISO(period.start);
+                                    const endDate = parseISO(period.end);
+                                    const label = period.start === period.end
+                                      ? format(startDate, "d. MMM", { locale: da })
+                                      : `${format(startDate, "d. MMM", { locale: da })} – ${format(endDate, "d. MMM", { locale: da })}`;
+                                    return (
+                                      <Badge key={i} variant="outline" className="text-xs text-muted-foreground">
+                                        Fravær: {label}
+                                      </Badge>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                             </>
                           )}

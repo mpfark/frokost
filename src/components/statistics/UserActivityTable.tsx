@@ -141,7 +141,7 @@ export const UserActivityTable = ({ startDate, endDate }: UserActivityTableProps
           <TabsList>
             <TabsTrigger value="top">Top 10 aktive</TabsTrigger>
             <TabsTrigger value="inactive">
-              Uden tilmeldinger ({inactiveUsers.length})
+              Uden aktive valg ({inactiveUsers.length})
             </TabsTrigger>
           </TabsList>
 

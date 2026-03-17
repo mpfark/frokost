@@ -172,18 +172,14 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   };
 
   const fetchActiveUserCount = async () => {
-    const { count, error } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("is_active", true)
-      .eq("reminder_enabled", true);
+    const { data, error } = await supabase.rpc("get_active_user_count");
 
     if (error) {
       console.error("Kunne ikke hente antal aktive brugere:", error);
       return;
     }
 
-    setActiveUserCount(count || 1);
+    setActiveUserCount(data || 1);
   };
 
   const fetchGuests = async () => {
@@ -845,14 +841,14 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
                   ref={(el) => { weekCardRefs.current[weekNumber] = el; }}
                   className={`border rounded-lg p-3 flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
                     userHasRespondedAllDays(days) 
-                      ? "border-green-500 bg-green-50 dark:bg-green-950/20 ring-1 ring-green-500/30" 
+                      ? "border-green-300 dark:border-green-700 bg-green-50/60 dark:bg-green-950/10 ring-1 ring-green-300/20" 
                       : !hasAvailableDays(days) ? "opacity-60 bg-muted/50" : "bg-card"
                   }`}
                 >
                   {userHasRespondedAllDays(days) && (
                     <div className="flex items-center justify-center gap-1 mb-1.5">
-                      <PartyPopper className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                      <span className="text-[10px] font-medium text-green-600 dark:text-green-400">Komplet!</span>
+                      <PartyPopper className="w-3.5 h-3.5 text-green-500 dark:text-green-500" />
+                      <span className="text-[10px] font-medium text-green-500 dark:text-green-500">Komplet!</span>
                     </div>
                   )}
                   <div className="flex flex-col gap-1 min-w-0">

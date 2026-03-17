@@ -172,18 +172,14 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
   };
 
   const fetchActiveUserCount = async () => {
-    const { count, error } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("is_active", true)
-      .eq("reminder_enabled", true);
+    const { data, error } = await supabase.rpc("get_active_user_count");
 
     if (error) {
       console.error("Kunne ikke hente antal aktive brugere:", error);
       return;
     }
 
-    setActiveUserCount(count || 1);
+    setActiveUserCount(data || 1);
   };
 
   const fetchGuests = async () => {

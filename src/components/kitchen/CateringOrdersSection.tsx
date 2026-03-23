@@ -16,6 +16,11 @@ interface CateringOrder {
   comment: string | null;
   status: string;
   created_at: string;
+  confirmed_by?: string | null;
+  confirmed_at?: string | null;
+  confirmed_by_profile?: {
+    full_name: string | null;
+  } | null;
   profiles?: {
     full_name: string | null;
     email: string;

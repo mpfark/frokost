@@ -48,9 +48,17 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
   if (orders.length === 0) return null;
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    const updateData: Record<string, unknown> = { status: newStatus };
+
+    if (newStatus === "confirmed") {
+      const { data: { user } } = await supabase.auth.getUser();
+      updateData.confirmed_by = user?.id || null;
+      updateData.confirmed_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from("catering_orders")
-      .update({ status: newStatus })
+      .update(updateData)
       .eq("id", orderId);
 
     if (error) {

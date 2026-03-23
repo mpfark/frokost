@@ -116,13 +116,12 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
               {(order.status === "pending" || order.status === "confirmed") && (
                 <>
                   <Button
-                    size="sm"
-                    className="h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                    size="icon"
+                    className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white"
                     title="Opdatér forplejning"
                     onClick={() => onEdit(event, order)}
                   >
                     <Pencil className="w-3.5 h-3.5" />
-                    <span className="text-xs">Opdatér</span>
                   </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Annullér" onClick={handleCancel}>
                     <Trash2 className="w-3.5 h-3.5" />
@@ -132,9 +131,8 @@ export const EventCard = ({ event, order, onOrder, onEdit, onOrdersChanged, show
             </div>
           </div>
         ) : (
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 ml-auto" title="Bestil forplejning" onClick={() => onOrder(event)}>
+          <Button variant="outline" size="icon" className="h-8 w-8 ml-auto" title="Bestil forplejning" onClick={() => onOrder(event)}>
             <UtensilsCrossed className="w-3.5 h-3.5" />
-            <span className="text-xs">Bestil</span>
           </Button>
         )}
       </div>

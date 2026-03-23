@@ -119,6 +119,12 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
                       Bestilt af: {order.profiles.full_name || order.profiles.email}
                     </div>
                   )}
+                  {order.confirmed_at && (
+                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3" />
+                      Bekræftet af {order.confirmed_by_profile?.full_name || "ukendt"} · {new Date(order.confirmed_at).toLocaleString("da-DK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  )}
                 </div>
                 <Badge variant={statusInfo.variant} className="text-xs shrink-0">
                   {statusInfo.label}

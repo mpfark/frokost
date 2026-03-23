@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { UtensilsCrossed, Clock, MapPin, Users, Check, X } from "lucide-react";
+import { UtensilsCrossed, Clock, MapPin, Users, Check, X, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

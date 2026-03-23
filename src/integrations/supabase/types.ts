@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           catering_types: string[]
           comment: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string
           dietary_notes: string | null
           id: string
@@ -34,6 +36,8 @@ export type Database = {
         Insert: {
           catering_types?: string[]
           comment?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           dietary_notes?: string | null
           id?: string
@@ -50,6 +54,8 @@ export type Database = {
         Update: {
           catering_types?: string[]
           comment?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           dietary_notes?: string | null
           id?: string

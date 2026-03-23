@@ -207,14 +207,16 @@ export const KitchenView = () => {
       return;
     }
 
-    // Fetch profile info for each order
+    // Fetch profile info for each order (orderers + confirmers)
     const userIds = [...new Set((data || []).map(o => o.user_id))];
+    const confirmerIds = [...new Set((data || []).filter(o => o.confirmed_by).map(o => o.confirmed_by as string))];
+    const allUserIds = [...new Set([...userIds, ...confirmerIds])];
     let profileMap: Record<string, { full_name: string | null; email: string }> = {};
-    if (userIds.length > 0) {
+    if (allUserIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, email")
-        .in("id", userIds);
+        .in("id", allUserIds);
       if (profiles) {
         profileMap = Object.fromEntries(profiles.map(p => [p.id, { full_name: p.full_name, email: p.email }]));
       }
@@ -223,6 +225,7 @@ export const KitchenView = () => {
     const ordersWithProfiles = (data || []).map(o => ({
       ...o,
       profiles: profileMap[o.user_id] || null,
+      confirmed_by_profile: o.confirmed_by ? (profileMap[o.confirmed_by] ? { full_name: profileMap[o.confirmed_by].full_name } : null) : null,
     }));
 
     setCateringOrders(ordersWithProfiles as CateringOrder[]);

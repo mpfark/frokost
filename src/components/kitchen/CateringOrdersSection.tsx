@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { UtensilsCrossed, Clock, MapPin, Users, Check, X } from "lucide-react";
+import { UtensilsCrossed, Clock, MapPin, Users, Check, X, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,6 +16,11 @@ interface CateringOrder {
   comment: string | null;
   status: string;
   created_at: string;
+  confirmed_by?: string | null;
+  confirmed_at?: string | null;
+  confirmed_by_profile?: {
+    full_name: string | null;
+  } | null;
   profiles?: {
     full_name: string | null;
     email: string;
@@ -48,9 +53,17 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
   if (orders.length === 0) return null;
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    const updateData: Record<string, unknown> = { status: newStatus };
+
+    if (newStatus === "confirmed") {
+      const { data: { user } } = await supabase.auth.getUser();
+      updateData.confirmed_by = user?.id || null;
+      updateData.confirmed_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from("catering_orders")
-      .update({ status: newStatus })
+      .update(updateData)
       .eq("id", orderId);
 
     if (error) {
@@ -104,6 +117,12 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
                   {order.profiles && (
                     <div className="text-xs text-muted-foreground mt-0.5">
                       Bestilt af: {order.profiles.full_name || order.profiles.email}
+                    </div>
+                  )}
+                  {order.confirmed_at && (
+                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3" />
+                      Bekræftet af {order.confirmed_by_profile?.full_name || "ukendt"} · {new Date(order.confirmed_at).toLocaleString("da-DK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </div>
                   )}
                 </div>

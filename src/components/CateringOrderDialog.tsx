@@ -218,11 +218,46 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         }
       }
 
-      // Add guests to lunch if requested — only external guests
-      if (addToLunch && externalGuestCount > 0) {
+      // Add guests to lunch if requested
+      if (addToLunch) {
         try {
-          await addGuestsToLunch(user.id, orderId, externalGuestCount, meeting.date);
-          toast.success(`${externalGuestCount} ekstern${externalGuestCount > 1 ? "e" : ""} gæst${externalGuestCount > 1 ? "er" : ""} tilføjet til frokost`);
+          let totalGuestsToAdd = externalGuestCount;
+
+          // Check which internal colleagues are NOT already signed up
+          if (internalEmails.length > 0) {
+            const { data: existingSignups } = await supabase
+              .from("profiles")
+              .select("id, email")
+              .in("email", internalEmails.map(e => e.toLowerCase()));
+
+            if (existingSignups && existingSignups.length > 0) {
+              const internalUserIds = existingSignups.map(p => p.id);
+              const { data: alreadySignedUp } = await supabase
+                .from("lunch_signups")
+                .select("user_id")
+                .in("user_id", internalUserIds)
+                .eq("lunch_date", meeting.date);
+
+              const { data: optedOut } = await supabase
+                .from("lunch_optouts")
+                .select("user_id")
+                .in("user_id", internalUserIds)
+                .eq("lunch_date", meeting.date);
+
+              const signedUpIds = new Set(alreadySignedUp?.map(s => s.user_id) || []);
+              const optedOutIds = new Set(optedOut?.map(o => o.user_id) || []);
+              // Internal colleagues who are neither signed up nor opted out need to be added
+              const notSignedUpCount = internalUserIds.filter(id => !signedUpIds.has(id) && !optedOutIds.has(id)).length;
+              totalGuestsToAdd += notSignedUpCount;
+            }
+          }
+
+          if (totalGuestsToAdd > 0) {
+            await addGuestsToLunch(user.id, orderId, totalGuestsToAdd, meeting.date);
+            toast.success(`${totalGuestsToAdd} gæst${totalGuestsToAdd > 1 ? "er" : ""} tilføjet til frokost`);
+          } else {
+            toast.info("Alle deltagere er allerede tilmeldt frokost");
+          }
         } catch (err: any) {
           toast.error("Kunne ikke tilføje gæster til frokost: " + (err.message || ""));
         }

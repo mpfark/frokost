@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
       const { data: orders } = await serviceClient
         .from("catering_orders")
-        .select("id, meeting_subject, meeting_date, meeting_time, status")
+        .select("id, meeting_subject, meeting_date, meeting_time, meeting_location, meeting_external_id, status")
         .eq("user_id", userId)
         .in("status", ["pending", "confirmed"])
         .gte("meeting_date", today);
@@ -182,8 +182,8 @@ Deno.serve(async (req) => {
       lastDate.setDate(lastDate.getDate() + 1);
       const endDate = lastDate.toISOString();
 
-      // Fetch calendar events for that range
-      const graphUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${startDate}&endDateTime=${endDate}&$select=subject,start,end,organizer,attendees,location,isAllDay&$top=100`;
+      // Fetch calendar events for that range — include iCalUId for matching
+      const graphUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${startDate}&endDateTime=${endDate}&$select=subject,start,end,organizer,attendees,location,isAllDay,iCalUId&$top=100`;
 
       const graphRes = await fetch(graphUrl, {
         headers: {
@@ -198,8 +198,19 @@ Deno.serve(async (req) => {
       }
 
       const calendarData = await graphRes.json();
-      const events = (calendarData.value || [])
-        .filter((e: any) => !e.isAllDay && (e.attendees || []).filter((a: any) => a.type !== "resource").length > 0 && e.location?.displayName)
+      const allEvents = (calendarData.value || []).filter((e: any) => !e.isAllDay);
+
+      // Build lookup by iCalUId
+      const eventByExternalId = new Map<string, any>();
+      for (const e of allEvents) {
+        if (e.iCalUId) {
+          eventByExternalId.set(e.iCalUId, e);
+        }
+      }
+
+      // Filter events for orphan detection (same logic as before)
+      const filteredEvents = allEvents
+        .filter((e: any) => (e.attendees || []).filter((a: any) => a.type !== "resource").length > 0 && e.location?.displayName)
         .filter((e: any) => {
           if (roomDisplayNames.length > 0) {
             const loc = (e.location?.displayName || "").toLowerCase();
@@ -208,9 +219,9 @@ Deno.serve(async (req) => {
           return true;
         });
 
-      // Build event keys
+      // Build event keys for orphan detection
       const eventKeys = new Set<string>();
-      for (const e of events) {
+      for (const e of filteredEvents) {
         try {
           const startDt = new Date(e.start.dateTime + "Z");
           const endDt = new Date(e.end.dateTime + "Z");
@@ -223,9 +234,58 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Find orphaned orders
+      // Process each order: detect updates or orphans
       const orphanedIds: string[] = [];
       for (const order of orders) {
+        // Try matching by external ID first
+        if (order.meeting_external_id) {
+          const matchedEvent = eventByExternalId.get(order.meeting_external_id);
+          if (matchedEvent) {
+            // Event still exists — check if location/time/subject changed
+            try {
+              const startDt = new Date(matchedEvent.start.dateTime + "Z");
+              const endDt = new Date(matchedEvent.end.dateTime + "Z");
+              const newDate = startDt.toISOString().split("T")[0];
+              const newTime = `${startDt.toTimeString().slice(0, 5)} - ${endDt.toTimeString().slice(0, 5)}`;
+              const newLocation = matchedEvent.location?.displayName || null;
+              const newSubject = matchedEvent.subject || order.meeting_subject;
+
+              const locationChanged = (newLocation || "") !== (order.meeting_location || "");
+              const timeChanged = newTime !== order.meeting_time;
+              const dateChanged = newDate !== order.meeting_date;
+              const subjectChanged = newSubject !== order.meeting_subject;
+
+              if (locationChanged || timeChanged || dateChanged || subjectChanged) {
+                const updates: Record<string, unknown> = {
+                  meeting_location: newLocation,
+                  meeting_time: newTime,
+                  meeting_date: newDate,
+                  meeting_subject: newSubject,
+                  status: "pending",
+                  confirmed_by: null,
+                  confirmed_at: null,
+                };
+                await serviceClient
+                  .from("catering_orders")
+                  .update(updates)
+                  .eq("id", order.id);
+
+                const changes: string[] = [];
+                if (locationChanged) changes.push(`lokale: "${order.meeting_location || "?"}" → "${newLocation || "?"}"`);
+                if (timeChanged) changes.push(`tid: ${order.meeting_time} → ${newTime}`);
+                if (dateChanged) changes.push(`dato: ${order.meeting_date} → ${newDate}`);
+                if (subjectChanged) changes.push(`emne ændret`);
+
+                console.log(`Updated order ${order.id} for user ${userId}: ${changes.join(", ")}`);
+              }
+            } catch (e) {
+              console.error("Error checking event changes:", e);
+            }
+            continue; // matched by external ID, skip orphan check
+          }
+        }
+
+        // Fallback: legacy key matching for orphan detection
         const key = `${order.meeting_subject}|${order.meeting_date}|${order.meeting_time}`;
         if (!eventKeys.has(key)) {
           orphanedIds.push(order.id);

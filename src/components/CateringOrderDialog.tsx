@@ -55,10 +55,16 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
     });
   }, []);
 
+  const internalEmails = (() => {
+    if (!meeting.attendeeEmails || !allowedDomain) return [];
+    const domainSuffix = `@${allowedDomain.toLowerCase()}`;
+    return meeting.attendeeEmails.filter(e => e.toLowerCase().endsWith(domainSuffix));
+  })();
+
   const externalGuestCount = (() => {
     if (!meeting.attendeeEmails || !allowedDomain) return personCount - 1;
     const domainSuffix = `@${allowedDomain.toLowerCase()}`;
-    return meeting.attendeeEmails.filter(e => !e.endsWith(domainSuffix)).length;
+    return meeting.attendeeEmails.filter(e => !e.toLowerCase().endsWith(domainSuffix)).length;
   })();
 
   useEffect(() => {

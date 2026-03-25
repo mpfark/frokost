@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.get-room-calendars]
 verify_jwt = false
+
+[functions.get-microsoft-users]
+verify_jwt = true

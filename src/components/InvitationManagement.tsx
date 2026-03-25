@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Users, Copy, Clock, CheckCircle2, XCircle, Trash, RefreshCw } from "lucide-react";
+import { Mail, Users, Copy, Clock, CheckCircle2, XCircle, Trash, RefreshCw, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { da } from "date-fns/locale";
@@ -22,6 +23,11 @@ interface Invitation {
   expires_at: string;
   accepted_at: string | null;
   link_sent_at: string | null;
+}
+
+interface MicrosoftUser {
+  displayName: string;
+  email: string;
 }
 
 export const InvitationManagement = () => {
@@ -43,13 +49,21 @@ export const InvitationManagement = () => {
   const [displayLimit, setDisplayLimit] = useState(50);
   const [hasMore, setHasMore] = useState(false);
 
+  // Microsoft users state
+  const [msUsers, setMsUsers] = useState<MicrosoftUser[]>([]);
+  const [msLoading, setMsLoading] = useState(false);
+  const [msFetched, setMsFetched] = useState(false);
+  const [selectedMsEmails, setSelectedMsEmails] = useState<Set<string>>(new Set());
+  const [existingEmails, setExistingEmails] = useState<Set<string>>(new Set());
+  const [msSending, setMsSending] = useState(false);
+  const [msFilter, setMsFilter] = useState("");
+
   useEffect(() => {
     fetchInvitations();
   }, [displayLimit]);
 
   const fetchInvitations = async () => {
     try {
-      // Fetch stats using count queries for efficiency
       const [pendingRes, acceptedRes, expiredRes, linksSentRes, totalRes] = await Promise.all([
         supabase.from("invitations").select("*", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("invitations").select("*", { count: "exact", head: true }).eq("status", "accepted"),
@@ -66,7 +80,6 @@ export const InvitationManagement = () => {
         linksSent: linksSentRes.count || 0,
       });
 
-      // Fetch only non-accepted invitations with limit
       const { data, error, count } = await supabase
         .from("invitations")
         .select("*", { count: "exact" })
@@ -91,9 +104,7 @@ export const InvitationManagement = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-invitations", {
-        body: { 
-          emails,
-        },
+        body: { emails },
       });
 
       if (error) throw error;
@@ -112,11 +123,8 @@ export const InvitationManagement = () => {
         console.error("Failed emails:", failedEmails);
       }
 
-      // Clear form
       setSingleEmail("");
       setBatchEmails("");
-      
-      // Refresh invitations
       fetchInvitations();
     } catch (error: any) {
       toast({
@@ -131,92 +139,46 @@ export const InvitationManagement = () => {
 
   const handleSendSingle = () => {
     if (!singleEmail.trim()) {
-      toast({
-        title: "Fejl",
-        description: "Indtast venligst en e-mailadresse",
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: "Indtast venligst en e-mailadresse", variant: "destructive" });
       return;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(singleEmail)) {
-      toast({
-        title: "Fejl",
-        description: "Indtast venligst en gyldig e-mailadresse",
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: "Indtast venligst en gyldig e-mailadresse", variant: "destructive" });
       return;
     }
-
     sendInvitation([singleEmail]);
   };
 
   const handleSendBatch = () => {
     if (!batchEmails.trim()) {
-      toast({
-        title: "Fejl",
-        description: "Indtast venligst mindst én e-mailadresse",
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: "Indtast venligst mindst én e-mailadresse", variant: "destructive" });
       return;
     }
-
-    // Parse emails (comma or newline separated)
-    const emails = batchEmails
-      .split(/[\n,]/)
-      .map(e => e.trim())
-      .filter(e => e.length > 0);
-
+    const emails = batchEmails.split(/[\n,]/).map(e => e.trim()).filter(e => e.length > 0);
     if (emails.length === 0) {
-      toast({
-        title: "Fejl",
-        description: "Ingen gyldige e-mailadresser fundet",
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: "Ingen gyldige e-mailadresser fundet", variant: "destructive" });
       return;
     }
-
-    // Validate all emails
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const invalidEmails = emails.filter(e => !emailRegex.test(e));
-    
     if (invalidEmails.length > 0) {
-      toast({
-        title: "Fejl",
-        description: `Ugyldige e-mailadresser: ${invalidEmails.join(", ")}`,
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: `Ugyldige e-mailadresser: ${invalidEmails.join(", ")}`, variant: "destructive" });
       return;
     }
-
     sendInvitation(emails);
   };
 
   const deleteInvitation = async () => {
     if (!selectedInvitation) return;
-    
     setActionLoading(selectedInvitation.id);
     try {
-      const { error } = await supabase
-        .from("invitations")
-        .delete()
-        .eq("id", selectedInvitation.id);
-
+      const { error } = await supabase.from("invitations").delete().eq("id", selectedInvitation.id);
       if (error) throw error;
-
-      toast({
-        title: "Slettet",
-        description: `Invitation til ${selectedInvitation.email} er slettet`,
-      });
-
+      toast({ title: "Slettet", description: `Invitation til ${selectedInvitation.email} er slettet` });
       fetchInvitations();
     } catch (error: any) {
-      toast({
-        title: "Fejl",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: error.message, variant: "destructive" });
     } finally {
       setActionLoading(null);
       setDeleteDialogOpen(false);
@@ -226,44 +188,25 @@ export const InvitationManagement = () => {
 
   const resendInvitation = async () => {
     if (!selectedInvitation) return;
-    
     setActionLoading(selectedInvitation.id);
     try {
-      // First delete the old invitation
-      const { error: deleteError } = await supabase
-        .from("invitations")
-        .delete()
-        .eq("id", selectedInvitation.id);
-
+      const { error: deleteError } = await supabase.from("invitations").delete().eq("id", selectedInvitation.id);
       if (deleteError) throw deleteError;
 
-      // Then send a new invitation
       const { data, error: sendError } = await supabase.functions.invoke("send-invitations", {
-        body: { 
-          emails: [selectedInvitation.email],
-        },
+        body: { emails: [selectedInvitation.email] },
       });
-
       if (sendError) throw sendError;
 
       const { totalSent, totalFailed } = data;
-      
       if (totalSent > 0) {
-        toast({
-          title: "Succes",
-          description: `Ny invitation sendt til ${selectedInvitation.email}`,
-        });
+        toast({ title: "Succes", description: `Ny invitation sendt til ${selectedInvitation.email}` });
       } else if (totalFailed > 0) {
         throw new Error("Kunne ikke sende invitation");
       }
-
       fetchInvitations();
     } catch (error: any) {
-      toast({
-        title: "Fejl",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: error.message, variant: "destructive" });
     } finally {
       setActionLoading(null);
       setResendDialogOpen(false);
@@ -274,21 +217,11 @@ export const InvitationManagement = () => {
   const copyInviteLink = async (invitationId: string, email: string) => {
     setActionLoading(invitationId);
     try {
-      // Use the same link format as emails - points to accept-invitation page
-      // which generates a fresh magic link on-demand (valid for 7 days)
       const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationId}`;
-      
       await navigator.clipboard.writeText(inviteLink);
-      toast({
-        title: "Kopieret",
-        description: "Invitationslink kopieret til udklipsholder",
-      });
+      toast({ title: "Kopieret", description: "Invitationslink kopieret til udklipsholder" });
     } catch (error: any) {
-      toast({
-        title: "Fejl",
-        description: "Kunne ikke kopiere link",
-        variant: "destructive",
-      });
+      toast({ title: "Fejl", description: "Kunne ikke kopiere link", variant: "destructive" });
     } finally {
       setActionLoading(null);
     }
@@ -306,6 +239,102 @@ export const InvitationManagement = () => {
         return <Badge>{status}</Badge>;
     }
   };
+
+  // Microsoft users functions
+  const fetchMicrosoftUsers = async () => {
+    setMsLoading(true);
+    try {
+      // Fetch MS users and existing emails in parallel
+      const [msRes, profilesRes, invitationsRes] = await Promise.all([
+        supabase.functions.invoke("get-microsoft-users"),
+        supabase.from("profiles").select("email"),
+        supabase.from("invitations").select("email").in("status", ["pending", "accepted"]),
+      ]);
+
+      if (msRes.error) throw msRes.error;
+
+      const existing = new Set<string>();
+      (profilesRes.data || []).forEach((p: any) => existing.add(p.email.toLowerCase()));
+      (invitationsRes.data || []).forEach((i: any) => existing.add(i.email.toLowerCase()));
+
+      setExistingEmails(existing);
+      setMsUsers(msRes.data.users || []);
+      setMsFetched(true);
+      setSelectedMsEmails(new Set());
+    } catch (error: any) {
+      toast({
+        title: "Fejl",
+        description: error.message || "Kunne ikke hente brugere fra Microsoft",
+        variant: "destructive",
+      });
+    } finally {
+      setMsLoading(false);
+    }
+  };
+
+  const toggleMsEmail = (email: string) => {
+    setSelectedMsEmails(prev => {
+      const next = new Set(prev);
+      if (next.has(email)) {
+        next.delete(email);
+      } else {
+        next.add(email);
+      }
+      return next;
+    });
+  };
+
+  const selectAllAvailable = () => {
+    const available = filteredMsUsers.filter(u => !existingEmails.has(u.email));
+    if (available.every(u => selectedMsEmails.has(u.email))) {
+      // Deselect all filtered
+      setSelectedMsEmails(prev => {
+        const next = new Set(prev);
+        available.forEach(u => next.delete(u.email));
+        return next;
+      });
+    } else {
+      setSelectedMsEmails(prev => {
+        const next = new Set(prev);
+        available.forEach(u => next.add(u.email));
+        return next;
+      });
+    }
+  };
+
+  const sendMsInvitations = async () => {
+    const emails = Array.from(selectedMsEmails);
+    if (emails.length === 0) return;
+    setMsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-invitations", {
+        body: { emails },
+      });
+      if (error) throw error;
+      const { totalSent, totalFailed } = data;
+      if (totalSent > 0) {
+        toast({
+          title: "Succes",
+          description: `${totalSent} invitation${totalSent > 1 ? "er" : ""} sendt${totalFailed > 0 ? ` (${totalFailed} fejlede)` : ""}`,
+        });
+      }
+      setSelectedMsEmails(new Set());
+      // Refresh existing emails
+      emails.forEach(e => setExistingEmails(prev => new Set(prev).add(e)));
+      fetchInvitations();
+    } catch (error: any) {
+      toast({ title: "Fejl", description: error.message, variant: "destructive" });
+    } finally {
+      setMsSending(false);
+    }
+  };
+
+  const filteredMsUsers = msFilter
+    ? msUsers.filter(u =>
+        u.displayName.toLowerCase().includes(msFilter.toLowerCase()) ||
+        u.email.toLowerCase().includes(msFilter.toLowerCase())
+      )
+    : msUsers;
 
   return (
     <div className="space-y-6">
@@ -351,14 +380,18 @@ export const InvitationManagement = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="single">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="single" className="gap-2">
                 <Mail className="h-4 w-4" />
-                Enkelt invitation
+                <span className="hidden sm:inline">Enkelt</span>
               </TabsTrigger>
               <TabsTrigger value="batch" className="gap-2">
                 <Users className="h-4 w-4" />
-                Masseinvitation
+                <span className="hidden sm:inline">Masse</span>
+              </TabsTrigger>
+              <TabsTrigger value="microsoft" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Microsoft</span>
               </TabsTrigger>
             </TabsList>
             
@@ -397,6 +430,88 @@ export const InvitationManagement = () => {
               <Button onClick={handleSendBatch} disabled={isLoading}>
                 {isLoading ? "Sender..." : "Send masseinvitationer"}
               </Button>
+            </TabsContent>
+
+            <TabsContent value="microsoft" className="space-y-4">
+              {!msFetched ? (
+                <div className="text-center py-6 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Hent brugere fra jeres Microsoft-organisation (Azure AD) og send invitationer direkte.
+                  </p>
+                  <Button onClick={fetchMicrosoftUsers} disabled={msLoading}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    {msLoading ? "Henter brugere..." : "Hent brugere fra Microsoft"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Søg efter navn eller email..."
+                      value={msFilter}
+                      onChange={e => setMsFilter(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchMicrosoftUsers}
+                      disabled={msLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${msLoading ? "animate-spin" : ""}`} />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>
+                      {msUsers.length} brugere fundet — {msUsers.filter(u => existingEmails.has(u.email)).length} allerede inviteret
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={selectAllAvailable}>
+                      {filteredMsUsers.filter(u => !existingEmails.has(u.email)).every(u => selectedMsEmails.has(u.email))
+                        ? "Fravælg alle"
+                        : "Vælg alle"}
+                    </Button>
+                  </div>
+
+                  <div className="border rounded-md max-h-80 overflow-y-auto divide-y">
+                    {filteredMsUsers.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4 text-sm">Ingen brugere matcher søgningen</p>
+                    ) : (
+                      filteredMsUsers.map((user) => {
+                        const isExisting = existingEmails.has(user.email);
+                        const isSelected = selectedMsEmails.has(user.email);
+                        return (
+                          <label
+                            key={user.email}
+                            className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50 ${isExisting ? "opacity-50" : ""}`}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleMsEmail(user.email)}
+                              disabled={isExisting}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{user.displayName}</p>
+                              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                            </div>
+                            {isExisting && (
+                              <Badge variant="secondary" className="text-xs shrink-0">Allerede inviteret</Badge>
+                            )}
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {selectedMsEmails.size > 0 && (
+                    <Button onClick={sendMsInvitations} disabled={msSending} className="w-full">
+                      {msSending
+                        ? "Sender..."
+                        : `Send ${selectedMsEmails.size} invitation${selectedMsEmails.size > 1 ? "er" : ""}`}
+                    </Button>
+                  )}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -474,7 +589,6 @@ export const InvitationManagement = () => {
               ))
             )}
             
-            {/* Load More Button */}
             {hasMore && (
               <div className="flex justify-center pt-4">
                 <Button
@@ -525,7 +639,6 @@ export const InvitationManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   );
 };

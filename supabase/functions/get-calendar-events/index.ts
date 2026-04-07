@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
+        Prefer: 'outlook.timezone="Europe/Copenhagen"',
       },
     });
 

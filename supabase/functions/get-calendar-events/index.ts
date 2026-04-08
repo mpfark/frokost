@@ -1,40 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-async function refreshAccessToken(
-  refreshToken: string,
-  tenantId: string,
-  clientId: string,
-  clientSecret: string
-): Promise<{ access_token: string; refresh_token: string; expires_in: number } | null> {
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-
-  const body = new URLSearchParams({
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken,
-    grant_type: "refresh_token",
-    scope: "offline_access Calendars.Read",
-  });
-
-  const res = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
-
-  if (!res.ok) {
-    console.error("Token refresh error:", await res.text());
-    return null;
-  }
-
-  return await res.json();
-}
+import { corsHeaders } from "../_shared/cors.ts";
+import { refreshAccessToken } from "../_shared/microsoft-auth.ts";
+import { mapGraphEvent } from "../_shared/graph-utils.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -112,7 +79,6 @@ Deno.serve(async (req) => {
       );
 
       if (!refreshed) {
-        // Token refresh failed — user needs to re-authenticate
         await serviceClient
           .from("microsoft_tokens")
           .delete()
@@ -132,7 +98,6 @@ Deno.serve(async (req) => {
 
       accessToken = refreshed.access_token;
 
-      // Update stored tokens
       await serviceClient
         .from("microsoft_tokens")
         .update({
@@ -166,7 +131,6 @@ Deno.serve(async (req) => {
       console.error("Graph API error:", graphRes.status, errorText);
 
       if (graphRes.status === 401) {
-        // Token was invalidated
         await serviceClient
           .from("microsoft_tokens")
           .delete()
@@ -197,28 +161,7 @@ Deno.serve(async (req) => {
     }
 
     const calendarData = await graphRes.json();
-
-    const events = (calendarData.value || []).map((event: any) => {
-      const nonResourceAttendees = (event.attendees || []).filter(
-        (a: any) => a.type !== "resource"
-      );
-      return {
-        id: event.id,
-        subject: event.subject,
-        startTime: event.start?.dateTime,
-        startTimezone: event.start?.timeZone,
-        endTime: event.end?.dateTime,
-        endTimezone: event.end?.timeZone,
-        location: event.location?.displayName || null,
-        isAllDay: event.isAllDay,
-        organizer: event.organizer?.emailAddress?.name || null,
-        attendeeCount: nonResourceAttendees.length,
-        attendeeEmails: nonResourceAttendees
-          .map((a: any) => a.emailAddress?.address?.toLowerCase())
-          .filter(Boolean),
-        externalMeetingId: event.iCalUId || null,
-      };
-    });
+    const events = (calendarData.value || []).map(mapGraphEvent);
 
     return new Response(JSON.stringify({ events }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

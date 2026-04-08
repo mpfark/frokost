@@ -1,10 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { getAppToken } from "../_shared/microsoft-auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,12 +18,13 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await serviceClient.auth.getUser(token);
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -35,15 +32,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+    // Check admin role using has_role RPC
+    const { data: isAdmin } = await serviceClient.rpc("has_role", {
+      _user_id: user.id,
+      _role: "admin",
+    });
 
-    if (!roleData) {
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,31 +57,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get access token using Client Credentials flow
-    const tokenRes = await fetch(
-      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope: "https://graph.microsoft.com/.default",
-          grant_type: "client_credentials",
-        }),
-      }
-    );
-
-    if (!tokenRes.ok) {
-      const tokenErr = await tokenRes.text();
-      console.error("Token error:", tokenErr);
-      return new Response(
-        JSON.stringify({ error: "Failed to authenticate with Microsoft" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { access_token } = await tokenRes.json();
+    const access_token = await getAppToken(tenantId, clientId, clientSecret);
 
     // Fetch all users with pagination
     const allUsers: { displayName: string; email: string }[] = [];
@@ -130,7 +101,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ users: allUsers }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),

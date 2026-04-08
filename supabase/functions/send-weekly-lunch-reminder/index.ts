@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { corsHeaders } from "../_shared/cors.ts";
+import { delay } from "../_shared/email-utils.ts";
 
 // Declare EdgeRuntime for background tasks
 declare const EdgeRuntime: {
@@ -8,8 +10,6 @@ declare const EdgeRuntime: {
 };
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-// Helper function for rate limiting
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // In-memory rate limiting for failed auth attempts (per IP, max 5 failures per hour)
 const failedAttempts = new Map<string, { count: number; firstAttempt: number }>();

@@ -646,7 +646,19 @@ export const KitchenView = () => {
             Lukkede dage
           </TabsTrigger>
         </TabsList>
-        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSendReminder}
+          disabled={isSendingReminder || undecidedCount === 0}
+          className="flex items-center gap-2"
+        >
+          {isSendingReminder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+          <span className="hidden sm:inline">Send påmindelse</span>
+          {undecidedCount !== null && undecidedCount > 0 && (
+            <Badge variant="secondary" className="ml-1">{undecidedCount}</Badge>
+          )}
+        </Button>
       </div>
 
       {/* Day Tab Content */}

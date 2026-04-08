@@ -59,10 +59,35 @@ Deno.serve(async (req) => {
 
     const access_token = await getAppToken(tenantId, clientId, clientSecret);
 
-    // Fetch all users with pagination
+    // Find the "All Users" group
+    const groupSearchRes = await fetch(
+      `https://graph.microsoft.com/v1.0/groups?$filter=displayName eq 'All Users'&$select=id,displayName`,
+      { headers: { Authorization: `Bearer ${access_token}` } }
+    );
+
+    if (!groupSearchRes.ok) {
+      const err = await groupSearchRes.text();
+      console.error("Group search error:", err);
+      return new Response(
+        JSON.stringify({ error: "Failed to search for groups. Ensure the app has Group.Read.All permission." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const groupData = await groupSearchRes.json();
+    const group = groupData.value?.[0];
+
+    if (!group) {
+      return new Response(
+        JSON.stringify({ error: "Could not find 'All Users' group in Microsoft directory." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch members of the group with pagination
     const allUsers: { displayName: string; email: string }[] = [];
     let nextLink: string | null =
-      "https://graph.microsoft.com/v1.0/users?$select=displayName,mail,userPrincipalName&$filter=accountEnabled eq true&$top=999";
+      `https://graph.microsoft.com/v1.0/groups/${group.id}/members?$select=displayName,mail,userPrincipalName,accountEnabled&$top=999`;
 
     while (nextLink) {
       const graphRes = await fetch(nextLink, {
@@ -74,7 +99,7 @@ Deno.serve(async (req) => {
         console.error("Graph error:", graphErr);
         return new Response(
           JSON.stringify({
-            error: "Failed to fetch users from Microsoft. Ensure the app has User.Read.All permission.",
+            error: "Failed to fetch group members from Microsoft. Ensure the app has Group.Read.All and User.Read.All permissions.",
           }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -83,6 +108,8 @@ Deno.serve(async (req) => {
       const graphData = await graphRes.json();
 
       for (const u of graphData.value || []) {
+        // Only include user objects (not groups/contacts) that are enabled
+        if (u["@odata.type"] === "#microsoft.graph.group" || u.accountEnabled === false) continue;
         const email = u.mail || u.userPrincipalName;
         if (email && email.includes("@")) {
           allUsers.push({

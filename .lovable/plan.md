@@ -1,74 +1,40 @@
 
 
-## Audit: Duplikeret kode og optimeringsmuligheder
+## Plan: Manuel "send påmindelse"-knap til køkkenpersonalet
 
-### Fundne duplikater
+### Hvad det gør
+Tilføjer en knap i køkkenvisningen, der lader køkken-/adminpersonale manuelt sende en påmindelse til alle aktive brugere, som endnu ikke har taget et valg (hverken tilmeldt eller frameldt) for den aktuelle eller kommende uge. Knappen viser antal brugere uden valg, og efter klik sendes påmindelsen.
 
-**1. Invitation email-logik (identisk i 2 filer)**
-- `hslToHex()` — kopieret identisk i `send-invitations` og `webflow-sync`
-- `generateInvitationEmail()` — kopieret identisk i begge
-- `DEFAULT_COLORS` — kopieret identisk i begge
-- `delay()` helper — kopieret identisk i begge
+### Teknisk tilgang
 
-**Løsning:** Opret en delt fil `supabase/functions/_shared/email-utils.ts` med `hslToHex`, `generateInvitationEmail`, `DEFAULT_COLORS` og `delay`. Importér i begge funktioner.
+**1. Ny edge function: `send-manual-reminder/index.ts`**
+- Verificerer at den kaldende bruger er admin eller kitchen (via JWT + `has_role` RPC)
+- Beregner den aktuelle uge (man-fre) — hvis det er mandag eller senere bruges indeværende uge, ellers kommende uge (samme logik som den eksisterende reminder)
+- Henter aktive profiler med `reminder_enabled = true`
+- Henter signups og optouts for ugen
+- Finder brugere uden valg
+- Sender reminder-mail via Resend til hver (med 500ms delay)
+- Returnerer antal sendte mails
 
-**2. Microsoft token refresh (identisk i 3 filer)**
-- `refreshAccessToken()` — kopieret identisk i `get-calendar-events`, `calendar-webhook` og `renew-graph-subscriptions`
-- Token refresh + opdatering i DB — gentaget logik
+**2. Frontend: `src/components/KitchenView.tsx`**
+- Tilføjer en knap i header-området for den aktuelle uge (f.eks. ved siden af ugenummer)
+- Knappen henter antal brugere uden valg via et simpelt count og viser det (f.eks. "Send påmindelse (5)")
+- Ved klik kalder `supabase.functions.invoke('send-manual-reminder')`
+- Viser loading-state og succes/fejl toast
+- Kun synlig for admin/kitchen brugere (de er allerede i KitchenView)
 
-**Løsning:** Opret `supabase/functions/_shared/microsoft-auth.ts` med `refreshAccessToken()` og `getValidAccessToken()`.
-
-**3. Microsoft app token / Client Credentials (identisk i 3 filer)**
-- `getAppToken()` — kopieret identisk i `get-room-calendars`, `get-meeting-rooms` og inline i `calendar-webhook` og `get-microsoft-users`
-
-**Løsning:** Tilføj `getAppToken()` til den delte `microsoft-auth.ts`.
-
-**4. Graph event mapping (identisk i 2 filer)**
-- Event-til-objekt mapping med `nonResourceAttendees` filtrering — identisk kode i `get-calendar-events` og `get-room-calendars`
-
-**Løsning:** Opret `supabase/functions/_shared/graph-utils.ts` med en `mapGraphEvent()` funktion.
-
-**5. CORS headers (identisk i alle 19 edge functions)**
-- Samme objekt defineret i hver eneste funktion
-
-**Løsning:** Opret `supabase/functions/_shared/cors.ts` og eksportér `corsHeaders`.
-
-**6. Admin auth check (variationer i 5+ filer)**
-- Forskellige implementationer af admin-check: nogen bruger `has_role` RPC, andre query'er `user_roles` direkte
-- `get-microsoft-users` bruger direkte query, `send-invitations` bruger `has_role`, `webflow-sync` query'er `user_roles`
-
-**Løsning:** Standardiser til `has_role` RPC overalt via en delt `supabase/functions/_shared/auth-utils.ts`.
-
-### Oversigt over nye delte filer
-
-```text
-supabase/functions/_shared/
-├── cors.ts              — corsHeaders
-├── email-utils.ts       — hslToHex, generateInvitationEmail, DEFAULT_COLORS, delay
-├── microsoft-auth.ts    — refreshAccessToken, getValidAccessToken, getAppToken
-├── graph-utils.ts       — mapGraphEvent
-└── auth-utils.ts        — verifyAdmin (auth + role check)
-```
+**3. Beregning af "brugere uden valg" i frontend**
+- Henter `profiles` med `is_active = true` og `reminder_enabled = true`
+- Sammenligner med eksisterende signups + optouts for indeværende uge
+- Viser differencen som badge på knappen
 
 ### Filer der ændres
-
 | Fil | Ændring |
 |-----|---------|
-| `_shared/cors.ts` | **Ny** — eksportér corsHeaders |
-| `_shared/email-utils.ts` | **Ny** — hslToHex, email template, DEFAULT_COLORS, delay |
-| `_shared/microsoft-auth.ts` | **Ny** — token refresh + app token |
-| `_shared/graph-utils.ts` | **Ny** — mapGraphEvent |
-| `_shared/auth-utils.ts` | **Ny** — verifyAdmin |
-| `send-invitations/index.ts` | Fjern duplikater, importér fra _shared |
-| `webflow-sync/index.ts` | Fjern duplikater, importér fra _shared |
-| `get-calendar-events/index.ts` | Fjern refreshAccessToken + event mapping, importér |
-| `get-room-calendars/index.ts` | Fjern getAppToken + event mapping, importér |
-| `get-meeting-rooms/index.ts` | Fjern getAppToken, importér |
-| `calendar-webhook/index.ts` | Fjern refreshAccessToken + inline token, importér |
-| `renew-graph-subscriptions/index.ts` | Fjern refreshAccessToken, importér |
-| `get-microsoft-users/index.ts` | Standardiser admin check til has_role |
-| Alle 19 edge functions | Importér corsHeaders fra _shared |
+| `supabase/functions/send-manual-reminder/index.ts` | **Ny** — auth + send mails |
+| `src/components/KitchenView.tsx` | Tilføj knap med count + invoke-logik |
 
-### Estimeret reduktion
-Ca. 400-500 linjer duplikeret kode fjernes. Fremtidige ændringer (f.eks. email-template eller token-logik) skal kun ændres ét sted.
+### Sikkerhed
+- Edge function kræver gyldig JWT og admin/kitchen rolle
+- Ingen CRON_SECRET nødvendig — bruger direkte auth i stedet
 

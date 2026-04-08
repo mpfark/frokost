@@ -781,7 +781,7 @@ export const KitchenView = () => {
                       )}
                     </div>
                     <ScrollArea className="h-[400px] md:h-[500px]">
-                      <div className="space-y-2 pr-4">
+                      <div className="space-y-2">
                         {dayTabSignups.map((signup) => {
                           const signupGuests = guests.filter(g => g.signup_id === signup.id);
                           const isAbsent = !!signup.marked_absent_at;

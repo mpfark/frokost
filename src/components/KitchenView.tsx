@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck, CalendarCheck } from "lucide-react";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck, CalendarCheck, Bell, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { getUpcomingDanishHolidays, filterAlreadyClosedHolidays, type DanishHoliday } from "@/lib/danishHolidays";

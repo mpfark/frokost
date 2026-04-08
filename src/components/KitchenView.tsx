@@ -400,6 +400,7 @@ export const KitchenView = () => {
 
   useEffect(() => {
     fetchCompanySettings();
+    fetchUndecidedCount();
   }, []);
 
   useEffect(() => {

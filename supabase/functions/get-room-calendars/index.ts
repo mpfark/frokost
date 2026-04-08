@@ -1,35 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-async function getAppToken(tenantId: string, clientId: string, clientSecret: string): Promise<string> {
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-  const body = new URLSearchParams({
-    client_id: clientId,
-    client_secret: clientSecret,
-    grant_type: "client_credentials",
-    scope: "https://graph.microsoft.com/.default",
-  });
-
-  const res = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error("Token error:", errorText);
-    throw new Error("Failed to obtain app token");
-  }
-
-  const data = await res.json();
-  return data.access_token;
-}
+import { corsHeaders } from "../_shared/cors.ts";
+import { getAppToken } from "../_shared/microsoft-auth.ts";
+import { mapGraphEvent } from "../_shared/graph-utils.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,7 +9,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authenticate the calling user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -70,7 +41,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get app-level token using Client Credentials flow
     const tenantId = Deno.env.get("AZURE_TENANT_ID")!;
     const clientId = Deno.env.get("AZURE_CLIENT_ID")!;
     const clientSecret = Deno.env.get("AZURE_CLIENT_SECRET")!;
@@ -119,27 +89,7 @@ Deno.serve(async (req) => {
         }
 
         const calendarData = await graphRes.json();
-        const events = (calendarData.value || []).map((event: any) => {
-          const nonResourceAttendees = (event.attendees || []).filter(
-            (a: any) => a.type !== "resource"
-          );
-          return {
-            id: event.id,
-            subject: event.subject,
-            startTime: event.start?.dateTime,
-            startTimezone: event.start?.timeZone,
-            endTime: event.end?.dateTime,
-            endTimezone: event.end?.timeZone,
-            location: event.location?.displayName || null,
-            isAllDay: event.isAllDay,
-            organizer: event.organizer?.emailAddress?.name || null,
-            attendeeCount: nonResourceAttendees.length,
-            attendeeEmails: nonResourceAttendees
-              .map((a: any) => a.emailAddress?.address?.toLowerCase())
-              .filter(Boolean),
-            externalMeetingId: event.iCalUId || null,
-          };
-        });
+        const events = (calendarData.value || []).map(mapGraphEvent);
 
         return { roomEmail: email, displayName: roomDisplayNames[email.toLowerCase()] || null, events, error: null };
       })

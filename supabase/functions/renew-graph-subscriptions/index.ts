@@ -1,33 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-async function refreshAccessToken(
-  refreshToken: string,
-  tenantId: string,
-  clientId: string,
-  clientSecret: string
-): Promise<{ access_token: string; refresh_token: string; expires_in: number } | null> {
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-  const body = new URLSearchParams({
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken,
-    grant_type: "refresh_token",
-    scope: "offline_access Calendars.Read",
-  });
-  const res = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
-  if (!res.ok) return null;
-  return await res.json();
-}
+import { corsHeaders } from "../_shared/cors.ts";
+import { refreshAccessToken } from "../_shared/microsoft-auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,7 +34,6 @@ Deno.serve(async (req) => {
     let renewed = 0;
 
     for (const sub of subs) {
-      // Get user's token
       const { data: tokenData } = await serviceClient
         .from("microsoft_tokens")
         .select("*")
@@ -69,7 +41,6 @@ Deno.serve(async (req) => {
         .single();
 
       if (!tokenData) {
-        // No token, delete subscription record
         await serviceClient.from("graph_subscriptions").delete().eq("id", sub.id);
         continue;
       }
@@ -92,7 +63,6 @@ Deno.serve(async (req) => {
           .eq("user_id", sub.user_id);
       }
 
-      // Renew the subscription (max ~3 days for calendar)
       const newExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 - 60000).toISOString();
 
       const renewRes = await fetch(
@@ -115,7 +85,6 @@ Deno.serve(async (req) => {
         renewed++;
       } else {
         console.error("Failed to renew subscription", sub.subscription_id, await renewRes.text());
-        // Try to recreate subscription
         const createRes = await fetch("https://graph.microsoft.com/v1.0/subscriptions", {
           method: "POST",
           headers: {

@@ -28,15 +28,13 @@ Deno.serve(async (req) => {
       throw new Error('Authorization failed')
     }
 
-    // Check if requesting user is admin
-    const { data: roles } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id)
-      .eq('role', 'admin')
-      .single()
+    // Check if requesting user is admin using has_role RPC
+    const { data: isAdmin } = await supabaseClient.rpc('has_role', {
+      _user_id: requestingUser.id,
+      _role: 'admin',
+    })
 
-    if (!roles) {
+    if (!isAdmin) {
       console.log('Delete user: Non-admin user attempted deletion:', requestingUser.id)
       throw new Error('Authorization failed')
     }

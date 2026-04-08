@@ -33,14 +33,12 @@ Deno.serve(async (req) => {
       throw new Error('Authorization failed')
     }
 
-    const { data: roles } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single()
+    const { data: isAdmin } = await supabaseClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin',
+    })
 
-    if (!roles) {
+    if (!isAdmin) {
       console.log('Test Webflow connection: Non-admin user attempted test:', user.id)
       throw new Error('Authorization failed')
     }

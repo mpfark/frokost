@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck, CalendarCheck } from "lucide-react";
+import { UtensilsCrossed, Users, Wheat, Milk, Leaf, Lock, ChevronLeft, ChevronRight, Trash2, CalendarDays, Plus, Sparkles, UserX, UserCheck, CalendarCheck, Bell, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { getUpcomingDanishHolidays, filterAlreadyClosedHolidays, type DanishHoliday } from "@/lib/danishHolidays";
@@ -70,8 +70,9 @@ export const KitchenView = () => {
   const [reasonInput, setReasonInput] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
   const [isAddingHolidays, setIsAddingHolidays] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [undecidedCount, setUndecidedCount] = useState<number | null>(null);
   const [selectedDayTab, setSelectedDayTab] = useState<Date>(() => {
-    // Start with today, but if it's a weekend, move to next Monday
     const today = new Date();
     if (isWeekend(today)) {
       const day = today.getDay();
@@ -231,6 +232,57 @@ export const KitchenView = () => {
     setCateringOrders(ordersWithProfiles as CateringOrder[]);
   };
 
+  const fetchUndecidedCount = async () => {
+    // Calculate current week Mon-Fri
+    const now = new Date();
+    const day = now.getDay();
+    let monday: Date;
+    if (day >= 1 && day <= 5) {
+      monday = new Date(now);
+      monday.setDate(now.getDate() - (day - 1));
+    } else {
+      const daysUntilMonday = day === 0 ? 1 : 8 - day;
+      monday = new Date(now);
+      monday.setDate(now.getDate() + daysUntilMonday);
+    }
+    monday.setHours(0, 0, 0, 0);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    const mondayStr = format(monday, "yyyy-MM-dd");
+    const fridayStr = format(friday, "yyyy-MM-dd");
+
+    const [profilesRes, signupsRes, optoutsRes] = await Promise.all([
+      supabase.from("profiles").select("id").eq("is_active", true).eq("reminder_enabled", true),
+      supabase.from("lunch_signups").select("user_id").gte("lunch_date", mondayStr).lte("lunch_date", fridayStr),
+      supabase.from("lunch_optouts").select("user_id").gte("lunch_date", mondayStr).lte("lunch_date", fridayStr),
+    ]);
+
+    const decided = new Set([
+      ...(signupsRes.data || []).map(s => s.user_id),
+      ...(optoutsRes.data || []).map(o => o.user_id),
+    ]);
+
+    const undecided = (profilesRes.data || []).filter(p => !decided.has(p.id)).length;
+    setUndecidedCount(undecided);
+  };
+
+  const handleSendReminder = async () => {
+    if (isSendingReminder) return;
+    setIsSendingReminder(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-manual-reminder");
+      if (error) throw error;
+      toast.success(`Påmindelse sendt til ${data.emailsSent} ${data.emailsSent === 1 ? "bruger" : "brugere"}`);
+      fetchUndecidedCount();
+    } catch (err) {
+      console.error("Error sending reminder:", err);
+      toast.error("Kunne ikke sende påmindelse");
+    } finally {
+      setIsSendingReminder(false);
+    }
+  };
+
+
   const toggleClosedDate = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const existingClosed = closedDates.find((cd) => cd.date === dateStr);
@@ -349,6 +401,7 @@ export const KitchenView = () => {
 
   useEffect(() => {
     fetchCompanySettings();
+    fetchUndecidedCount();
   }, []);
 
   useEffect(() => {
@@ -593,7 +646,19 @@ export const KitchenView = () => {
             Lukkede dage
           </TabsTrigger>
         </TabsList>
-        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSendReminder}
+          disabled={isSendingReminder || undecidedCount === 0}
+          className="flex items-center gap-2"
+        >
+          {isSendingReminder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+          <span className="hidden sm:inline">Send påmindelse</span>
+          {undecidedCount !== null && undecidedCount > 0 && (
+            <Badge variant="secondary" className="ml-1">{undecidedCount}</Badge>
+          )}
+        </Button>
       </div>
 
       {/* Day Tab Content */}

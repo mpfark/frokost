@@ -283,6 +283,7 @@ export const KitchenView = () => {
   };
 
 
+  const toggleClosedDate = async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const existingClosed = closedDates.find((cd) => cd.date === dateStr);
 

@@ -70,8 +70,9 @@ export const KitchenView = () => {
   const [reasonInput, setReasonInput] = useState("");
   const [weeksToDisplay, setWeeksToDisplay] = useState(3);
   const [isAddingHolidays, setIsAddingHolidays] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [undecidedCount, setUndecidedCount] = useState<number | null>(null);
   const [selectedDayTab, setSelectedDayTab] = useState<Date>(() => {
-    // Start with today, but if it's a weekend, move to next Monday
     const today = new Date();
     if (isWeekend(today)) {
       const day = today.getDay();

@@ -1,26 +1,19 @@
 
 
-## Plan: Flyt "Send påmindelse"-knappen ind i dagskortet
+## Plan: Juster alignment af navnekort i køkkenvisningen
+
+### Problem
+Kortene i "Tilmeldte"-sektionen (højre kolonne) har en `pr-4` padding inde i `ScrollArea`, som skaber uens højre kant sammenlignet med de øvrige elementer på siden.
 
 ### Ændring
-Fjerner knappen fra header-området (ved siden af tab-listen) og placerer den i dagsoversigten, integreret ved "Tilmeldte"-overskriften i højre kolonne.
-
-### Teknisk tilgang
 
 **Fil: `src/components/KitchenView.tsx`**
 
-1. **Fjern knappen fra header** (linje 649-661) — fjern hele `<Button>` blokken ved tab-listen
-2. **Tilføj knappen ved "Tilmeldte"-overskriften** (linje 778-779) — ændre header-linjen til et flex-layout med "Tilmeldte (X)" til venstre og påmindelsesknappen til højre, som en kompakt ikon-knap med badge
+Fjern `pr-4` fra den indre `div` i `ScrollArea` (linje 784) og brug i stedet `pr-4` direkte på `ScrollArea`-komponenten, så scrollbar og indhold aligner korrekt med resten af layoutet. Alternativt, hvis scrollbar ikke er synlig på mobil, kan `pr-4` fjernes helt.
 
-Layoutet bliver:
-```text
-Tilmeldte (12)                    [🔔 5]
-```
+På mobil (390px viewport, `grid-cols-1`) vises begge kolonner i én kolonne, så alignment skal matche de øvrige kort (summary stats, kostrestriktioner). Løsningen er at fjerne `pr-4` fra linje 784, da det skubber indholdet indad og skaber mismatch.
 
-Knappen vises kun i dag-fanen og kun når der er undecided brugere.
-
-### Filer der ændres
 | Fil | Ændring |
 |-----|---------|
-| `src/components/KitchenView.tsx` | Flyt knap fra header til dagskort |
+| `src/components/KitchenView.tsx` | Fjern `pr-4` fra ScrollArea inner div (linje 784) |
 

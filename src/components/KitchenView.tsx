@@ -646,19 +646,6 @@ export const KitchenView = () => {
             Lukkede dage
           </TabsTrigger>
         </TabsList>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSendReminder}
-          disabled={isSendingReminder || undecidedCount === 0}
-          className="flex items-center gap-2"
-        >
-          {isSendingReminder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-          <span className="hidden sm:inline">Send påmindelse</span>
-          {undecidedCount !== null && undecidedCount > 0 && (
-            <Badge variant="secondary" className="ml-1">{undecidedCount}</Badge>
-          )}
-        </Button>
       </div>
 
       {/* Day Tab Content */}
@@ -775,9 +762,24 @@ export const KitchenView = () => {
                 {/* Right Column - Signups list */}
                 {dayTabSignups.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                      Tilmeldte ({dayTabSignups.length})
-                    </h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">
+                        Tilmeldte ({dayTabSignups.length})
+                      </h4>
+                      {undecidedCount !== null && undecidedCount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSendReminder}
+                          disabled={isSendingReminder}
+                          className="flex items-center gap-1.5 h-7 text-xs"
+                        >
+                          {isSendingReminder ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                          <span className="hidden sm:inline">Påmindelse</span>
+                          <Badge variant="secondary" className="text-xs px-1.5 py-0">{undecidedCount}</Badge>
+                        </Button>
+                      )}
+                    </div>
                     <ScrollArea className="h-[400px] md:h-[500px]">
                       <div className="space-y-2 pr-4">
                         {dayTabSignups.map((signup) => {

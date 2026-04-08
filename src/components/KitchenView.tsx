@@ -232,7 +232,57 @@ export const KitchenView = () => {
     setCateringOrders(ordersWithProfiles as CateringOrder[]);
   };
 
-  const toggleClosedDate = async (date: Date) => {
+  const fetchUndecidedCount = async () => {
+    // Calculate current week Mon-Fri
+    const now = new Date();
+    const day = now.getDay();
+    let monday: Date;
+    if (day >= 1 && day <= 5) {
+      monday = new Date(now);
+      monday.setDate(now.getDate() - (day - 1));
+    } else {
+      const daysUntilMonday = day === 0 ? 1 : 8 - day;
+      monday = new Date(now);
+      monday.setDate(now.getDate() + daysUntilMonday);
+    }
+    monday.setHours(0, 0, 0, 0);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    const mondayStr = format(monday, "yyyy-MM-dd");
+    const fridayStr = format(friday, "yyyy-MM-dd");
+
+    const [profilesRes, signupsRes, optoutsRes] = await Promise.all([
+      supabase.from("profiles").select("id").eq("is_active", true).eq("reminder_enabled", true),
+      supabase.from("lunch_signups").select("user_id").gte("lunch_date", mondayStr).lte("lunch_date", fridayStr),
+      supabase.from("lunch_optouts").select("user_id").gte("lunch_date", mondayStr).lte("lunch_date", fridayStr),
+    ]);
+
+    const decided = new Set([
+      ...(signupsRes.data || []).map(s => s.user_id),
+      ...(optoutsRes.data || []).map(o => o.user_id),
+    ]);
+
+    const undecided = (profilesRes.data || []).filter(p => !decided.has(p.id)).length;
+    setUndecidedCount(undecided);
+  };
+
+  const handleSendReminder = async () => {
+    if (isSendingReminder) return;
+    setIsSendingReminder(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-manual-reminder");
+      if (error) throw error;
+      toast.success(`Påmindelse sendt til ${data.emailsSent} ${data.emailsSent === 1 ? "bruger" : "brugere"}`);
+      fetchUndecidedCount();
+    } catch (err) {
+      console.error("Error sending reminder:", err);
+      toast.error("Kunne ikke sende påmindelse");
+    } finally {
+      setIsSendingReminder(false);
+    }
+  };
+
+
     const dateStr = format(date, "yyyy-MM-dd");
     const existingClosed = closedDates.find((cd) => cd.date === dateStr);
 

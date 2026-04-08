@@ -2,11 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { DEFAULT_COLORS, generateInvitationEmail, delay } from "../_shared/email-utils.ts";
+import { verifyAdmin } from "../_shared/auth-utils.ts";
 
 interface WebflowItem {
   id: string;
@@ -19,104 +17,6 @@ interface WebflowItem {
     [key: string]: any;
   };
 }
-
-// Default colors (HSL format matching the app defaults)
-const DEFAULT_COLORS = {
-  primary: "25 95% 37%",
-  secondary: "35 40% 90%",
-  accent: "20 90% 48%"
-};
-
-// Convert HSL string to hex for email compatibility
-const hslToHex = (hsl: string): string => {
-  const parts = hsl.split(' ');
-  if (parts.length !== 3) return '#b45309'; // Fallback amber color
-  
-  const h = parseFloat(parts[0]) / 360;
-  const s = parseFloat(parts[1]) / 100;
-  const l = parseFloat(parts[2]) / 100;
-
-  const hue2rgb = (p: number, q: number, t: number) => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1/6) return p + (q - p) * 6 * t;
-    if (t < 1/2) return q;
-    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-    return p;
-  };
-
-  let r, g, b;
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1/3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1/3);
-  }
-
-  const toHex = (x: number) => {
-    const hex = Math.round(x * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-// Helper function for rate limiting between emails
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Generate invitation email HTML with dynamic colors
-const generateInvitationEmail = (inviteLink: string, adminName: string, primaryColor: string, accentColor: string): string => {
-  const primaryHex = hslToHex(primaryColor);
-  const accentHex = hslToHex(accentColor);
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invitation til Plusfrokost</title>
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: ${primaryHex}; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">🍽️ Plusfrokost</h1>
-  </div>
-  
-  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none;">
-    <h2 style="color: #1f2937; margin-top: 0;">Du er inviteret!</h2>
-    
-    <p>Hej!</p>
-    
-    <p><strong>${adminName}</strong> har inviteret dig til at bruge Plusfrokost - vores frokost tilmeldingssystem.</p>
-    
-    <p>Klik på knappen nedenfor for at acceptere invitationen og oprette din adgangskode:</p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${inviteLink}" style="background: ${accentHex}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-        Acceptér invitation
-      </a>
-    </div>
-    
-    <p style="color: #6b7280; font-size: 14px;">Linket udløber om 7 dage.</p>
-    
-    <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
-    
-    <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
-      Hvis knappen ikke virker, kan du kopiere dette link og indsætte det i din browser:<br>
-      <a href="${inviteLink}" style="color: ${primaryHex}; word-break: break-all;">${inviteLink}</a>
-    </p>
-  </div>
-  
-  <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-    <p>Denne email blev sendt automatisk via Plusfrokost</p>
-  </div>
-</body>
-</html>
-`;
-};
 
 // Zod schema for validating Webflow item data
 const webflowUserSchema = z.object({
@@ -145,42 +45,12 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get origin for redirect URL
     const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.pluskontoret.dk";
 
     // Verify admin authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Check if user is admin
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const isAdmin = roles?.some(r => r.role === 'admin');
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: 'Admin access required' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const adminResult = await verifyAdmin(req);
+    if (adminResult.response) return adminResult.response;
+    const { user } = adminResult;
 
     // Get sync settings
     const { data: settings, error: settingsError } = await supabase
@@ -299,7 +169,6 @@ serve(async (req) => {
       const fieldMapping = settings.field_mapping as { name: string; email: string };
       const webflowEmails = new Set<string>();
 
-      // Log first item's fieldData structure for debugging
       if (webflowItems.length > 0) {
         console.log('First Webflow item fieldData keys:', Object.keys(webflowItems[0].fieldData));
         console.log('First Webflow item fieldData:', JSON.stringify(webflowItems[0].fieldData, null, 2));
@@ -307,17 +176,14 @@ serve(async (req) => {
       }
 
       for (const item of webflowItems) {
-        // Extract raw values from Webflow item
         const rawEmail = item.fieldData[fieldMapping.email];
         const rawName = item.fieldData[fieldMapping.name];
 
-        // Check if fields exist
         if (!rawEmail || !rawName) {
           details.errors.push(`Skipped item ${item.id}: missing email or name (mapping: ${JSON.stringify(fieldMapping)}, available fields: ${Object.keys(item.fieldData).join(', ')})`);
           continue;
         }
 
-        // Validate using Zod schema
         const validation = webflowUserSchema.safeParse({
           email: rawEmail,
           name: rawName,
@@ -332,7 +198,6 @@ serve(async (req) => {
 
         const { email, name } = validation.data;
 
-        // Validate domain if configured
         if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {
           details.errors.push(`Skipped ${email}: domain not allowed`);
           continue;
@@ -343,14 +208,13 @@ serve(async (req) => {
         const existingProfile = existingProfiles?.find(p => p.email === email);
 
         if (existingProfile) {
-          // Update existing profile
           const updates: any = {};
           if (existingProfile.full_name !== name) {
             updates.full_name = name;
           }
           updates.webflow_id = item.id;
           updates.webflow_synced = true;
-          updates.is_active = true; // Reactivate if was inactive
+          updates.is_active = true;
 
           if (Object.keys(updates).length > 1) {
             const { error: updateError } = await supabase
@@ -366,18 +230,15 @@ serve(async (req) => {
             }
           }
         } else {
-          // Check if there's already a pending invitation for this email
           const existingInvitation = existingInvitations?.find(
             inv => inv.email === email
           );
 
           if (existingInvitation) {
-            // Skip - invitation already exists, avoid duplicate emails
             details.success.push(`Skipped ${email}: pending invitation already exists`);
             continue;
           }
 
-          // Create invitation for new user
           const inviteCode = crypto.randomUUID();
           const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
           
@@ -398,13 +259,10 @@ serve(async (req) => {
             continue;
           }
 
-          // Generate invitation link that points to the accept-invitation page
-          // This page will generate a fresh magic link on-demand, allowing the invitation to stay valid for 7 days
           try {
             const productionUrl = "https://frokost.pluskontoret.dk";
             const inviteLink = `${productionUrl}/accept-invitation/${invitation.id}`;
 
-            // Send branded email via Resend
             const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);
             
             const { error: emailError } = await resend.emails.send({
@@ -418,7 +276,6 @@ serve(async (req) => {
               console.error(`Failed to send email to ${email}:`, emailError);
               details.errors.push(`Failed to send email to ${email}: ${emailError.message}`);
             } else {
-              // Update invitation with link_sent_at timestamp
               await supabase
                 .from('invitations')
                 .update({ link_sent_at: new Date().toISOString() })
@@ -430,7 +287,6 @@ serve(async (req) => {
             usersAdded++;
             details.success.push(`Created invitation and sent email to ${email}`);
 
-            // Rate limiting: wait 500ms between emails
             await delay(500);
             
           } catch (emailErr) {
@@ -459,7 +315,6 @@ serve(async (req) => {
             details.success.push(`Deactivated ${profile.email}`);
           }
         } else if (settings.removal_policy === 'soft-delete') {
-          // Delete from auth but keep profile
           const { error: authDeleteError } = await supabase.auth.admin.deleteUser(profile.id);
           
           if (!authDeleteError) {
@@ -467,7 +322,6 @@ serve(async (req) => {
             details.success.push(`Soft-deleted ${profile.email}`);
           }
         } else if (settings.removal_policy === 'full-delete') {
-          // Check if user has lunch signups
           const { data: signups } = await supabase
             .from('lunch_signups')
             .select('id')
@@ -520,7 +374,6 @@ serve(async (req) => {
       console.error('Sync error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Update sync log with error
       await supabase
         .from('sync_logs')
         .update({

@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useCompanyColors } from "@/hooks/useCompanyColors";
-import { ReloadPrompt } from "@/components/ReloadPrompt";
+import { ReloadPrompt } from "@/components/notifications/ReloadPrompt";
 import Index from "./pages/Index";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";

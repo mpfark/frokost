@@ -5,11 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { startOfDay, addDays } from "date-fns";
-import { WeekDayGrid } from "./catering/WeekDayGrid";
-import { CateringDialogs } from "./catering/CateringDialogs";
-import { useWeekNavigation } from "./catering/useWeekNavigation";
-import { useCateringOrders } from "./catering/useCateringOrders";
-import type { CalendarEvent, ExistingOrder } from "./catering/types";
+import { WeekDayGrid } from "./WeekDayGrid";
+import { CateringDialogs } from "./CateringDialogs";
+import { useWeekNavigation } from "./useWeekNavigation";
+import { useCateringOrders } from "./useCateringOrders";
+import type { CalendarEvent, ExistingOrder } from "./types";
 
 interface RoomResult {
   roomEmail: string;

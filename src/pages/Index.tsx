@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { AuthForm } from "@/components/AuthForm";
-import { LunchCalendar } from "@/components/LunchCalendar";
-import { KitchenView } from "@/components/KitchenView";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { LunchCalendar } from "@/components/lunch/LunchCalendar";
+import { KitchenView } from "@/components/kitchen/KitchenView";
 import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
-import { UserNotifications } from "@/components/UserNotifications";
-import { ProfileSettings } from "@/components/ProfileSettings";
-
-import { OutlookCalendar } from "@/components/OutlookCalendar";
-import { AdminPanel } from "@/components/AdminPanel";
+import { UserNotifications } from "@/components/notifications/UserNotifications";
+import { ProfileSettings } from "@/components/profile/ProfileSettings";
+import { OutlookCalendar } from "@/components/catering/OutlookCalendar";
+import { AdminPanel } from "@/components/admin/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UtensilsCrossed, User as UserIcon, Calendar, CalendarDays, ChefHat, Settings } from "lucide-react";

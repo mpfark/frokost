@@ -8,11 +8,11 @@ import { format, parseISO, startOfDay, addDays, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RoomCalendarsView, type RoomCalendarsViewRef } from "./RoomCalendarsView";
-import { WeekDayGrid } from "./catering/WeekDayGrid";
-import { CateringDialogs } from "./catering/CateringDialogs";
-import { useWeekNavigation } from "./catering/useWeekNavigation";
-import { useCateringOrders } from "./catering/useCateringOrders";
-import type { CalendarEvent, ExistingOrder } from "./catering/types";
+import { WeekDayGrid } from "./WeekDayGrid";
+import { CateringDialogs } from "./CateringDialogs";
+import { useWeekNavigation } from "./useWeekNavigation";
+import { useCateringOrders } from "./useCateringOrders";
+import type { CalendarEvent, ExistingOrder } from "./types";
 
 interface OutlookCalendarProps {
   userEmail: string;

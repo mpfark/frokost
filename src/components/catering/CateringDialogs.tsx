@@ -1,5 +1,5 @@
 import { format, parseISO } from "date-fns";
-import { CateringOrderDialog } from "../CateringOrderDialog";
+import { CateringOrderDialog } from "./CateringOrderDialog";
 import type { CalendarEvent, ExistingOrder } from "./types";
 
 const formatTime = (dateTimeStr: string) => {

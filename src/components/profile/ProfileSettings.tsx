@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Smartphone, LogOut, Unlink } from "lucide-react";
-import { PushSubscriptionButton } from "@/components/PushSubscriptionButton";
+import { PushSubscriptionButton } from "@/components/notifications/PushSubscriptionButton";
 import { AbsenceManager } from "@/components/profile/AbsenceManager";
 import { profileSchema } from "@/lib/validations";
 

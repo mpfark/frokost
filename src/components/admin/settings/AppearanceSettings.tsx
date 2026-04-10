@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Palette, RotateCcw } from "lucide-react";
-import { ColorPicker } from "@/components/ColorPicker";
+import { ColorPicker } from "@/components/shared/ColorPicker";
 
 const DEFAULT_COLORS = {
   primary: "25 95% 37%",

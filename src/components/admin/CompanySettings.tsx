@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GeneralSettings } from "@/components/settings/GeneralSettings";
-import { ReminderSettings } from "@/components/settings/ReminderSettings";
-import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
+import { GeneralSettings } from "@/components/admin/settings/GeneralSettings";
+import { ReminderSettings } from "@/components/admin/settings/ReminderSettings";
+import { AppearanceSettings } from "@/components/admin/settings/AppearanceSettings";
 
 export const CompanySettings = () => {
   return (

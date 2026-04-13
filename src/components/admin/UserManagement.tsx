@@ -56,13 +56,22 @@ export const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   const fetchUsers = useCallback(async (pageNum: number = page) => {
-    // Fetch profiles with pagination
-    const { data: profiles, error: profilesError, count } = await supabase
+    // Fetch profiles with pagination and status filter
+    let query = supabase
       .from("profiles")
       .select("*", { count: "exact" })
-      .order("email")
+      .order("email");
+
+    if (statusFilter === 'active') {
+      query = query.eq('is_active', true);
+    } else if (statusFilter === 'inactive') {
+      query = query.eq('is_active', false);
+    }
+
+    const { data: profiles, error: profilesError, count } = await query
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
     if (profilesError) {

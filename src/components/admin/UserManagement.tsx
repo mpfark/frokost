@@ -388,11 +388,24 @@ export const UserManagement = () => {
     <TooltipProvider>
       <div className="space-y-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
             <CardTitle>Brugerstyring</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              {totalCount} brugere
-            </span>
+            <div className="flex items-center gap-3">
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | 'active' | 'inactive')}>
+                <SelectTrigger className="w-[140px] h-8">
+                  <Filter className="w-3 h-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle</SelectItem>
+                  <SelectItem value="active">Aktive</SelectItem>
+                  <SelectItem value="inactive">Inaktive</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">
+                {totalCount} brugere
+              </span>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -424,6 +437,7 @@ export const UserManagement = () => {
                             <>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium truncate">{user.full_name || "Intet navn"}</span>
+                                {!user.is_active && <Badge variant="destructive" className="text-xs">Inaktiv</Badge>}
                                 {user.is_gluten_free && <Badge variant="secondary" className="text-xs">Glutenfri</Badge>}
                                 {user.is_lactose_free && <Badge variant="secondary" className="text-xs">Laktosefri</Badge>}
                                 {user.is_vegetarian && <Badge variant="secondary" className="text-xs">Vegetar</Badge>}

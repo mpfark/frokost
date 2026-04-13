@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff } from "lucide-react";
+import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ interface UserProfile {
   is_lactose_free: boolean;
   is_vegetarian: boolean;
   reminder_enabled: boolean;
+  is_active: boolean;
 }
 
 interface UserWithRoles extends UserProfile {

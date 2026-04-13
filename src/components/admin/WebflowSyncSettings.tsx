@@ -165,9 +165,23 @@ export const WebflowSyncSettings = () => {
       queryClient.invalidateQueries({ queryKey: ['sync-logs'] });
       queryClient.invalidateQueries({ queryKey: ['webflow-sync-settings'] });
 
+      // Extract removed user details from response
+      const removedUsers: string[] = [];
+      if (data.details?.success) {
+        (data.details.success as string[]).forEach((msg: string) => {
+          const match = msg.match(/(?:Deactivated|Soft-deleted|Fully deleted) user:\s*(.+)/i);
+          if (match) removedUsers.push(match[1].trim());
+        });
+      }
+
+      let description = `Tilføjet: ${data.users_added}, Opdateret: ${data.users_updated}, Fjernet: ${data.users_removed}`;
+      if (removedUsers.length > 0) {
+        description += `\nDeaktiveret: ${removedUsers.join(', ')}`;
+      }
+
       toast({
         title: "Synkronisering fuldført",
-        description: `Tilføjet: ${data.users_added}, Opdateret: ${data.users_updated}, Fjernet: ${data.users_removed}`,
+        description,
       });
     } catch (error) {
       toast({
@@ -331,9 +345,23 @@ export const WebflowSyncSettings = () => {
                       {new Date(log.sync_started_at).toLocaleString('da-DK')}
                     </p>
                     {log.status === 'completed' && (
-                      <p className="text-sm">
-                        Tilføjet: {log.users_added}, Opdateret: {log.users_updated}, Fjernet: {log.users_removed}
-                      </p>
+                      <div className="text-sm space-y-0.5">
+                        <p>
+                          Tilføjet: {log.users_added}, Opdateret: {log.users_updated}, Fjernet: {log.users_removed}
+                        </p>
+                        {log.users_removed > 0 && log.details && (() => {
+                          const details = log.details as { success?: string[] };
+                          const removed = (details.success || [])
+                            .filter((msg: string) => /Deactivated|Soft-deleted|Fully deleted/i.test(msg))
+                            .map((msg: string) => {
+                              const match = msg.match(/(?:Deactivated|Soft-deleted|Fully deleted) user:\s*(.+)/i);
+                              return match ? match[1].trim() : msg;
+                            });
+                          return removed.length > 0 ? (
+                            <p className="text-muted-foreground">Fjernet: {removed.join(', ')}</p>
+                          ) : null;
+                        })()}
+                      </div>
                     )}
                     {log.error_message && (
                       <p className="text-sm text-destructive">{log.error_message}</p>

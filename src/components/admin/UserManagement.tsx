@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff } from "lucide-react";
+import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ interface UserProfile {
   is_lactose_free: boolean;
   is_vegetarian: boolean;
   reminder_enabled: boolean;
+  is_active: boolean;
 }
 
 interface UserWithRoles extends UserProfile {
@@ -54,13 +56,22 @@ export const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   const fetchUsers = useCallback(async (pageNum: number = page) => {
-    // Fetch profiles with pagination
-    const { data: profiles, error: profilesError, count } = await supabase
+    // Fetch profiles with pagination and status filter
+    let query = supabase
       .from("profiles")
       .select("*", { count: "exact" })
-      .order("email")
+      .order("email");
+
+    if (statusFilter === 'active') {
+      query = query.eq('is_active', true);
+    } else if (statusFilter === 'inactive') {
+      query = query.eq('is_active', false);
+    }
+
+    const { data: profiles, error: profilesError, count } = await query
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
     if (profilesError) {
@@ -142,7 +153,12 @@ export const UserManagement = () => {
 
     setUsers(usersWithRoles);
     setIsLoading(false);
-  }, [page]);
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    setPage(0);
+    fetchUsers(0);
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchUsers(page);
@@ -372,11 +388,24 @@ export const UserManagement = () => {
     <TooltipProvider>
       <div className="space-y-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
             <CardTitle>Brugerstyring</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              {totalCount} brugere
-            </span>
+            <div className="flex items-center gap-3">
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | 'active' | 'inactive')}>
+                <SelectTrigger className="w-[140px] h-8">
+                  <Filter className="w-3 h-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle</SelectItem>
+                  <SelectItem value="active">Aktive</SelectItem>
+                  <SelectItem value="inactive">Inaktive</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">
+                {totalCount} brugere
+              </span>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -408,6 +437,7 @@ export const UserManagement = () => {
                             <>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium truncate">{user.full_name || "Intet navn"}</span>
+                                {!user.is_active && <Badge variant="destructive" className="text-xs">Inaktiv</Badge>}
                                 {user.is_gluten_free && <Badge variant="secondary" className="text-xs">Glutenfri</Badge>}
                                 {user.is_lactose_free && <Badge variant="secondary" className="text-xs">Laktosefri</Badge>}
                                 {user.is_vegetarian && <Badge variant="secondary" className="text-xs">Vegetar</Badge>}

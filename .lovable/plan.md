@@ -1,76 +1,43 @@
 
 
-## Plan: Reorganiser kodebasen til domænebaseret mappestruktur
+## Plan: Forbedret feedback ved Webflow-synkronisering + vis inaktive brugere
 
-### Hvorfor nu?
-Den nuværende kode har flade filer i `src/components/` der blander domæner (auth, lunch, admin, profil). At rydde op nu gør den kommende modulære arkitektur langt nemmere, fordi grænser mellem domæner allerede er trukket.
+### Baggrund
+Synkroniseringen deaktiverede `joj@pluskontoret.dk` og `twb@pluskontoret.dk` fordi de ikke længere er i Webflow-collectionen (eller er filtreret fra som drafts/arkiverede). Der er to problemer:
+1. Toast-beskeden viser kun tal, ikke navne på fjernede brugere
+2. Brugerlisten i admin viser ikke hvem der er inaktive
 
-### Ny mappestruktur
+### Ændring 1: Vis navne på fjernede brugere i sync-feedback
 
-```text
-src/
-├── components/
-│   ├── ui/                    (uændret - shadcn komponenter)
-│   ├── auth/
-│   │   ├── AuthForm.tsx
-│   │   └── PasswordChange.tsx
-│   ├── lunch/
-│   │   └── LunchCalendar.tsx
-│   ├── catering/              (eksisterer allerede)
-│   │   ├── CateringOrderDialog.tsx  (flyttes ind)
-│   │   ├── OutlookCalendar.tsx      (flyttes ind)
-│   │   ├── RoomCalendarsView.tsx    (flyttes ind)
-│   │   └── ... (eksisterende filer)
-│   ├── kitchen/               (eksisterer allerede)
-│   │   ├── KitchenView.tsx          (flyttes ind)
-│   │   └── ... (eksisterende filer)
-│   ├── admin/
-│   │   ├── AdminPanel.tsx
-│   │   ├── UserManagement.tsx
-│   │   ├── InvitationManagement.tsx
-│   │   ├── CompanySettings.tsx
-│   │   ├── WebflowSyncSettings.tsx
-│   │   └── settings/               (flyttes ind)
-│   ├── profile/               (eksisterer allerede)
-│   │   ├── ProfileSettings.tsx      (flyttes ind)
-│   │   ├── AbsenceManager.tsx
-│   │   └── ...
-│   ├── statistics/            (uændret - allerede grupperet)
-│   ├── notifications/
-│   │   ├── UserNotifications.tsx
-│   │   ├── PushSubscriptionButton.tsx
-│   │   └── ReloadPrompt.tsx
-│   └── shared/
-│       ├── NavLink.tsx
-│       └── ColorPicker.tsx
-├── hooks/                     (uændret)
-├── lib/                       (uændret)
-├── pages/                     (uændret)
-└── ...
+**Fil: `src/components/admin/WebflowSyncSettings.tsx`**
+
+Udvid toast-beskeden så den inkluderer navne/emails på fjernede brugere fra `data.details`:
+
+```
+Synkronisering fuldført
+Tilføjet: 0, Opdateret: 48, Fjernet: 2
+Deaktiveret: joj@pluskontoret.dk, twb@pluskontoret.dk
 ```
 
-### Trin
+Parses fra `data.details.success`-arrayet ved at filtrere entries der starter med "Deactivated" / "Soft-deleted" / "Fully deleted".
 
-1. **Opret nye mapper** og flyt filer til deres domæne-mapper
-2. **Opdater alle imports** i filer der refererer til de flyttede komponenter (`Index.tsx`, `AdminPanel.tsx`, `CompanySettings.tsx`, osv.)
-3. **Ingen funktionel ændring** — kun fil-flytning og import-opdateringer
+### Ændring 2: Vis inaktiv-status i brugerlisten
 
-### Vigtige detaljer
-- `Index.tsx` forbliver i `pages/` men får opdaterede imports
-- `settings/`-undermappen flyttes under `admin/` da det er admin-indstillinger
-- `statistics/` er allerede korrekt grupperet og forbliver uændret
-- Alle eksisterende barrel-exports og relative imports opdateres
+**Fil: `src/components/admin/UserManagement.tsx`**
+
+- Tilføj `is_active` til `UserProfile`-interfacet
+- Vis en "Inaktiv"-badge (grå/rød) ved brugere hvor `is_active = false`
+- Eventuelt tilføj et filter der lader admin skifte mellem "Alle" / "Aktive" / "Inaktive"
+
+### Ændring 3: Vis fjernede brugere i synkhistorikken
+
+**Fil: `src/components/admin/WebflowSyncSettings.tsx`**
+
+I sync-log sektionen: Når der er fjernede brugere, vis en ekstra linje med de specifikke emails der blev påvirket (fra `log.details`).
 
 ### Filer der ændres
-| Handling | Filer |
-|----------|-------|
-| Flyt til `auth/` | `AuthForm.tsx`, `PasswordChange.tsx` |
-| Flyt til `lunch/` | `LunchCalendar.tsx` |
-| Flyt til `catering/` | `CateringOrderDialog.tsx`, `OutlookCalendar.tsx`, `RoomCalendarsView.tsx` |
-| Flyt til `kitchen/` | `KitchenView.tsx` |
-| Flyt til `admin/` | `AdminPanel.tsx`, `UserManagement.tsx`, `InvitationManagement.tsx`, `CompanySettings.tsx`, `WebflowSyncSettings.tsx` + `settings/` |
-| Flyt til `profile/` | `ProfileSettings.tsx` |
-| Flyt til `notifications/` | `UserNotifications.tsx`, `PushSubscriptionButton.tsx`, `ReloadPrompt.tsx` |
-| Flyt til `shared/` | `NavLink.tsx`, `ColorPicker.tsx` |
-| Opdater imports | `Index.tsx`, `AdminPanel.tsx`, `CompanySettings.tsx`, `App.tsx`, og alle filer der importerer flyttede komponenter |
+| Fil | Ændring |
+|-----|---------|
+| `src/components/admin/WebflowSyncSettings.tsx` | Detaljeret toast + sync-historik med navne |
+| `src/components/admin/UserManagement.tsx` | Tilføj `is_active` felt + badge + filter |
 

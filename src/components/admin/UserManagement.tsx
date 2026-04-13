@@ -153,7 +153,12 @@ export const UserManagement = () => {
 
     setUsers(usersWithRoles);
     setIsLoading(false);
-  }, [page]);
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    setPage(0);
+    fetchUsers(0);
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchUsers(page);

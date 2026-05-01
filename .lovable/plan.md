@@ -1,43 +1,66 @@
+## Plan: Passwordless login med engangskode (OTP)
 
+### Mål
+Brugere skal kunne logge ind ved blot at indtaste deres email og modtage en 6-cifret engangskode, så de slipper for at huske et password. Adgangskode-login bevares som fallback (admin/kitchen kan stadig bruge det), men brugerne præsenteres for OTP som standard.
 
-## Plan: Forbedret feedback ved Webflow-synkronisering + vis inaktive brugere
+### Sådan vil flowet se ud
 
-### Baggrund
-Synkroniseringen deaktiverede `joj@pluskontoret.dk` og `twb@pluskontoret.dk` fordi de ikke længere er i Webflow-collectionen (eller er filtreret fra som drafts/arkiverede). Der er to problemer:
-1. Toast-beskeden viser kun tal, ikke navne på fjernede brugere
-2. Brugerlisten i admin viser ikke hvem der er inaktive
+**Login-skærm (ny standard)**
+1. Bruger indtaster email → klikker "Send kode"
+2. Supabase sender en 6-cifret kode til emailen (via Lovable's auth email templates)
+3. Bruger indtaster koden → logges ind med det samme
+4. Sessionen forbliver aktiv som normalt (ingen forskel fra password-login)
 
-### Ændring 1: Vis navne på fjernede brugere i sync-feedback
+**Fallback til password**
+- Et lille link "Log ind med adgangskode i stedet" under email-feltet
+- Bruges primært af admins/køkken eller hvis email-leveringen fejler
 
-**Fil: `src/components/admin/WebflowSyncSettings.tsx`**
+**Førstegangs-tilmelding (uændret)**
+- Brugere oprettes stadig via invitation/Webflow-sync
+- Når de første gang åbner appen via invite-link, sættes kontoen op uden at de behøver vælge password (Supabase tillader brugere uden password så længe de logger ind med OTP)
 
-Udvid toast-beskeden så den inkluderer navne/emails på fjernede brugere fra `data.details`:
+### Tekniske ændringer
 
-```
-Synkronisering fuldført
-Tilføjet: 0, Opdateret: 48, Fjernet: 2
-Deaktiveret: joj@pluskontoret.dk, twb@pluskontoret.dk
-```
+**1. `src/components/auth/AuthForm.tsx`**
+- Default mode skifter fra `signInWithPassword` til OTP-flow
+- Tilføj to-trins UI: trin 1 (email-input + "Send kode"), trin 2 (6-cifret kode-input via `InputOTP` fra `src/components/ui/input-otp.tsx`)
+- Brug `supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })` — `shouldCreateUser: false` sikrer at kun eksisterende brugere kan logge ind (ingen anonyme tilmeldinger)
+- Verificering: `supabase.auth.verifyOtp({ email, token, type: 'email' })`
+- Tilføj knap "Send ny kode" + countdown (60 sek) for at undgå spam
+- Behold password-flow som tilgængeligt via et "Log ind med adgangskode" link
 
-Parses fra `data.details.success`-arrayet ved at filtrere entries der starter med "Deactivated" / "Soft-deleted" / "Fully deleted".
+**2. Auth email templates (Lovable Cloud)**
+- Tjek om custom auth email templates allerede er sat op for projektet
+- Hvis ikke: scaffold dem så "Magic Link / OTP"-emailen får Plus-branding (logo, farver, dansk tekst som "Din login-kode er: 123456")
+- Hvis allerede sat op: opdater kun OTP-skabelonen så koden vises tydeligt
 
-### Ændring 2: Vis inaktiv-status i brugerlisten
+**3. `src/pages/AcceptInvitation.tsx` (gennemgang)**
+- Sikre at invitations-flowet stadig fungerer — nye brugere skal kunne acceptere invitation uden at vælge password
+- Hvis siden i dag tvinger password-valg, skal det gøres valgfrit eller springes over
 
-**Fil: `src/components/admin/UserManagement.tsx`**
+**4. Admin-side `src/components/admin/UserManagement.tsx` (lille tilpasning)**
+- "Send nulstillingslink"-knappen kan blive til "Send login-kode" som primær handling, og password-reset bliver sekundær
 
-- Tilføj `is_active` til `UserProfile`-interfacet
-- Vis en "Inaktiv"-badge (grå/rød) ved brugere hvor `is_active = false`
-- Eventuelt tilføj et filter der lader admin skifte mellem "Alle" / "Aktive" / "Inaktive"
+### Hvad ændres IKKE
+- Eksisterende passwords forbliver gyldige — brugere kan stadig logge ind med password hvis de vil
+- Invitation/Webflow-sync flow er uændret
+- Admin/kitchen roller og RLS er uændret
+- Microsoft-integration, kalendere osv. påvirkes ikke
 
-### Ændring 3: Vis fjernede brugere i synkhistorikken
-
-**Fil: `src/components/admin/WebflowSyncSettings.tsx`**
-
-I sync-log sektionen: Når der er fjernede brugere, vis en ekstra linje med de specifikke emails der blev påvirket (fra `log.details`).
+### Sikkerhedsovervejelser
+- `shouldCreateUser: false` forhindrer at fremmede kan oprette konti via OTP-flowet
+- Domæne-restriktion (`restrict_signup_to_domain`) gælder stadig for nye signups
+- OTP-koder udløber automatisk efter 60 minutter (Supabase default)
+- Rate limiting håndteres af Supabase Auth out-of-the-box
 
 ### Filer der ændres
 | Fil | Ændring |
 |-----|---------|
-| `src/components/admin/WebflowSyncSettings.tsx` | Detaljeret toast + sync-historik med navne |
-| `src/components/admin/UserManagement.tsx` | Tilføj `is_active` felt + badge + filter |
+| `src/components/auth/AuthForm.tsx` | Hovedrefaktorering til to-trins OTP-flow + password-fallback |
+| `src/pages/AcceptInvitation.tsx` | Gennemgå og tilpas så nye brugere ikke tvinges til password |
+| `src/components/admin/UserManagement.tsx` | Mindre tekstændringer på reset-knappen |
+| `supabase/functions/_shared/email-templates/magic-link.tsx` | Scaffold/opdater OTP-email med Plus-branding |
+| `supabase/functions/auth-email-hook/index.ts` | Scaffold hvis ikke allerede oprettet |
 
+### Spørgsmål inden vi går i gang
+Vil du have password-login bevaret som synlig fallback ("Log ind med adgangskode i stedet"-link), eller vil du helt fjerne password-feltet fra login-skærmen og kun beholde OTP? Admins kan stadig bruge "glemt kodeord"-flow uanset hvad.

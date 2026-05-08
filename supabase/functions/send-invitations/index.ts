@@ -1,9 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { DEFAULT_COLORS, hslToHex, generateInvitationEmail, delay } from "../_shared/email-utils.ts";
+import { delay } from "../_shared/email-utils.ts";
 
 interface InviteRequest {
   emails: string[];
@@ -14,7 +13,6 @@ const emailArraySchema = z.array(emailSchema).min(1).max(50);
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -86,15 +84,6 @@ serve(async (req: Request) => {
 
     const adminName = adminProfile?.full_name || adminProfile?.email || "En administrator";
 
-    // Fetch company colors
-    const { data: companySettings } = await supabaseServiceClient
-      .from("company_settings")
-      .select("primary_color, accent_color")
-      .single();
-
-    const primaryColor = companySettings?.primary_color || DEFAULT_COLORS.primary;
-    const accentColor = companySettings?.accent_color || DEFAULT_COLORS.accent;
-
     // Create batch if multiple invites
     let batchId = null;
     if (emails.length > 1) {
@@ -115,7 +104,6 @@ serve(async (req: Request) => {
     }
 
     const results = [];
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/") || "https://frokost.pluskontoret.dk";
 
     for (const email of emails) {
       const requestId = crypto.randomUUID();
@@ -167,21 +155,23 @@ serve(async (req: Request) => {
           continue;
         }
 
-        const productionUrl = "https://frokost.pluskontoret.dk";
-        const inviteLink = `${productionUrl}/accept-invitation/${invitationData.id}`;
+        const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationData.id}`;
 
-        // Send custom email via Resend with company colors
-        const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);
-        
-        const { error: emailError } = await resend.emails.send({
-          from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
-          to: [email.toLowerCase()],
-          subject: "Du er inviteret til Plusfrokost",
-          html: emailHtml,
-        });
+        // Send invitation via transactional email system
+        const { error: emailError } = await supabaseServiceClient.functions.invoke(
+          "send-transactional-email",
+          {
+            body: {
+              templateName: "invitation",
+              recipientEmail: email.toLowerCase(),
+              idempotencyKey: `invitation-${invitationData.id}`,
+              templateData: { adminName, inviteLink },
+            },
+          }
+        );
 
         if (emailError) {
-          console.error("Resend email error:", emailError);
+          console.error("Email send error:", emailError);
           results.push({
             email,
             success: false,
@@ -191,23 +181,19 @@ serve(async (req: Request) => {
         }
 
         // Update invitation with link_sent_at timestamp
-        const { error: updateError } = await supabaseServiceClient
+        await supabaseServiceClient
           .from("invitations")
           .update({ link_sent_at: new Date().toISOString() })
           .eq("id", invitationData.id);
 
-        if (updateError) {
-          console.error("Failed to update link_sent_at:", updateError);
-        }
-
-        console.log(`Invitation email sent successfully to ${email} via Resend`);
+        console.log(`Invitation email queued for ${email}`);
         results.push({
           email,
           success: true,
           inviteCode,
         });
 
-        // Rate limiting: wait 500ms between emails
+        // Rate limiting between emails
         await delay(500);
       } catch (error: any) {
         console.error("Request ID:", requestId, "Error processing invitation:", error);

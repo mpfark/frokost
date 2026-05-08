@@ -10,77 +10,53 @@ interface PasswordResetRequest {
 const emailSchema = z.string().trim().email().max(255);
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get JWT from Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Create authenticated Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: { headers: { Authorization: authHeader } },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+        auth: { autoRefreshToken: false, persistSession: false },
       }
     );
 
-    // Verify user authentication
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Check admin role using has_role function
     const { data: isAdmin, error: roleError } = await supabaseClient
       .rpc("has_role", { _user_id: user.id, _role: "admin" });
 
     if (roleError || !isAdmin) {
-      console.error("Admin check failed:", roleError);
       return new Response(
         JSON.stringify({ error: "Forbidden: Admin access required" }),
-        {
-          status: 403,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Create Supabase admin client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Check rate limit: max 10 password resets per hour per admin
+    // Rate limit
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentRequests } = await supabaseAdmin
       .from("rate_limits")
@@ -92,41 +68,31 @@ const handler = async (req: Request): Promise<Response> => {
     if (recentRequests && recentRequests >= 10) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Maximum 10 password resets per hour." }),
-        {
-          status: 429,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Record this request for rate limiting
     await supabaseAdmin
       .from("rate_limits")
       .insert({ user_id: user.id, action: "password_reset" });
 
-    // Parse request body
     const { email }: PasswordResetRequest = await req.json();
 
-    // Validate email format
     const emailValidation = emailSchema.safeParse(email);
     if (!emailValidation.success) {
       return new Response(
         JSON.stringify({ error: "Invalid email format" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Get the origin from request headers to construct proper redirect URL
     const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || '';
     const redirectUrl = `${origin}/reset-password`;
 
     const requestId = crypto.randomUUID();
     console.log("Request ID:", requestId, "Processing password reset request");
 
-    // Send password reset email using Supabase's built-in functionality
+    // Send password reset via Supabase Auth (this triggers the auth-email-hook for branded email)
     const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
     });
@@ -136,28 +102,33 @@ const handler = async (req: Request): Promise<Response> => {
       throw resetError;
     }
 
+    // Also send a notification via transactional email
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("email", email)
+      .maybeSingle();
+
+    await supabaseAdmin.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "password-reset",
+        recipientEmail: email,
+        idempotencyKey: `password-reset-notification-${requestId}`,
+        templateData: { userName: profile?.full_name || email.split("@")[0] },
+      },
+    });
+
     console.log("Request ID:", requestId, "Password reset email sent successfully");
 
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        message: "Password reset email sent successfully" 
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: true, message: "Password reset email sent successfully" }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
     console.error("Error in send-password-reset function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: "An internal error occurred" 
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ error: "An internal error occurred" }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };

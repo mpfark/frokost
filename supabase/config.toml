@@ -1,58 +1,43 @@
 project_id = "gupglbmayvwwxwkunotk"
 
-[functions.send-invitations]
-verify_jwt = true
-
-[functions.send-weekly-lunch-reminder]
-verify_jwt = false
-
-[functions.send-password-reset]
-verify_jwt = true
-
-[functions.delete-user]
-verify_jwt = true
-
-[functions.validate-invitation]
-verify_jwt = false
-
-[functions.webflow-sync]
-verify_jwt = true
-
-[functions.generate-invite-link]
-verify_jwt = false
-
-[functions.accept-invitation]
-verify_jwt = true
-
-[functions.trigger-reminder-test]
-verify_jwt = true
-
-[functions.get-calendar-events]
-verify_jwt = true
-
-[functions.generate-vapid-keys]
-verify_jwt = false
-
-[functions.calendar-webhook]
-verify_jwt = false
-
-[functions.renew-graph-subscriptions]
-verify_jwt = false
-
-[functions.send-push-notification]
-verify_jwt = false
-
-[functions.get-meeting-rooms]
-verify_jwt = false
-
-[functions.get-room-calendars]
-verify_jwt = false
-
-[functions.get-microsoft-users]
-verify_jwt = true
-
-[functions.send-manual-reminder]
-verify_jwt = true
-
-[functions.process-email-queue]
-verify_jwt = true
+[functions]
+  [functions.accept-invitation]
+    verify_jwt = true
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.calendar-webhook]
+    verify_jwt = false
+  [functions.delete-user]
+    verify_jwt = true
+  [functions.generate-invite-link]
+    verify_jwt = false
+  [functions.generate-vapid-keys]
+    verify_jwt = false
+  [functions.get-calendar-events]
+    verify_jwt = true
+  [functions.get-meeting-rooms]
+    verify_jwt = false
+  [functions.get-microsoft-users]
+    verify_jwt = true
+  [functions.get-room-calendars]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.renew-graph-subscriptions]
+    verify_jwt = false
+  [functions.send-invitations]
+    verify_jwt = true
+  [functions.send-manual-reminder]
+    verify_jwt = true
+  [functions.send-password-reset]
+    verify_jwt = true
+  [functions.send-push-notification]
+    verify_jwt = false
+  [functions.send-weekly-lunch-reminder]
+    verify_jwt = false
+  [functions.trigger-reminder-test]
+    verify_jwt = true
+  [functions.validate-invitation]
+    verify_jwt = false
+  [functions.webflow-sync]
+    verify_jwt = true

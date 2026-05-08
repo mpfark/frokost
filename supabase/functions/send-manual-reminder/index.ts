@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { delay } from "../_shared/email-utils.ts";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 function getISOWeekNumber(date: Date): number {
   const target = new Date(date.valueOf());
@@ -64,16 +61,13 @@ const handler = async (req: Request): Promise<Response> => {
     // Calculate current week (Mon-Fri) using Danish time
     const now = new Date();
     const danishTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Copenhagen" }));
-    const currentDay = danishTime.getDay(); // 0=Sun, 1=Mon...
+    const currentDay = danishTime.getDay();
 
-    // If Mon-Fri, use current week. If weekend, use next week.
     let monday: Date;
     if (currentDay >= 1 && currentDay <= 5) {
-      // Current week Monday
       monday = new Date(danishTime);
       monday.setDate(danishTime.getDate() - (currentDay - 1));
     } else {
-      // Next Monday
       const daysUntilMonday = currentDay === 0 ? 1 : 8 - currentDay;
       monday = new Date(danishTime);
       monday.setDate(danishTime.getDate() + daysUntilMonday);
@@ -141,29 +135,14 @@ const handler = async (req: Request): Promise<Response> => {
     for (const u of usersWithoutDecision) {
       try {
         const userName = u.full_name || u.email.split("@")[0];
-        const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <p style="color: #333; font-size: 16px; margin-bottom: 16px;">Hej ${userName},</p>
-            <p style="color: #333; font-size: 16px; margin-bottom: 24px;">
-              Husk at skriv dig op til frokost i denne uge (uge ${weekNumber}).
-            </p>
-            <p style="margin-bottom: 32px;">
-              <a href="https://frokost.pluskontoret.dk" 
-                 style="color: #4CAF50; font-size: 16px; text-decoration: underline;">
-                Tilmeld dig frokost her
-              </a>
-            </p>
-            <p style="color: #999; font-size: 12px; margin-top: 32px;">
-              Dette er en manuel påmindelse sendt af køkkenpersonalet.
-            </p>
-          </div>
-        `;
 
-        await resend.emails.send({
-          from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
-          to: [u.email],
-          subject: `Påmindelse: Tilmeld dig frokost (uge ${weekNumber})`,
-          html: emailHtml,
+        await serviceClient.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "manual-reminder",
+            recipientEmail: u.email,
+            idempotencyKey: `manual-reminder-${u.id}-${mondayStr}`,
+            templateData: { userName, weekNumber },
+          },
         });
 
         emailsSent++;

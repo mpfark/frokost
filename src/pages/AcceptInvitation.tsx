@@ -6,26 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
 const AcceptInvitation = () => {
-  const { invitationId } = useParams<{ invitationId: string }>();
+  const { inviteCode } = useParams<{ inviteCode: string }>();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "generating" | "error" | "expired">("loading");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (!invitationId) {
+    if (!inviteCode) {
       setStatus("error");
-      setErrorMessage("Manglende invitation ID");
+      setErrorMessage("Manglende invitationskode");
       return;
     }
 
     validateAndRedirect();
-  }, [invitationId]);
+  }, [inviteCode]);
 
   const validateAndRedirect = async () => {
     try {
       // Call edge function to validate and generate magic link
       const { data, error } = await supabase.functions.invoke("generate-invite-link", {
-        body: { invitationId },
+        body: { inviteCode },
       });
 
       if (error) {

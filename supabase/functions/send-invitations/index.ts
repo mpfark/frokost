@@ -155,7 +155,7 @@ serve(async (req: Request) => {
           continue;
         }
 
-        const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationData.id}`;
+        const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationData.invite_code}`;
 
         // Send invitation via transactional email system
         const { error: emailError } = await supabaseServiceClient.functions.invoke(

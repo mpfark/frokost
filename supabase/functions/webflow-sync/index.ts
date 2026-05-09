@@ -261,7 +261,7 @@ serve(async (req) => {
 
           try {
             const productionUrl = "https://frokost.pluskontoret.dk";
-            const inviteLink = `${productionUrl}/accept-invitation/${invitation.id}`;
+            const inviteLink = `${productionUrl}/accept-invitation/${invitation.invite_code}`;
 
             const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);
             

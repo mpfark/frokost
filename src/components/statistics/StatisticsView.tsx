@@ -107,6 +107,10 @@ export const StatisticsView = () => {
         <TabsContent value="audit" className="mt-6">
           <AuditLogTable />
         </TabsContent>
+
+        <TabsContent value="emails" className="mt-6">
+          <EmailLogTable />
+        </TabsContent>
       </Tabs>
     </div>
   );

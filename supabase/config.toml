@@ -12,7 +12,7 @@ project_id = "gupglbmayvwwxwkunotk"
   [functions.generate-invite-link]
     verify_jwt = false
   [functions.generate-vapid-keys]
-    verify_jwt = false
+    verify_jwt = true
   [functions.get-calendar-events]
     verify_jwt = true
   [functions.get-meeting-rooms]

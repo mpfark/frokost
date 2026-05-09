@@ -26,7 +26,7 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
-        <Route path="/accept-invitation/:invitationId" element={<AcceptInvitation />} />
+        <Route path="/accept-invitation/:inviteCode" element={<AcceptInvitation />} />
         <Route path="/install" element={<Install />} />
         <Route path="/guide" element={<Guide />} />
         <Route path="/microsoft-callback" element={<MicrosoftCallback />} />

@@ -9,6 +9,7 @@ import { WeekdayChart } from "./WeekdayChart";
 import { DietaryChart } from "./DietaryChart";
 import { UserActivityTable } from "./UserActivityTable";
 import { AuditLogTable } from "./AuditLogTable";
+import { EmailLogTable } from "./EmailLogTable";
 
 type DateRange = {
   start: Date;

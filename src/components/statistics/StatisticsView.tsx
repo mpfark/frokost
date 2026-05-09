@@ -9,6 +9,7 @@ import { WeekdayChart } from "./WeekdayChart";
 import { DietaryChart } from "./DietaryChart";
 import { UserActivityTable } from "./UserActivityTable";
 import { AuditLogTable } from "./AuditLogTable";
+import { EmailLogTable } from "./EmailLogTable";
 
 type DateRange = {
   start: Date;
@@ -73,13 +74,14 @@ export const StatisticsView = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full max-w-xl grid-cols-3 md:grid-cols-6 h-auto">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3 md:grid-cols-7 h-auto">
           <TabsTrigger value="overview">Oversigt</TabsTrigger>
           <TabsTrigger value="timeline">Tidslinje</TabsTrigger>
           <TabsTrigger value="weekdays">Ugedage</TabsTrigger>
           <TabsTrigger value="dietary">Kost</TabsTrigger>
           <TabsTrigger value="users">Brugere</TabsTrigger>
           <TabsTrigger value="audit">Aktivitet</TabsTrigger>
+          <TabsTrigger value="emails">Email</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -104,6 +106,10 @@ export const StatisticsView = () => {
 
         <TabsContent value="audit" className="mt-6">
           <AuditLogTable />
+        </TabsContent>
+
+        <TabsContent value="emails" className="mt-6">
+          <EmailLogTable />
         </TabsContent>
       </Tabs>
     </div>

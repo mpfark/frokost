@@ -19,66 +19,79 @@ serve(async (req) => {
       },
     });
 
-    // Parse request body - support both inviteCode (admin) and invitationId (public)
+    // Parse request body - support both inviteCode (admin OR public) and invitationId (legacy/admin only)
     const body = await req.json();
     const { inviteCode, invitationId } = body;
 
-    // If invitationId is provided, this is a public request from AcceptInvitation page
-    if (invitationId) {
-      // Find the invitation by ID
+    const authHeader = req.headers.get("Authorization");
+
+    // PUBLIC FLOW: inviteCode without auth header.
+    // The invite_code is the unguessable secret delivered in the invitation email,
+    // unlike `invitations.id` which can leak via logs/referrers.
+    if (inviteCode && !authHeader) {
+      // Rate limit: max 10 attempts per minute per IP
+      const clientIp =
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("x-real-ip") ||
+        "unknown";
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+      const { data: recentAttempts } = await supabaseServiceClient
+        .from("rate_limits")
+        .select("id")
+        .eq("action", "generate_invite_link")
+        .eq("user_id", clientIp)
+        .gte("timestamp", oneMinuteAgo);
+
+      if ((recentAttempts?.length || 0) >= 10) {
+        return new Response(
+          JSON.stringify({ success: false, error: "rate_limited" }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      await supabaseServiceClient
+        .from("rate_limits")
+        .insert({ user_id: clientIp, action: "generate_invite_link" });
+
+      // Look up invitation by the secret invite_code
       const { data: invitation, error: inviteError } = await supabaseServiceClient
         .from("invitations")
         .select("*")
-        .eq("id", invitationId)
-        .single();
+        .eq("invite_code", inviteCode)
+        .maybeSingle();
 
+      // Generic error for not_found / wrong code to prevent enumeration
       if (inviteError || !invitation) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "not_found" 
-        }), {
+        return new Response(JSON.stringify({ success: false, error: "not_found" }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
-      // Check if invitation is already accepted
       if (invitation.status === "accepted") {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "already_accepted" 
-        }), {
+        return new Response(JSON.stringify({ success: false, error: "already_accepted" }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
-      // Check if invitation is expired
-      const expiresAt = new Date(invitation.expires_at);
-      if (new Date() > expiresAt) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "expired" 
-        }), {
+      if (new Date() > new Date(invitation.expires_at)) {
+        return new Response(JSON.stringify({ success: false, error: "expired" }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
-      // Generate magic link
       return await generateMagicLink(supabaseServiceClient, invitation);
     }
 
-    // If inviteCode is provided, this is an admin request (requires auth)
-    if (inviteCode) {
-      // Get auth header
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
+    // LEGACY public path via invitationId is no longer allowed without auth.
+    if (invitationId && !authHeader) {
+      return new Response(JSON.stringify({ success: false, error: "not_found" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
       // Verify admin access
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;

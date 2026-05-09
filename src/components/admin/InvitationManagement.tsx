@@ -552,7 +552,7 @@ export const InvitationManagement = () => {
                           size="icon"
                           variant="outline"
                           className="h-7 w-7"
-                          onClick={() => copyInviteLink(invite.id, invite.email)}
+                          onClick={() => copyInviteLink(invite.id, invite.invite_code)}
                           disabled={actionLoading === invite.id}
                         >
                           <Copy className="h-3 w-3" />

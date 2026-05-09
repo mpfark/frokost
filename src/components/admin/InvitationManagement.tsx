@@ -214,10 +214,10 @@ export const InvitationManagement = () => {
     }
   };
 
-  const copyInviteLink = async (invitationId: string, email: string) => {
+  const copyInviteLink = async (invitationId: string, inviteCode: string) => {
     setActionLoading(invitationId);
     try {
-      const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationId}`;
+      const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${inviteCode}`;
       await navigator.clipboard.writeText(inviteLink);
       toast({ title: "Kopieret", description: "Invitationslink kopieret til udklipsholder" });
     } catch (error: any) {

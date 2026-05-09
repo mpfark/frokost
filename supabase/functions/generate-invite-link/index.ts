@@ -92,8 +92,8 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-
-      // Verify admin access
+    // ADMIN FLOW: inviteCode with auth header
+    if (inviteCode && authHeader) {
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -107,7 +107,6 @@ serve(async (req) => {
         });
       }
 
-      // Check admin role
       const { data: isAdmin } = await userClient.rpc("has_role", {
         _user_id: user.id,
         _role: "admin",
@@ -120,7 +119,6 @@ serve(async (req) => {
         });
       }
 
-      // Find the invitation by invite_code
       const { data: invitation, error: inviteError } = await supabaseServiceClient
         .from("invitations")
         .select("*")
@@ -134,7 +132,6 @@ serve(async (req) => {
         });
       }
 
-      // Generate magic link
       return await generateMagicLink(supabaseServiceClient, invitation);
     }
 

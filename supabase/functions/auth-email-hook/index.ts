@@ -279,6 +279,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       recipient_email: payload.data.email,
       status: 'failed',
       error_message: 'Failed to enqueue email',
+      metadata: { triggered_by: 'system' },
     })
     return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
       status: 500,

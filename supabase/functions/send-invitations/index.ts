@@ -166,6 +166,7 @@ serve(async (req: Request) => {
               recipientEmail: email.toLowerCase(),
               idempotencyKey: `invitation-${invitationData.id}`,
               templateData: { adminName, inviteLink },
+              triggeredBy: user.id,
             },
           }
         );

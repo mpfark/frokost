@@ -66,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch a wide window (capped) and dedupe in JS to keep this simple
     let query = serviceClient
       .from("email_send_log")
-      .select("id, message_id, template_name, recipient_email, status, error_message, created_at")
+      .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
       .order("created_at", { ascending: false })
       .limit(2000);
 
@@ -143,6 +143,34 @@ const handler = async (req: Request): Promise<Response> => {
 
     const paged = deduped.slice(offset, offset + limit);
 
+    // Resolve triggered_by user IDs to names from profiles
+    const userIds = Array.from(
+      new Set(
+        paged
+          .map((r) => (r.metadata as any)?.triggered_by)
+          .filter((v): v is string => typeof v === "string" && v !== "system" && /^[0-9a-f-]{36}$/i.test(v))
+      )
+    );
+
+    const nameById = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: profs } = await serviceClient
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      for (const p of profs ?? []) {
+        nameById.set(p.id, p.full_name || p.email || p.id);
+      }
+    }
+
+    const enrichedLogs = paged.map((r) => {
+      const tb = (r.metadata as any)?.triggered_by;
+      let triggered_by_label: string | null = null;
+      if (tb === "system") triggered_by_label = "System";
+      else if (typeof tb === "string") triggered_by_label = nameById.get(tb) ?? "Ukendt bruger";
+      return { ...r, triggered_by_label };
+    });
+
     // Distinct templates from raw rows for dropdown
     const templates = Array.from(
       new Set((rawRows ?? []).map((r) => r.template_name).filter(Boolean))
@@ -151,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         stats,
-        logs: paged,
+        logs: enrichedLogs,
         total: deduped.length,
         templates,
       }),

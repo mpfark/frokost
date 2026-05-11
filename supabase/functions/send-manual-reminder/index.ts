@@ -142,6 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
             recipientEmail: u.email,
             idempotencyKey: `manual-reminder-${u.id}-${mondayStr}`,
             templateData: { userName, weekNumber },
+            triggeredBy: user.id,
           },
         });
 

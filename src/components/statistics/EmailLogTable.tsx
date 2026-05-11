@@ -18,6 +18,7 @@ type EmailLog = {
   status: string;
   error_message: string | null;
   created_at: string;
+  triggered_by_label: string | null;
 };
 
 type Stats = {
@@ -203,6 +204,7 @@ export const EmailLogTable = () => {
                       <TableHead>Tidspunkt</TableHead>
                       <TableHead>Modtager</TableHead>
                       <TableHead>Skabelon</TableHead>
+                      <TableHead>Sendt af</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Fejl</TableHead>
                     </TableRow>
@@ -215,6 +217,9 @@ export const EmailLogTable = () => {
                         </TableCell>
                         <TableCell className="font-medium">{log.recipient_email}</TableCell>
                         <TableCell><Badge variant="outline">{labelTemplate(log.template_name)}</Badge></TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {log.triggered_by_label ?? "—"}
+                        </TableCell>
                         <TableCell>{statusBadge(log.status)}</TableCell>
                         <TableCell className="max-w-[300px] truncate text-xs text-muted-foreground" title={log.error_message ?? ""}>
                           {log.error_message ?? "—"}
@@ -223,7 +228,7 @@ export const EmailLogTable = () => {
                     ))}
                     {logs.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                           Ingen mails sendt i den valgte periode
                         </TableCell>
                       </TableRow>

@@ -115,6 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
         recipientEmail: email,
         idempotencyKey: `password-reset-notification-${requestId}`,
         templateData: { userName: profile?.full_name || email.split("@")[0] },
+        triggeredBy: user.id,
       },
     });
 

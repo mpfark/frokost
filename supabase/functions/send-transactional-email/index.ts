@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let triggeredBy: string = 'system'
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -68,6 +69,28 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (typeof body.triggeredBy === 'string' && body.triggeredBy.length > 0) {
+      triggeredBy = body.triggeredBy
+    } else if (typeof body.triggered_by === 'string' && body.triggered_by.length > 0) {
+      triggeredBy = body.triggered_by
+    } else {
+      // Fall back to caller JWT sub (only meaningful for non-service-role calls)
+      const authHeader = req.headers.get('Authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.slice(7).trim()
+          const parts = token.split('.')
+          if (parts.length >= 2) {
+            const payloadStr = parts[1].replaceAll('-', '+').replaceAll('_', '/')
+              .padEnd(Math.ceil(parts[1].length / 4) * 4, '=')
+            const claims = JSON.parse(atob(payloadStr))
+            if (claims?.role !== 'service_role' && typeof claims?.sub === 'string') {
+              triggeredBy = claims.sub
+            }
+          }
+        } catch { /* ignore */ }
+      }
     }
   } catch {
     return new Response(
@@ -153,6 +176,7 @@ Deno.serve(async (req) => {
       template_name: templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
+      metadata: { triggered_by: triggeredBy },
     })
 
     console.log('Email suppressed', { effectiveRecipient, templateName })
@@ -187,6 +211,7 @@ Deno.serve(async (req) => {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: 'Failed to look up unsubscribe token',
+      metadata: { triggered_by: triggeredBy },
     })
     return new Response(
       JSON.stringify({ error: 'Failed to prepare email' }),
@@ -220,6 +245,7 @@ Deno.serve(async (req) => {
         recipient_email: effectiveRecipient,
         status: 'failed',
         error_message: 'Failed to create unsubscribe token',
+        metadata: { triggered_by: triggeredBy },
       })
       return new Response(
         JSON.stringify({ error: 'Failed to prepare email' }),
@@ -249,6 +275,7 @@ Deno.serve(async (req) => {
         recipient_email: effectiveRecipient,
         status: 'failed',
         error_message: 'Failed to confirm unsubscribe token storage',
+        metadata: { triggered_by: triggeredBy },
       })
       return new Response(
         JSON.stringify({ error: 'Failed to prepare email' }),
@@ -272,6 +299,7 @@ Deno.serve(async (req) => {
       status: 'suppressed',
       error_message:
         'Unsubscribe token used but email missing from suppressed list',
+      metadata: { triggered_by: triggeredBy },
     })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
@@ -306,6 +334,7 @@ Deno.serve(async (req) => {
     template_name: templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
+    metadata: { triggered_by: triggeredBy },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -323,6 +352,7 @@ Deno.serve(async (req) => {
       idempotency_key: idempotencyKey,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
+      triggered_by: triggeredBy,
     },
   })
 
@@ -339,6 +369,7 @@ Deno.serve(async (req) => {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: 'Failed to enqueue email',
+      metadata: { triggered_by: triggeredBy },
     })
 
     return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {

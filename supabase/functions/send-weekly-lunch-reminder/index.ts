@@ -125,6 +125,7 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
             recipientEmail: testEmail,
             idempotencyKey: `weekly-test-${testEmail}-${mondayStr}`,
             templateData: { userName, weekNumber },
+            triggeredBy: "system",
           },
         });
 
@@ -209,6 +210,7 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
             recipientEmail: user.email,
             idempotencyKey: `weekly-reminder-${user.id}-${mondayStr}`,
             templateData: { userName, weekNumber },
+            triggeredBy: "system",
           },
         });
 

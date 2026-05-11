@@ -245,6 +245,7 @@ Deno.serve(async (req) => {
         recipient_email: effectiveRecipient,
         status: 'failed',
         error_message: 'Failed to create unsubscribe token',
+        metadata: { triggered_by: triggeredBy },
       })
       return new Response(
         JSON.stringify({ error: 'Failed to prepare email' }),

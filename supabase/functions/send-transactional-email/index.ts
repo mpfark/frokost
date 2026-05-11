@@ -299,6 +299,7 @@ Deno.serve(async (req) => {
       status: 'suppressed',
       error_message:
         'Unsubscribe token used but email missing from suppressed list',
+      metadata: { triggered_by: triggeredBy },
     })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),

@@ -369,6 +369,7 @@ Deno.serve(async (req) => {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: 'Failed to enqueue email',
+      metadata: { triggered_by: triggeredBy },
     })
 
     return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {

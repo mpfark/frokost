@@ -18,6 +18,7 @@ type EmailLog = {
   status: string;
   error_message: string | null;
   created_at: string;
+  triggered_by_label: string | null;
 };
 
 type Stats = {

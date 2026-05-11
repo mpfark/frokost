@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let triggeredBy: string = 'system'
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -68,6 +69,28 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (typeof body.triggeredBy === 'string' && body.triggeredBy.length > 0) {
+      triggeredBy = body.triggeredBy
+    } else if (typeof body.triggered_by === 'string' && body.triggered_by.length > 0) {
+      triggeredBy = body.triggered_by
+    } else {
+      // Fall back to caller JWT sub (only meaningful for non-service-role calls)
+      const authHeader = req.headers.get('Authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.slice(7).trim()
+          const parts = token.split('.')
+          if (parts.length >= 2) {
+            const payloadStr = parts[1].replaceAll('-', '+').replaceAll('_', '/')
+              .padEnd(Math.ceil(parts[1].length / 4) * 4, '=')
+            const claims = JSON.parse(atob(payloadStr))
+            if (claims?.role !== 'service_role' && typeof claims?.sub === 'string') {
+              triggeredBy = claims.sub
+            }
+          }
+        } catch { /* ignore */ }
+      }
     }
   } catch {
     return new Response(

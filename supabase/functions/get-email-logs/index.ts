@@ -66,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch a wide window (capped) and dedupe in JS to keep this simple
     let query = serviceClient
       .from("email_send_log")
-      .select("id, message_id, template_name, recipient_email, status, error_message, created_at")
+      .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
       .order("created_at", { ascending: false })
       .limit(2000);
 

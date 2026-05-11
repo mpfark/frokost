@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
       template_name: templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
+      metadata: { triggered_by: triggeredBy },
     })
 
     console.log('Email suppressed', { effectiveRecipient, templateName })

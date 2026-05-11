@@ -334,6 +334,7 @@ Deno.serve(async (req) => {
     template_name: templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
+    metadata: { triggered_by: triggeredBy },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -351,6 +352,7 @@ Deno.serve(async (req) => {
       idempotency_key: idempotencyKey,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
+      triggered_by: triggeredBy,
     },
   })
 

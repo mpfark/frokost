@@ -250,6 +250,7 @@ async function handleWebhook(req: Request): Promise<Response> {
     template_name: emailType,
     recipient_email: payload.data.email,
     status: 'pending',
+    metadata: { triggered_by: 'system' },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -266,6 +267,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       purpose: 'transactional',
       label: emailType,
       queued_at: new Date().toISOString(),
+      triggered_by: 'system',
     },
   })
 

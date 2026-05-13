@@ -34,6 +34,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
   const { weekOffset, setWeekOffset, currentWeekStart, weekDays, weekLabel } = useWeekNavigation(selectedDate);
   const { existingOrders, fetchExistingOrders } = useCateringOrders(currentWeekStart);
+  const closedDates = useClosedDates(currentWeekStart);
 
   const checkConnection = async () => {
     const { data: { user } } = await supabase.auth.getUser();

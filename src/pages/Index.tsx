@@ -137,12 +137,11 @@ const Index = () => {
               </Button>
 
               <Button
-                variant="ghost"
+                variant={activeTab === "outlook" ? "default" : "ghost"}
                 size="icon"
-                onClick={() => isAdmin && setActiveTab("outlook")}
-                disabled={!isAdmin}
-                className={`lg:w-auto lg:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-                title={!isAdmin ? "Kun tilgængelig for administratorer" : "Forplejning"}
+                onClick={() => setActiveTab("outlook")}
+                className="lg:w-auto lg:px-4"
+                title="Forplejning"
               >
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden lg:inline ml-2">Forplejning</span>

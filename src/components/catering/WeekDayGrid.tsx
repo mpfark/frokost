@@ -2,6 +2,7 @@ import { format, isSameDay, parseISO } from "date-fns";
 import { da } from "date-fns/locale";
 import { EventCard, findOrderForEvent } from "./EventCard";
 import type { CalendarEvent, ExistingOrder } from "./types";
+import type { ClosedDatesMap } from "./useClosedDates";
 
 interface WeekDayGridProps {
   weekDays: Date[];
@@ -11,9 +12,10 @@ interface WeekDayGridProps {
   onEdit: (event: CalendarEvent, order: ExistingOrder) => void;
   onOrdersChanged: () => void;
   showLocation?: boolean;
+  closedDates?: ClosedDatesMap;
 }
 
-export const WeekDayGrid = ({ weekDays, events, existingOrders, onOrder, onEdit, onOrdersChanged, showLocation = true }: WeekDayGridProps) => {
+export const WeekDayGrid = ({ weekDays, events, existingOrders, onOrder, onEdit, onOrdersChanged, showLocation = true, closedDates = {} }: WeekDayGridProps) => {
   const getEventsForDay = (day: Date) => {
     return events.filter((e) => {
       try { return isSameDay(parseISO(e.startTime), day); } catch { return false; }

@@ -188,47 +188,37 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {(isAdmin || canAccessKitchen) ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsContent value="outlook">
-              <div className="max-w-7xl mx-auto">
-                {isAdmin && user.email && <OutlookCalendar userEmail={user.email} />}
-              </div>
-            </TabsContent>
-            <TabsContent value="calendar">
-              <div className="max-w-7xl mx-auto">
-                <LunchCalendar userId={user.id} />
-              </div>
-            </TabsContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsContent value="outlook">
+            <div className="max-w-7xl mx-auto">
+              {user.email && <OutlookCalendar userEmail={user.email} />}
+            </div>
+          </TabsContent>
+          <TabsContent value="calendar">
+            <div className="max-w-7xl mx-auto">
+              <LunchCalendar userId={user.id} />
+            </div>
+          </TabsContent>
+          {canAccessKitchen && (
             <TabsContent value="kitchen">
               <div className="max-w-7xl mx-auto">
                 <KitchenView />
               </div>
             </TabsContent>
+          )}
+          {isAdmin && (
             <TabsContent value="admin">
               <div className="max-w-7xl mx-auto">
-                {isAdmin ? <AdminPanel /> : null}
+                <AdminPanel />
               </div>
             </TabsContent>
-            <TabsContent value="profile">
-              <div className="max-w-4xl mx-auto">
-                <ProfileSettings userId={user.id} />
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <>
-            {activeTab === "profile" ? (
-              <div className="max-w-4xl mx-auto">
-                <ProfileSettings userId={user.id} />
-              </div>
-            ) : (
-              <div className="max-w-7xl mx-auto">
-                <LunchCalendar userId={user.id} />
-              </div>
-            )}
-          </>
-        )}
+          )}
+          <TabsContent value="profile">
+            <div className="max-w-4xl mx-auto">
+              <ProfileSettings userId={user.id} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

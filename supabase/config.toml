@@ -51,3 +51,5 @@ project_id = "gupglbmayvwwxwkunotk"
     verify_jwt = false
   [functions.get-email-logs]
     verify_jwt = true
+  [functions.reconcile-room-bookings]
+    verify_jwt = false

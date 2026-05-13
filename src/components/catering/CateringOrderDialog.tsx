@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, UtensilsCrossed } from "lucide-react";
+import { Loader2, UtensilsCrossed, AlertTriangle } from "lucide-react";
 import { normalizeMeetingTime } from "@/components/catering/orderKey";
 
 interface CateringOrderDialogProps {

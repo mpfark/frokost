@@ -27,12 +27,20 @@ export const WeekDayGrid = ({ weekDays, events, existingOrders, onOrder, onEdit,
       {weekDays.map((day) => {
         const dayEvents = getEventsForDay(day);
         const isToday = isSameDay(day, new Date());
+        const dayKey = format(day, "yyyy-MM-dd");
+        const isClosed = Object.prototype.hasOwnProperty.call(closedDates, dayKey);
+        const closedReason = isClosed ? closedDates[dayKey] : null;
         return (
           <div key={day.toISOString()} className="min-w-[220px] flex-1">
-            <p className={`text-xs font-semibold mb-2 capitalize ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+            <p className={`text-xs font-semibold mb-1 capitalize ${isToday ? "text-primary" : "text-muted-foreground"}`}>
               {format(day, "EEEE d. MMM", { locale: da })}
               {isToday && <span className="ml-1 text-[10px] font-normal">(i dag)</span>}
             </p>
+            {isClosed && (
+              <p className="text-[11px] text-destructive mb-2 font-medium">
+                Køkkenet er lukket{closedReason ? ` (${closedReason})` : ""}
+              </p>
+            )}
             {dayEvents.length === 0 ? (
               <p className="text-xs text-muted-foreground pl-2 pb-2">Ingen møder</p>
             ) : (

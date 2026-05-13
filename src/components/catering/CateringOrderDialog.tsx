@@ -28,6 +28,7 @@ interface CateringOrderDialogProps {
     catering_types: string[];
     comment: string | null;
   } | null;
+  closedInfo?: { reason: string | null } | null;
 }
 
 const CATERING_OPTIONS = [

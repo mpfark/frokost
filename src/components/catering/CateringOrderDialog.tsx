@@ -371,7 +371,7 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annullér
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || selectedTypes.length === 0}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || selectedTypes.length === 0 || isClosed}>
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

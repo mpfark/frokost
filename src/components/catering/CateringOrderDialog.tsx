@@ -40,7 +40,8 @@ const CATERING_OPTIONS = [
   { id: "sweets", label: "Noget sødt" },
 ] as const;
 
-export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder }: CateringOrderDialogProps) => {
+export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder, closedInfo }: CateringOrderDialogProps) => {
+  const isClosed = !!closedInfo;
   const isEditing = !!existingOrder;
 
   const [personCount, setPersonCount] = useState(meeting.attendeeCount || 1);

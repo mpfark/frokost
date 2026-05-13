@@ -137,12 +137,11 @@ const Index = () => {
               </Button>
 
               <Button
-                variant="ghost"
+                variant={activeTab === "outlook" ? "default" : "ghost"}
                 size="icon"
-                onClick={() => isAdmin && setActiveTab("outlook")}
-                disabled={!isAdmin}
-                className={`lg:w-auto lg:px-4 ${!isAdmin ? "opacity-50 cursor-not-allowed" : ""} ${activeTab === "outlook" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-                title={!isAdmin ? "Kun tilgængelig for administratorer" : "Forplejning"}
+                onClick={() => setActiveTab("outlook")}
+                className="lg:w-auto lg:px-4"
+                title="Forplejning"
               >
                 <CalendarDays className="w-4 h-4" />
                 <span className="hidden lg:inline ml-2">Forplejning</span>
@@ -189,47 +188,37 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {(isAdmin || canAccessKitchen) ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsContent value="outlook">
-              <div className="max-w-7xl mx-auto">
-                {isAdmin && user.email && <OutlookCalendar userEmail={user.email} />}
-              </div>
-            </TabsContent>
-            <TabsContent value="calendar">
-              <div className="max-w-7xl mx-auto">
-                <LunchCalendar userId={user.id} />
-              </div>
-            </TabsContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsContent value="outlook">
+            <div className="max-w-7xl mx-auto">
+              {user.email && <OutlookCalendar userEmail={user.email} />}
+            </div>
+          </TabsContent>
+          <TabsContent value="calendar">
+            <div className="max-w-7xl mx-auto">
+              <LunchCalendar userId={user.id} />
+            </div>
+          </TabsContent>
+          {canAccessKitchen && (
             <TabsContent value="kitchen">
               <div className="max-w-7xl mx-auto">
                 <KitchenView />
               </div>
             </TabsContent>
+          )}
+          {isAdmin && (
             <TabsContent value="admin">
               <div className="max-w-7xl mx-auto">
-                {isAdmin ? <AdminPanel /> : null}
+                <AdminPanel />
               </div>
             </TabsContent>
-            <TabsContent value="profile">
-              <div className="max-w-4xl mx-auto">
-                <ProfileSettings userId={user.id} />
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <>
-            {activeTab === "profile" ? (
-              <div className="max-w-4xl mx-auto">
-                <ProfileSettings userId={user.id} />
-              </div>
-            ) : (
-              <div className="max-w-7xl mx-auto">
-                <LunchCalendar userId={user.id} />
-              </div>
-            )}
-          </>
-        )}
+          )}
+          <TabsContent value="profile">
+            <div className="max-w-4xl mx-auto">
+              <ProfileSettings userId={user.id} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

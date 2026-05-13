@@ -125,6 +125,10 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
   };
 
   const handleSubmit = async () => {
+    if (isClosed) {
+      toast.error("Køkkenet er lukket denne dag — du kan ikke bestille forplejning.");
+      return;
+    }
     if (selectedTypes.length === 0) {
       toast.error("Vælg mindst én type forplejning");
       return;

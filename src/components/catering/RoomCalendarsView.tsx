@@ -78,6 +78,16 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
     } finally {
       setIsLoading(false);
     }
+
+    // Fire-and-forget reconciliation against the room calendars (cancel orphan orders)
+    try {
+      const { data: recon } = await supabase.functions.invoke("reconcile-room-bookings", { body: {} });
+      if (recon && typeof recon === "object" && (recon as any).cancelled > 0) {
+        fetchExistingOrders();
+      }
+    } catch (e) {
+      console.warn("reconcile-room-bookings failed:", e);
+    }
   };
 
   useImperativeHandle(ref, () => ({

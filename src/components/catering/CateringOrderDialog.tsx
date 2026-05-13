@@ -291,6 +291,21 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
           </DialogDescription>
         </DialogHeader>
 
+        {isClosed && (
+          <div className="flex items-start gap-2 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium">Køkkenet er lukket denne dag</p>
+              <p className="text-xs mt-0.5 opacity-90">
+                {closedInfo?.reason
+                  ? `Årsag: ${closedInfo.reason}. `
+                  : ""}
+                Du kan ikke bestille forplejning til denne dato.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-5 py-2">
           <div className="space-y-2">
             <Label htmlFor="personCount">Antal personer</Label>

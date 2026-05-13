@@ -272,6 +272,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                   onEdit={(e, o) => setEditingOrder({ event: e, order: o })}
                   onOrdersChanged={fetchExistingOrders}
                   showLocation={true}
+                  closedDates={closedDates}
                 />
               )}
             </TabsContent>
@@ -286,6 +287,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
       <CateringDialogs
         cateringEvent={cateringEvent}
         editingOrder={editingOrder}
+        closedDates={closedDates}
         onCateringClose={() => { setCateringEvent(null); fetchExistingOrders(); }}
         onEditClose={() => { setEditingOrder(null); fetchExistingOrders(); }}
       />

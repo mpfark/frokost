@@ -1,71 +1,26 @@
-## Email log under Statistik
+## Mål
+Brugere skal informeres når køkkenet er lukket på den dag, de prøver at bestille forplejning til.
 
-Tilføj en ny "Email log"-sektion til Statistik-visningen, der viser alle udgående mails fra `email_send_log`. Data hentes via en edge function der validerer admin-rolle, så tabellen forbliver service_role-only.
+## Ændringer
 
-### 1. Edge function: `get-email-logs`
+### 1. `CateringOrderDialog.tsx`
+- Hent `closed_dates` for `meeting.date` ved åbning af dialogen.
+- Hvis dagen er lukket: vis et tydeligt advarselsbanner øverst i dialogen (rød/destructive variant) med tekst som:
+  > "Køkkenet er lukket denne dag{reason ? ` (${reason})` : ""}. Du kan ikke bestille forplejning."
+- Deaktivér "Bestil forplejning"/"Opdatér bestilling"-knappen når dagen er lukket.
+- Block også selve `handleSubmit` med en toast.error som ekstra sikring.
 
-Ny funktion i `supabase/functions/get-email-logs/index.ts`:
-- `verify_jwt = true` + manuel admin-tjek via `has_role(user, 'admin')`
-- Accepterer query params: `start_date`, `end_date`, `template_name`, `status`, `limit`, `offset`
-- Bruger service-role klient internt til at læse `email_send_log`
-- Returnerer **dedupede** rækker (én pr. `message_id`, seneste status) via `DISTINCT ON (message_id)` SQL
-- Returnerer både:
-  - `stats`: `{ total, sent, failed, suppressed }` for valgt periode
-  - `logs`: paginerede rækker (50 ad gangen)
-  - `templates`: distinkt liste til filter-dropdown
-- Generiske fejlbeskeder, ingen lækage af interne detaljer
+### 2. `WeekDayGrid.tsx` (visuel indikation før klik)
+- Hent `closed_dates` for ugen (eller modtag som prop fra `OutlookCalendar`).
+- For lukkede dage: vis en lille badge/tekst under dagsoverskriften: "Køkkenet er lukket" (muted/destructive).
+- Møder vises stadig, så brugeren kan se sin kalender, men det er klart at forplejning ikke kan bestilles.
 
-Registrér i `supabase/config.toml` med `verify_jwt = true`.
+### 3. `OutlookCalendar.tsx`
+- Tilføj fetch af `closed_dates` for den viste uge og videresend til `WeekDayGrid` som prop.
 
-### 2. UI-komponent: `EmailLogTable.tsx`
+## Tekniske detaljer
+- `closed_dates` har allerede en RLS-policy "Anyone can view closed dates" — ingen DB-ændringer nødvendige.
+- Brug `date` (yyyy-MM-dd) sammenligning mod `meeting.date`.
+- Behold redigering af eksisterende ordre tilladt? Forslag: nej — hvis dagen nu er lukket, skal man heller ikke kunne opdatere. (Vi kan justere hvis du foretrækker andet.)
 
-Placeres i `src/components/statistics/EmailLogTable.tsx`, struktureret som `AuditLogTable.tsx`:
-
-**KPI-kort (top):**
-- Total mails, Sendt (grøn), Fejlet (rød), Undertrykt (gul)
-- Opdateres ud fra valgte filtre
-
-**Filterrække:**
-- Tidsrum: Knapper "24t / 7d / 30d" + custom date range picker (default: 7d)
-- Skabelon: Select med "Alle" + alle distinkte `template_name`
-- Status: Select med "Alle / Sendt / Fejlet / Undertrykt"
-- Refresh-knap
-
-**Tabel:**
-- Kolonner: Tidspunkt, Modtager, Skabelon (badge), Status (farvet badge), Fejl (truncated, kun ved fejl)
-- Sortér efter `created_at` desc
-- Paginering: 50 pr. side med "Forrige / Næste"
-- Tom-tilstand: "Ingen mails sendt i den valgte periode"
-
-**Status-badges:**
-- `sent` → grøn (default variant)
-- `failed` / `dlq` / `bounced` → destructive
-- `suppressed` / `complained` → secondary
-- `pending` → outline
-
-**Skabelon-mapping (danske labels):**
-- `auth_emails` → "Auth (login/reset)"
-- `invitation` → "Invitation"
-- `weekly-reminder` → "Ugentlig påmindelse"
-- `manual-reminder` → "Manuel påmindelse"
-- `password-reset` → "Password reset"
-- Fallback: rå template_name
-
-### 3. Integration i Statistik-visning
-
-Tilføj `EmailLogTable` nederst i `src/components/statistics/StatisticsView.tsx` (efter eksisterende `AuditLogTable`). Ingen ny rute, ingen menuændring.
-
-### Tekniske detaljer
-
-- SQL i edge function bruger `DISTINCT ON (message_id) ... ORDER BY message_id, created_at DESC` for dedup
-- Periode-filter anvendes på den dedupede subquery (filtrerer på seneste rækkes `created_at`)
-- Limit batch på 1000 i SQL for at undgå Supabase row limit; UI paginerer 50 ad gangen
-- Genbruger eksisterende shadcn-komponenter (Card, Table, Select, Badge, Button, Calendar/Popover til date range)
-- Følger eksisterende mønstre fra `AuditLogTable` for layout og loading-tilstande
-
-### Hvad der IKKE er med i denne plan
-
-- Ingen "gensend"-handling (kan tilføjes senere fra DLQ)
-- Ingen HTML preview af mailindhold
-- Ingen CSV-eksport
-- Ingen realtime-opdatering — kun manuel refresh + auto-fetch ved filterskift
+Ingen ændringer i edge functions, RLS eller schema.

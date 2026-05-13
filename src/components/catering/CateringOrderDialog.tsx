@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, UtensilsCrossed } from "lucide-react";
+import { Loader2, UtensilsCrossed, AlertTriangle } from "lucide-react";
 import { normalizeMeetingTime } from "@/components/catering/orderKey";
 
 interface CateringOrderDialogProps {
@@ -28,6 +28,7 @@ interface CateringOrderDialogProps {
     catering_types: string[];
     comment: string | null;
   } | null;
+  closedInfo?: { reason: string | null } | null;
 }
 
 const CATERING_OPTIONS = [
@@ -39,7 +40,8 @@ const CATERING_OPTIONS = [
   { id: "sweets", label: "Noget sødt" },
 ] as const;
 
-export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder }: CateringOrderDialogProps) => {
+export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder, closedInfo }: CateringOrderDialogProps) => {
+  const isClosed = !!closedInfo;
   const isEditing = !!existingOrder;
 
   const [personCount, setPersonCount] = useState(meeting.attendeeCount || 1);
@@ -123,6 +125,10 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
   };
 
   const handleSubmit = async () => {
+    if (isClosed) {
+      toast.error("Køkkenet er lukket denne dag — du kan ikke bestille forplejning.");
+      return;
+    }
     if (selectedTypes.length === 0) {
       toast.error("Vælg mindst én type forplejning");
       return;
@@ -285,6 +291,21 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
           </DialogDescription>
         </DialogHeader>
 
+        {isClosed && (
+          <div className="flex items-start gap-2 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium">Køkkenet er lukket denne dag</p>
+              <p className="text-xs mt-0.5 opacity-90">
+                {closedInfo?.reason
+                  ? `Årsag: ${closedInfo.reason}. `
+                  : ""}
+                Du kan ikke bestille forplejning til denne dato.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-5 py-2">
           <div className="space-y-2">
             <Label htmlFor="personCount">Antal personer</Label>
@@ -350,7 +371,7 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annullér
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || selectedTypes.length === 0}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || selectedTypes.length === 0 || isClosed}>
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

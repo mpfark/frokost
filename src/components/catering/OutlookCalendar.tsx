@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClosedDates } from "./useClosedDates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +34,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
 
   const { weekOffset, setWeekOffset, currentWeekStart, weekDays, weekLabel } = useWeekNavigation(selectedDate);
   const { existingOrders, fetchExistingOrders } = useCateringOrders(currentWeekStart);
+  const closedDates = useClosedDates(currentWeekStart);
 
   const checkConnection = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -270,6 +272,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                   onEdit={(e, o) => setEditingOrder({ event: e, order: o })}
                   onOrdersChanged={fetchExistingOrders}
                   showLocation={true}
+                  closedDates={closedDates}
                 />
               )}
             </TabsContent>
@@ -284,6 +287,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
       <CateringDialogs
         cateringEvent={cateringEvent}
         editingOrder={editingOrder}
+        closedDates={closedDates}
         onCateringClose={() => { setCateringEvent(null); fetchExistingOrders(); }}
         onEditClose={() => { setEditingOrder(null); fetchExistingOrders(); }}
       />

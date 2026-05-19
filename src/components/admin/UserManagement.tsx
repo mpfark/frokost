@@ -509,7 +509,8 @@ export const UserManagement = () => {
                               </TooltipTrigger>
                               <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
                             </Tooltip>
-                            </Tooltip>
+
+
 
                             
                             <Tooltip>

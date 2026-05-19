@@ -64,8 +64,8 @@ export const AuthForm = () => {
   };
 
   const verifyOtp = async () => {
-    if (otpCode.length !== 6) {
-      toast.error("Indtast den 6-cifrede kode");
+    if (otpCode.length !== 8) {
+      toast.error("Indtast den 8-cifrede kode");
       return;
     }
 
@@ -140,7 +140,7 @@ export const AuthForm = () => {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Vi har sendt en 6-cifret kode til <strong>{email}</strong>. Tjek også spam-mappen.
+                    Vi har sendt en 8-cifret kode til <strong>{email}</strong>. Tjek også spam-mappen.
                   </AlertDescription>
                 </Alert>
 
@@ -148,7 +148,7 @@ export const AuthForm = () => {
                   <Label htmlFor="otp">Login-kode</Label>
                   <div className="flex justify-center">
                     <InputOTP
-                      maxLength={6}
+                      maxLength={8}
                       value={otpCode}
                       onChange={(v) => setOtpCode(v)}
                       autoFocus
@@ -160,12 +160,14 @@ export const AuthForm = () => {
                         <InputOTPSlot index={3} />
                         <InputOTPSlot index={4} />
                         <InputOTPSlot index={5} />
+                        <InputOTPSlot index={6} />
+                        <InputOTPSlot index={7} />
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading || otpCode.length !== 6}>
+                <Button type="submit" className="w-full" disabled={isLoading || otpCode.length !== 8}>
                   {isLoading ? "Logger ind..." : "Log ind"}
                 </Button>
 

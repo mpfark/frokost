@@ -8,22 +8,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { UtensilsCrossed, AlertCircle, ArrowLeft } from "lucide-react";
-import { signInSchema } from "@/lib/validations";
 import { z } from "zod";
 
-type AuthMode = "otp-email" | "otp-code" | "password";
+type AuthMode = "otp-email" | "otp-code";
 
 const emailSchema = z.string().trim().email({ message: "Indtast en gyldig e-mail" }).max(255);
 
 export const AuthForm = () => {
   const [mode, setMode] = useState<AuthMode>("otp-email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
-  // Countdown timer for resend
   useEffect(() => {
     if (resendCountdown <= 0) return;
     const t = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
@@ -81,7 +78,6 @@ export const AuthForm = () => {
       });
 
       if (error) throw error;
-      // Auth state listener håndterer login
     } catch (error: any) {
       const msg = error.message?.toLowerCase() || "";
       if (msg.includes("expired") || msg.includes("invalid")) {
@@ -95,32 +91,10 @@ export const AuthForm = () => {
     }
   };
 
-  const signInWithPassword = async () => {
-    const validation = signInSchema.safeParse({ email, password });
-    if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === "otp-email") sendOtp(false);
     else if (mode === "otp-code") verifyOtp();
-    else if (mode === "password") signInWithPassword();
   };
 
   return (
@@ -136,7 +110,6 @@ export const AuthForm = () => {
           <CardDescription>
             {mode === "otp-email" && "Indtast din e-mail for at logge ind"}
             {mode === "otp-code" && "Indtast koden vi sendte til din e-mail"}
-            {mode === "password" && "Log ind med adgangskode"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -159,15 +132,6 @@ export const AuthForm = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sender..." : "Send login-kode"}
                 </Button>
-                <div className="text-center text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setMode("password")}
-                    className="text-muted-foreground hover:text-primary hover:underline"
-                  >
-                    Log ind med adgangskode i stedet
-                  </button>
-                </div>
               </>
             )}
 
@@ -224,51 +188,6 @@ export const AuthForm = () => {
                     className="text-primary hover:underline disabled:text-muted-foreground disabled:no-underline disabled:cursor-not-allowed"
                   >
                     {resendCountdown > 0 ? `Send ny kode (${resendCountdown}s)` : "Send ny kode"}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {mode === "password" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder="dig@pluskontoret.dk"
-                    autoComplete="email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Adgangskode</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    minLength={6}
-                    autoComplete="current-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logger ind..." : "Log ind"}
-                </Button>
-                <div className="text-center text-sm">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("otp-email");
-                      setPassword("");
-                    }}
-                    className="text-muted-foreground hover:text-primary hover:underline"
-                  >
-                    Log ind med engangskode i stedet
                   </button>
                 </div>
               </>

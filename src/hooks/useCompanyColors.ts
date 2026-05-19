@@ -37,22 +37,33 @@ export const useCompanyColors = () => {
       }
     }
 
+    const hostname = window.location.hostname.toLowerCase();
+
     const loadColors = async () => {
       try {
-        const { data, error } = await supabase
-          .from("company_settings")
+        // Try the new companies table first, resolved by hostname
+        const { data: byHost } = await supabase
+          .from("companies")
           .select("primary_color, secondary_color, accent_color")
-          .single();
+          .eq("custom_domain", hostname)
+          .eq("is_active", true)
+          .maybeSingle();
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading colors:", error);
-          setIsLoading(false);
-          return;
+        let data: CachedColors | null = byHost ?? null;
+
+        // Fallback: single active company (transition period)
+        if (!data) {
+          const { data: anyActive } = await supabase
+            .from("companies")
+            .select("primary_color, secondary_color, accent_color")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+          data = anyActive ?? null;
         }
 
         if (data) {
           applyColors(data);
-          // Cache the colors for next load
           localStorage.setItem(COLORS_CACHE_KEY, JSON.stringify(data));
         }
       } catch (error) {
@@ -64,20 +75,15 @@ export const useCompanyColors = () => {
 
     loadColors();
 
-    // Subscribe to changes
+    // Subscribe to color changes on companies table
     const channel = supabase
-      .channel('company_settings_changes')
+      .channel('companies_color_changes')
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'company_settings'
-        },
+        { event: 'UPDATE', schema: 'public', table: 'companies' },
         (payload) => {
           const data = payload.new as CachedColors;
           applyColors(data);
-          // Update cache
           localStorage.setItem(COLORS_CACHE_KEY, JSON.stringify({
             primary_color: data.primary_color,
             secondary_color: data.secondary_color,

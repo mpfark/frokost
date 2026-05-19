@@ -12,11 +12,9 @@ export interface TemplateEntry {
 import { template as invitation } from './invitation.tsx'
 import { template as manualReminder } from './manual-reminder.tsx'
 import { template as weeklyReminder } from './weekly-reminder.tsx'
-import { template as passwordReset } from './password-reset.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'invitation': invitation,
   'manual-reminder': manualReminder,
   'weekly-reminder': weeklyReminder,
-  'password-reset': passwordReset,
 }

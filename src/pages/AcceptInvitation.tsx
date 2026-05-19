@@ -44,7 +44,7 @@ const AcceptInvitation = () => {
             break;
           case "already_accepted":
             setStatus("error");
-            setErrorMessage("Denne invitation er allerede blevet accepteret. Log ind med din email og adgangskode.");
+            setErrorMessage("Denne invitation er allerede blevet accepteret. Log ind med din email og en 8-cifret kode på forsiden.");
             break;
           case "expired":
             setStatus("expired");

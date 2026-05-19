@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useCompanyColors } from "@/hooks/useCompanyColors";
 import { ReloadPrompt } from "@/components/notifications/ReloadPrompt";
 import Index from "./pages/Index";
-import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Install from "./pages/Install";
@@ -24,7 +23,6 @@ const AppContent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/accept-invitation/:inviteCode" element={<AcceptInvitation />} />
         <Route path="/install" element={<Install />} />

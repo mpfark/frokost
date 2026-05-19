@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, KeyRound, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter } from "lucide-react";
+import { Shield, Pencil, Save, X, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -308,21 +308,6 @@ export const UserManagement = () => {
     }
   };
 
-  const sendPasswordReset = async (email: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-password-reset", {
-        body: { email },
-      });
-
-      if (error) throw error;
-      toast.success(`Adgangskode nulstillings-email sendt til ${email}`);
-    } catch (error: any) {
-      toast.error(error.message || "Kunne ikke sende adgangskode nulstillings-email");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const toggleReminder = async (userId: string, currentlyEnabled: boolean) => {
     setIsLoading(true);
@@ -524,21 +509,9 @@ export const UserManagement = () => {
                               </TooltipTrigger>
                               <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
                             </Tooltip>
-                            
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => sendPasswordReset(user.email)}
-                                  disabled={isLoading}
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                >
-                                  <KeyRound className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Nulstil adgangskode</TooltipContent>
-                            </Tooltip>
+
+
+
                             
                             <Tooltip>
                               <TooltipTrigger asChild>

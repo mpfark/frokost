@@ -27,7 +27,7 @@ export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
         <Text style={brand}>🍽 Plusfrokost</Text>
         <Heading style={h1}>Din login-kode</Heading>
         <Text style={text}>
-          Indtast koden herunder i login-skærmen for at logge ind på Plusfrokost.
+          Indtast den 8-cifrede kode herunder i login-skærmen for at logge ind på Plusfrokost.
         </Text>
         <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>

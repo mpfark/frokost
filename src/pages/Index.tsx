@@ -62,6 +62,15 @@ const Index = () => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        // Når brugeren netop er logget ind (typisk via invitations-magiclink),
+        // markér eventuel pending invitation som accepted. Idempotent — gør
+        // intet hvis ingen pending invitation findes for emailen.
+        if (event === "SIGNED_IN" && session?.user) {
+          supabase.functions.invoke("accept-invitation").catch((err) => {
+            console.warn("accept-invitation call failed (ignored):", err);
+          });
+        }
       }
     );
 

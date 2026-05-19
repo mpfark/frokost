@@ -151,7 +151,8 @@ serve(async (req) => {
 
 async function generateMagicLink(supabaseServiceClient: any, invitation: any) {
   const productionUrl = "https://frokost.pluskontoret.dk";
-  const redirectUrl = `${productionUrl}/set-password`;
+  // Brugeren logges direkte ind på forsiden — ingen adgangskode-trin.
+  const redirectUrl = `${productionUrl}/`;
 
   // First try 'invite' type, if user exists use 'magiclink' instead
   let linkData;

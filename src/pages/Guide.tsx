@@ -34,7 +34,7 @@ const steps = [
   },
   {
     icon: Calendar,
-    title: "5. Se frokostkalenderen",
+    title: "4. Se frokostkalenderen",
     description: "Kalenderen viser alle kommende frokostdage.",
     details: [
       "Grønne dage: Du er tilmeldt",
@@ -45,7 +45,7 @@ const steps = [
   },
   {
     icon: UtensilsCrossed,
-    title: "6. Tilmeld dig frokost",
+    title: "5. Tilmeld dig frokost",
     description: "Klik på en dag for at tilmelde eller afmelde dig.",
     details: [
       "Vælg om du tager gæster med",

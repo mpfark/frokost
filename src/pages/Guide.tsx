@@ -1,4 +1,4 @@
-import { CheckCircle2, Mail, Link2, LogIn, Calendar, UtensilsCrossed } from "lucide-react";
+import { CheckCircle2, Mail, Link2, LogIn, Calendar, UtensilsCrossed, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const steps = [

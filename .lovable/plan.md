@@ -1,46 +1,36 @@
-## Problem
+## Mål
 
-1. Når brugeren beder om en login-kode, sender Supabase både et magic link og en 6-cifret kode. Vores `magic-link.tsx` template viser kun en "Log ind"-knap (linket) — koden bliver aldrig vist, selvom appen forventer at brugeren indtaster den i OTP-feltet.
-2. Knappen er stylet med `backgroundColor: 'hsl(25, 95%, 37%)'`. Flere mail-klienter (Outlook, Gmail i visse tilfælde) understøtter ikke `hsl()` i inline styles og falder tilbage til transparent/hvid baggrund. Resultat: hvid knap med hvid tekst — usynlig.
-3. Login-siden tilbyder tre tilstande på én gang (engangskode + adgangskode-link). Brugeren ønsker at strømline til ét flow.
+Når en ny bruger klikker invitationslinket, skal de logges direkte ind og lande på forsiden — ingen adgangskode-trin. Invitationen er fortsat gyldig i 7 dage.
 
-## Løsning
+## Ændringer
 
-### 1. Mailen viser nu koden i stedet for en knap
-Omskriv `supabase/functions/_shared/email-templates/magic-link.tsx` så den viser den 6-cifrede `token` stort og tydeligt (samme stil som `reauthentication.tsx`), i stedet for en knap med magic link. Fjern `confirmationUrl`-knappen helt. Subject ændres fra "Your login link" → "Din login-kode" i `auth-email-hook/index.ts` (`EMAIL_SUBJECTS.magiclink`).
+### 1. `supabase/functions/generate-invite-link/index.ts`
+- Skift `redirectUrl` fra `/set-password` til `/` (forsiden).
+- Behold "invite → fallback magiclink" logikken som den er.
 
-Template-flowet: Plusfrokost-brand → overskrift "Din login-kode" → kort dansk tekst → stort kode-display → footer om udløb.
+### 2. `src/pages/SetPassword.tsx` + rute
+- Fjern siden og dens rute fra `src/App.tsx`.
+- Hvis vi vil være forsigtige, beholder vi ruten som en redirect til `/` for at undgå brudte links i gamle mails (valgfrit — anbefales i 30 dage).
 
-### 2. Fix hsl()-farver i alle auth-mail-templates
-Konverter `hsl(25, 95%, 37%)` → `#bd5a0e` (primary), `hsl(20, 14%, 15%)` → `#2b2521` (foreground), `hsl(25, 8%, 45%)` → `#75706b` (muted) i:
-- `magic-link.tsx`
-- `recovery.tsx`
-- `reauthentication.tsx`
-- `signup.tsx`, `invite.tsx`, `email-change.tsx` (samme problem, samme fix)
-- `_shared/transactional-email-templates/password-reset.tsx`
+### 3. Auth-callback / forsiden
+- Tjek at `Index`/`AuthForm` korrekt opfanger den session som magic-linket etablerer (Supabase sætter session via URL-fragment automatisk) og viser den indloggede UI uden at vise login-formularen.
+- Trigger `accept-invitation` edge function efter session er etableret, så invitationen markeres `accepted` (det sker i dag fra SetPassword — flyttes til en lille effekt i `AuthCallback`/`Index` der kører én gang når en frisk session opdages med `invite_code` i user metadata).
 
-Beholder samme visuelle udtryk, blot i hex så alle mail-klienter renderer korrekt.
+### 4. Invitationsmail
+- Opdater teksten i `_shared/email-templates/invite.tsx` (eller den template der bruges af `send-invitations`) så den siger "Klik på linket for at logge ind — ingen adgangskode nødvendig. Linket virker i 7 dage."
 
-### 3. Strømlin login-UI'et
-I `src/components/auth/AuthForm.tsx`:
-- Fjern `"password"` fra `AuthMode`-typen og hele password-grenen i renderingen.
-- Fjern `signInWithPassword`-funktionen og `password`-state.
-- Fjern "Log ind med adgangskode i stedet"-link under e-mail-formularen.
-- Bevar engangskode-flowet (e-mail → 6-cifret kode → log ind) som det eneste flow.
+### 5. Levetider — uændret
+- `invitations.expires_at`: **7 dage** (som i dag).
+- Det Supabase-genererede magic action_link genereres on-demand ved klik og er gyldigt ~1 time fra det klik — uændret.
 
-Adgangskode-baseret login bliver dermed udelukket fra UI'et. Selve Supabase-funktionaliteten røres ikke (admin kan stadig nulstille), men brugerne ser kun OTP-flowet.
+## Teknisk note
 
-### Deploy
-Efter ændringer deployes `auth-email-hook` så de nye templates aktiveres.
+Selve invite-koden i DB er den 7-dages "billet". Når brugeren klikker, veksles den til et frisk Supabase magic link som straks bruges. Det betyder brugeren kan klikke det samme invitationsbrev op til 7 dage efter modtagelse, og hver gang få et nyt 1-times login-link uden at skulle vælge adgangskode.
 
 ## Filer der ændres
 
-- `supabase/functions/_shared/email-templates/magic-link.tsx` — omskrives til kode-visning
-- `supabase/functions/_shared/email-templates/recovery.tsx` — hsl → hex
-- `supabase/functions/_shared/email-templates/reauthentication.tsx` — hsl → hex
-- `supabase/functions/_shared/email-templates/signup.tsx` — hsl → hex
-- `supabase/functions/_shared/email-templates/invite.tsx` — hsl → hex
-- `supabase/functions/_shared/email-templates/email-change.tsx` — hsl → hex
-- `supabase/functions/_shared/transactional-email-templates/password-reset.tsx` — hsl → hex
-- `supabase/functions/auth-email-hook/index.ts` — opdater `EMAIL_SUBJECTS.magiclink`
-- `src/components/auth/AuthForm.tsx` — fjern password-mode
+- `supabase/functions/generate-invite-link/index.ts` (redirect URL)
+- `src/App.tsx` (fjern/redirect `/set-password`)
+- `src/pages/SetPassword.tsx` (slet eller erstat med redirect-stub)
+- `src/pages/Index.tsx` eller en ny lille `useEffect` der kalder `accept-invitation` ved første login efter invite
+- `supabase/functions/_shared/email-templates/invite.tsx` (mail-tekst)

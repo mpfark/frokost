@@ -79,14 +79,6 @@ export const signInSchema = z.object({
     .min(1, { message: "Adgangskode er påkrævet" }),
 });
 
-// Strong password validation schema (used for password changes and resets)
-export const strongPasswordSchema = z
-  .string()
-  .min(8, { message: "Adgangskoden skal være mindst 8 tegn" })
-  .max(128, { message: "Adgangskoden skal være mindre end 128 tegn" })
-  .regex(/[A-Z]/, { message: "Adgangskoden skal indeholde mindst ét stort bogstav" })
-  .regex(/[a-z]/, { message: "Adgangskoden skal indeholde mindst ét lille bogstav" })
-  .regex(/[0-9]/, { message: "Adgangskoden skal indeholde mindst ét tal" });
 
 // Profile validation schema
 export const profileSchema = z.object({

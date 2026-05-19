@@ -4,7 +4,6 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -15,28 +14,24 @@ import {
 
 interface MagicLinkEmailProps {
   siteName: string
-  confirmationUrl: string
+  token?: string
+  confirmationUrl?: string
 }
 
-export const MagicLinkEmail = ({
-  siteName,
-  confirmationUrl,
-}: MagicLinkEmailProps) => (
+export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
   <Html lang="da" dir="ltr">
     <Head />
-    <Preview>Dit login-link til Plusfrokost</Preview>
+    <Preview>Din login-kode til Plusfrokost</Preview>
     <Body style={main}>
       <Container style={container}>
         <Text style={brand}>🍽 Plusfrokost</Text>
-        <Heading style={h1}>Dit login-link</Heading>
+        <Heading style={h1}>Din login-kode</Heading>
         <Text style={text}>
-          Klik på knappen herunder for at logge ind på Plusfrokost. Linket udløber kort efter.
+          Indtast koden herunder i login-skærmen for at logge ind på Plusfrokost.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Log ind
-        </Button>
+        <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>
-          Hvis du ikke har anmodet om dette link, kan du roligt ignorere denne e-mail.
+          Koden udløber kort efter. Hvis du ikke har anmodet om dette, kan du roligt ignorere denne e-mail.
         </Text>
       </Container>
     </Body>
@@ -50,27 +45,28 @@ const container = { padding: '20px 25px' }
 const brand = {
   fontSize: '18px',
   fontWeight: 'bold' as const,
-  color: 'hsl(25, 95%, 37%)',
+  color: '#b84f05',
   margin: '0 0 24px',
 }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: 'hsl(20, 14%, 15%)',
+  color: '#2c2421',
   margin: '0 0 20px',
 }
 const text = {
   fontSize: '14px',
-  color: 'hsl(25, 8%, 45%)',
+  color: '#7c716a',
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const button = {
-  backgroundColor: 'hsl(25, 95%, 37%)',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '0.75rem',
-  padding: '12px 20px',
-  textDecoration: 'none',
+const codeStyle = {
+  fontFamily: 'Courier, monospace',
+  fontSize: '32px',
+  fontWeight: 'bold' as const,
+  color: '#b84f05',
+  margin: '0 0 30px',
+  letterSpacing: '6px',
+  textAlign: 'center' as const,
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

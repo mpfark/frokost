@@ -43,7 +43,7 @@ export const template = {
 
 const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }
 const container = { padding: '20px 25px' }
-const brand = { fontSize: '18px', fontWeight: 'bold' as const, color: 'hsl(25, 95%, 37%)', margin: '0 0 24px' }
-const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: 'hsl(20, 14%, 15%)', margin: '0 0 20px' }
-const text = { fontSize: '14px', color: 'hsl(25, 8%, 45%)', lineHeight: '1.6', margin: '0 0 16px' }
+const brand = { fontSize: '18px', fontWeight: 'bold' as const, color: '#b84f05', margin: '0 0 24px' }
+const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#2c2421', margin: '0 0 20px' }
+const text = { fontSize: '14px', color: '#7c716a', lineHeight: '1.6', margin: '0 0 16px' }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

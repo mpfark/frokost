@@ -52,26 +52,26 @@ const container = { padding: '20px 25px' }
 const brand = {
   fontSize: '18px',
   fontWeight: 'bold' as const,
-  color: 'hsl(25, 95%, 37%)',
+  color: '#b84f05',
   margin: '0 0 24px',
 }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: 'hsl(20, 14%, 15%)',
+  color: '#2c2421',
   margin: '0 0 20px',
 }
 const text = {
   fontSize: '14px',
-  color: 'hsl(25, 8%, 45%)',
+  color: '#7c716a',
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: 'hsl(25, 95%, 37%)',
+  backgroundColor: '#b84f05',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '0.75rem',
+  borderRadius: '12px',
   padding: '12px 20px',
   textDecoration: 'none',
 }

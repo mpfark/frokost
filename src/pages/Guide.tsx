@@ -14,33 +14,22 @@ const steps = [
   },
   {
     icon: Link2,
-    title: "2. Åbn invitationslinket",
-    description: "Når du klikker på linket, åbnes tilmeldingssiden.",
+    title: "2. Klik på invitationslinket",
+    description: "Linket logger dig automatisk ind — du skal ikke vælge en adgangskode.",
     details: [
-      "Din invitationskode udfyldes automatisk",
-      "Din e-mail er muligvis også udfyldt på forhånd",
-      "Du kan nu oprette din konto"
-    ]
-  },
-  {
-    icon: UserPlus,
-    title: "3. Opret din konto",
-    description: "Udfyld formularen for at oprette din bruger.",
-    details: [
-      "Indtast dit fulde navn",
-      "Bekræft din e-mailadresse",
-      "Vælg en sikker adgangskode",
-      "Klik på 'Opret konto' for at fortsætte"
+      "Linket virker i 7 dage",
+      "Du sendes direkte til frokostkalenderen",
+      "Bed administratoren om et nyt link, hvis det er udløbet"
     ]
   },
   {
     icon: LogIn,
-    title: "4. Log ind",
-    description: "Efter oprettelse kan du logge ind med dine oplysninger.",
+    title: "3. Log ind senere med en kode",
+    description: "Næste gang du skal logge ind, bruger du en 8-cifret kode sendt til din e-mail.",
     details: [
-      "Brug din e-mail og adgangskode",
-      "Du er nu logget ind i systemet",
-      "Du kan altid logge ind igen på forsiden"
+      "Indtast din e-mail på forsiden",
+      "Tjek din indbakke for koden",
+      "Skriv koden ind for at logge ind"
     ]
   },
   {

@@ -73,14 +73,15 @@ serve(async (req) => {
     }
 
     if (!data || data.length === 0) {
-      console.warn('No invitation was updated for:', user.email);
+      console.log('No pending invitation for:', user.email, '(normal for returning users)');
       return new Response(
         JSON.stringify({ 
-          success: false, 
-          message: 'No pending invitation found for this email' 
+          success: true, 
+          message: 'No pending invitation (already accepted or none exists)',
+          noop: true
         }),
         { 
-          status: 404, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );

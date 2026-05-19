@@ -23,7 +23,6 @@ const AppContent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/accept-invitation/:inviteCode" element={<AcceptInvitation />} />
         <Route path="/install" element={<Install />} />

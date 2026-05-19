@@ -308,21 +308,6 @@ export const UserManagement = () => {
     }
   };
 
-  const sendPasswordReset = async (email: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-password-reset", {
-        body: { email },
-      });
-
-      if (error) throw error;
-      toast.success(`Adgangskode nulstillings-email sendt til ${email}`);
-    } catch (error: any) {
-      toast.error(error.message || "Kunne ikke sende adgangskode nulstillings-email");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const toggleReminder = async (userId: string, currentlyEnabled: boolean) => {
     setIsLoading(true);

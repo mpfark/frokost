@@ -27,15 +27,15 @@ const InvitationEmail = ({ adminName = 'En administrator', inviteLink = '#' }: I
           {adminName} har inviteret dig til at bruge <strong>{SITE_NAME}</strong> — vores frokost tilmeldingssystem.
         </Text>
         <Text style={text}>
-          Klik på knappen nedenfor for at acceptere invitationen og oprette din adgangskode:
+          Klik på knappen nedenfor for at logge ind — du skal ikke vælge en adgangskode:
         </Text>
         <Section style={{ textAlign: 'center' as const, margin: '30px 0' }}>
           <Button style={button} href={inviteLink}>
-            Acceptér invitation
+            Log ind på Plusfrokost
           </Button>
         </Section>
         <Text style={note}>
-          <strong>Bemærk:</strong> Dette link udløber om 7 dage. Hvis linket er udløbet, kan du kontakte en administrator for at få tilsendt et nyt.
+          <strong>Bemærk:</strong> Linket virker i 7 dage. Hvis det er udløbet, kan du kontakte en administrator for at få tilsendt et nyt.
         </Text>
         <Hr style={hr} />
         <Text style={footer}>

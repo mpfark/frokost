@@ -29,11 +29,10 @@ type Stats = {
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
-  auth_emails: "Auth (login/reset)",
+  auth_emails: "Auth (login-kode)",
   invitation: "Invitation",
   "weekly-reminder": "Ugentlig påmindelse",
   "manual-reminder": "Manuel påmindelse",
-  "password-reset": "Password reset",
   transactional_emails: "Transaktionel",
 };
 

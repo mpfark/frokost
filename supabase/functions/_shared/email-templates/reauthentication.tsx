@@ -24,7 +24,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
       <Container style={container}>
         <Text style={brand}>🍽 Plusfrokost</Text>
         <Heading style={h1}>Bekræft din identitet</Heading>
-        <Text style={text}>Brug koden herunder til at bekræfte din identitet:</Text>
+        <Text style={text}>Brug den 8-cifrede kode herunder til at bekræfte din identitet:</Text>
         <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>
           Koden udløber kort efter. Hvis du ikke har anmodet om dette, kan du roligt ignorere denne e-mail.

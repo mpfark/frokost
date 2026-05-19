@@ -92,6 +92,86 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          accent_color: string | null
+          allowed_domain: string
+          created_at: string
+          custom_domain: string | null
+          id: string
+          is_active: boolean
+          name: string
+          primary_color: string | null
+          secondary_color: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          allowed_domain: string
+          created_at?: string
+          custom_domain?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          allowed_domain?: string
+          created_at?: string
+          custom_domain?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_modules: {
+        Row: {
+          company_id: string
+          config: Json
+          created_at: string
+          id: string
+          is_enabled: boolean
+          module_key: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          module_key: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          module_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_modules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           accent_color: string | null
@@ -523,6 +603,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          company_id: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -537,6 +618,7 @@ export type Database = {
           webflow_synced: boolean
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -551,6 +633,7 @@ export type Database = {
           webflow_synced?: boolean
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
@@ -564,7 +647,15 @@ export type Database = {
           webflow_id?: string | null
           webflow_synced?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {

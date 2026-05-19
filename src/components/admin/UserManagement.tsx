@@ -509,21 +509,8 @@ export const UserManagement = () => {
                               </TooltipTrigger>
                               <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
                             </Tooltip>
-                            
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => sendPasswordReset(user.email)}
-                                  disabled={isLoading}
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                >
-                                  <KeyRound className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Nulstil adgangskode</TooltipContent>
                             </Tooltip>
+
                             
                             <Tooltip>
                               <TooltipTrigger asChild>

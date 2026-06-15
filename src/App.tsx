@@ -18,8 +18,12 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
+const TenantColorsLoader = () => {
   useCompanyColors();
+  return null;
+};
+
+const AppContent = () => {
   const { mode } = useTenant();
 
   if (mode === "platform") {
@@ -32,6 +36,16 @@ const AppContent = () => {
       </BrowserRouter>
     );
   }
+
+  return (
+    <>
+      <TenantColorsLoader />
+      <TenantRoutes />
+    </>
+  );
+};
+
+const TenantRoutes = () => {
 
   return (
     <BrowserRouter>

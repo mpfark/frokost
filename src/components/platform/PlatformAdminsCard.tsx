@@ -4,7 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Loader2, Mail, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 interface AdminRow {
@@ -18,6 +27,9 @@ export const PlatformAdminsCard = ({ currentUserId }: { currentUserId: string })
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [adding, setAdding] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -57,7 +69,7 @@ export const PlatformAdminsCard = ({ currentUserId }: { currentUserId: string })
     if (pErr || !prof) {
       setAdding(false);
       return toast.error(
-        "Brugeren findes ikke endnu. Bed dem først oprette en konto på frokost.gakgak.net.",
+        "Brugeren findes ikke endnu. Brug 'Inviter ny platform admin' nedenfor.",
       );
     }
     const { error } = await supabase
@@ -69,6 +81,27 @@ export const PlatformAdminsCard = ({ currentUserId }: { currentUserId: string })
     }
     toast.success(`${prof.email} er nu platform admin`);
     setEmail("");
+    load();
+  };
+
+  const invite = async () => {
+    const target = inviteEmail.trim().toLowerCase();
+    if (!target) return;
+    setInviting(true);
+    const { data, error } = await supabase.functions.invoke("invite-platform-admin", {
+      body: { email: target },
+    });
+    setInviting(false);
+    if (error || (data as any)?.error) {
+      return toast.error((data as any)?.error ?? error?.message ?? "Invitation fejlede");
+    }
+    toast.success(
+      (data as any)?.existed
+        ? `${target} er nu platform admin (login-link sendt)`
+        : `Invitation sendt til ${target}`,
+    );
+    setInviteEmail("");
+    setInviteOpen(false);
     load();
   };
 
@@ -95,15 +128,14 @@ export const PlatformAdminsCard = ({ currentUserId }: { currentUserId: string })
           Platform administratorer
         </CardTitle>
         <CardDescription>
-          Platform admins har adgang til denne side og kan styre alle tenants. Brugeren skal først
-          have oprettet en konto på frokost.gakgak.net før de kan promoveres.
+          Platform admins har adgang til denne side og kan styre alle tenants.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-2">
           <Input
             type="email"
-            placeholder="bruger@eksempel.dk"
+            placeholder="Eksisterende bruger: bruger@eksempel.dk"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addAdmin()}
@@ -113,6 +145,44 @@ export const PlatformAdminsCard = ({ currentUserId }: { currentUserId: string })
             Tilføj
           </Button>
         </div>
+
+        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Mail className="h-4 w-4" />
+              Inviter ny platform admin
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Inviter ny platform admin</DialogTitle>
+              <DialogDescription>
+                Vi sender en invitation pr. email. Når modtageren accepterer, får de automatisk
+                platform admin-rollen.
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              type="email"
+              placeholder="bruger@eksempel.dk"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && invite()}
+            />
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setInviteOpen(false)} disabled={inviting}>
+                Annullér
+              </Button>
+              <Button onClick={invite} disabled={inviting || !inviteEmail.trim()}>
+                {inviting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+                Send invitation
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {loading ? (
           <div className="grid place-items-center py-6">

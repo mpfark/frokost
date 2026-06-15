@@ -45,6 +45,7 @@ export const useUserRole = (userId: string | undefined) => {
       const roles = data?.map(r => r.role) || [];
       const newIsAdmin = roles.includes("admin");
       const newIsKitchen = roles.includes("kitchen");
+      setIsPlatformAdmin(roles.includes("platform_admin"));
       
       console.log("[useUserRole] Roles fetched successfully:", { 
         admin: newIsAdmin, 

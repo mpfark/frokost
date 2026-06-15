@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Shield, Building2, ExternalLink } from "lucide-react";
 import { MODULE_REGISTRY, ModuleKey } from "@/modules/registry";
+import { PlatformAdminsCard } from "@/components/platform/PlatformAdminsCard";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
@@ -134,7 +135,9 @@ const Platform = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+        <PlatformAdminsCard currentUserId={user.id} />
+
         <div>
           <h2 className="text-xl font-semibold mb-1">Virksomheder</h2>
           <p className="text-sm text-muted-foreground">

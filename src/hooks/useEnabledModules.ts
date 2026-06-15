@@ -40,12 +40,12 @@ export const useEnabledModules = () => {
 
   const modules: ModuleDefinition[] = enabledKeys
     ? MODULE_REGISTRY.filter((m) => enabledKeys.has(m.key))
-    : MODULE_REGISTRY;
+    : [];
 
   return {
     modules,
     isEnabled: (key: ModuleKey) =>
-      enabledKeys ? enabledKeys.has(key) : true,
+      enabledKeys ? enabledKeys.has(key) : false,
     isLoading: enabledKeys === null && !!company,
   };
 };

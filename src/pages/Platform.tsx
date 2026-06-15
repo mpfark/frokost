@@ -135,7 +135,9 @@ const Platform = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+        <PlatformAdminsCard currentUserId={user.id} />
+
         <div>
           <h2 className="text-xl font-semibold mb-1">Virksomheder</h2>
           <p className="text-sm text-muted-foreground">

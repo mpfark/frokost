@@ -41,26 +41,13 @@ export const useCompanyColors = () => {
 
     const loadColors = async () => {
       try {
-        // Try the new companies table first, resolved by hostname
-        const { data: byHost } = await supabase
+        // Resolve colors strictly by hostname — no cross-tenant fallback.
+        const { data } = await supabase
           .from("companies")
           .select("primary_color, secondary_color, accent_color")
           .eq("custom_domain", hostname)
           .eq("is_active", true)
           .maybeSingle();
-
-        let data: CachedColors | null = byHost ?? null;
-
-        // Fallback: single active company (transition period)
-        if (!data) {
-          const { data: anyActive } = await supabase
-            .from("companies")
-            .select("primary_color, secondary_color, accent_color")
-            .eq("is_active", true)
-            .limit(1)
-            .maybeSingle();
-          data = anyActive ?? null;
-        }
 
         if (data) {
           applyColors(data);

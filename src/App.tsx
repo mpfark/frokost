@@ -4,9 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useCompanyColors } from "@/hooks/useCompanyColors";
-import { TenantProvider } from "@/contexts/TenantContext";
+import { TenantProvider, useTenant } from "@/contexts/TenantContext";
 import { ReloadPrompt } from "@/components/notifications/ReloadPrompt";
 import Index from "./pages/Index";
+import Platform from "./pages/Platform";
 import SetPassword from "./pages/SetPassword";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Install from "./pages/Install";
@@ -19,7 +20,19 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   useCompanyColors();
-  
+  const { mode } = useTenant();
+
+  if (mode === "platform") {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Platform />} />
+          <Route path="*" element={<Platform />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>

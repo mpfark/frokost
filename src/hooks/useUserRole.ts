@@ -5,6 +5,7 @@ import { toast } from "sonner";
 export const useUserRole = (userId: string | undefined) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isKitchen, setIsKitchen] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const previousRolesRef = useRef<{ admin: boolean; kitchen: boolean } | null>(null);
 

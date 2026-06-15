@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Shield, Building2, ExternalLink } from "lucide-react";
 import { MODULE_REGISTRY, ModuleKey } from "@/modules/registry";
+import { PlatformAdminsCard } from "@/components/platform/PlatformAdminsCard";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 

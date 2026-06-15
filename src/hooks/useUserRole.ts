@@ -93,5 +93,5 @@ export const useUserRole = (userId: string | undefined) => {
     };
   }, [userId]);
 
-  return { isAdmin, isKitchen, isLoading };
+  return { isAdmin, isKitchen, isPlatformAdmin, isLoading };
 };

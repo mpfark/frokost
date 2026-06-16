@@ -8,7 +8,7 @@ project_id = "gupglbmayvwwxwkunotk"
   [functions.calendar-webhook]
     verify_jwt = false
   [functions.delete-user]
-    verify_jwt = true
+    verify_jwt = false
   [functions.generate-invite-link]
     verify_jwt = false
   [functions.generate-vapid-keys]

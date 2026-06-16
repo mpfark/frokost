@@ -20,13 +20,18 @@ export interface TenantResolution {
   hostname: string;
 }
 
-// Set this env var when the platform admin domain is live (e.g. "admin.plusfrokost.dk")
-const PLATFORM_HOST = (import.meta.env.VITE_PLATFORM_HOST as string | undefined)?.toLowerCase();
+// Hosts that always render the platform admin UI (no tenant resolution).
+const PLATFORM_HOSTS = new Set<string>(
+  [
+    (import.meta.env.VITE_PLATFORM_HOST as string | undefined)?.toLowerCase(),
+    "frokost.gakgak.net",
+  ].filter((h): h is string => Boolean(h))
+);
 
 /**
  * Hostname → tenant resolution.
  *
- * 1. If hostname matches VITE_PLATFORM_HOST → platform mode.
+ * 1. If hostname is a known platform host → platform mode.
  * 2. Lookup companies.custom_domain = hostname → tenant mode.
  * 3. Fallback: if exactly one active company exists, use it (covers lovable.app preview URLs
  *    during the transition period). Once a second company is added, this fallback returns
@@ -35,9 +40,10 @@ const PLATFORM_HOST = (import.meta.env.VITE_PLATFORM_HOST as string | undefined)
 export async function resolveTenant(): Promise<TenantResolution> {
   const hostname = window.location.hostname.toLowerCase();
 
-  if (PLATFORM_HOST && hostname === PLATFORM_HOST) {
+  if (PLATFORM_HOSTS.has(hostname)) {
     return { mode: "platform", company: null, hostname };
   }
+
 
   const { data: matched } = await supabase
     .from("companies")

@@ -1,120 +1,63 @@
-## Strategi: byg domæne-agnostisk, plug platform-domænet ind senere
+## Mål
 
-Da admin-domænet endnu ikke er valgt, bygger vi tenant-resolveren så den **ikke** afhænger af et hardcoded hostname. I stedet markerer vi i DB hvilke virksomheder der findes, og lader alt "ukendt domæne" eller en eksplicit env-variabel pege på platform-mode. Når dit nye admin-domæne er klart, peger du det bare på projektet og sætter én env-variabel — ingen kodeændringer.
+Mails skal sendes fra firmaets eget subdomæne (Pluskontoret → `notify.frokost.pluskontoret.dk`, Gakgak → `notify.frokost.gakgak.net`) og platform-mails fra `notify.gakgak.net`. From-navn (fx "Plusfrokost", "Gakgak Frokost") skal også være per-firma.
 
----
+## Trin
 
-## Tenant-resolution uden hardcoded hostnames
+### 1. DNS / domæne-verifikation (kræver dig)
 
-Logik ved app-start (`src/lib/tenant-resolver.ts`):
+Du skal tilføje to nye Lovable email-domæner i Cloud → Emails:
 
-```text
-hostname = window.location.hostname
+- `notify.frokost.gakgak.net` (Gakgak firma-mails)
+- `notify.gakgak.net` (platform-mails, fx platform admin invitationer)
 
-1. Hvis hostname === VITE_PLATFORM_HOST  → mode: 'platform'
-2. Slå op: companies WHERE custom_domain = hostname
-   - fundet → mode: 'tenant', company = X
-   - ikke fundet:
-       a. Hvis kun ÉN aktiv virksomhed findes → mode: 'tenant', company = den ene
-          (overgangsfase — så frokost.lovable.app og preview-URL'er virker)
-       b. Ellers → mode: 'platform' (login som platform-admin eller "vælg firma")
-```
+For hvert af dem giver Lovable dig NS-records, som skal sættes hos registrar for `gakgak.net`. Først når statussen er "Active" kan de bruges. Vi fortsætter implementeringen parallelt, så koden er klar.
 
-**Hvorfor det her er rart nu:**
-- I dag findes kun Pluskontoret → alle hostnames (custom + lovable.app + preview) lander på Pluskontoret via fallback (2a). Intet går i stykker.
-- Når du tilføjer firma nr. 2, skal hvert firma have `custom_domain` udfyldt, og fallback'en deaktiveres automatisk.
-- Når dit admin-domæne er klart, sætter du `VITE_PLATFORM_HOST=admin.ditdomæne.dk` og er færdig.
+### 2. Database
 
----
+Tilføj kolonner til `companies`:
+- `sender_subdomain` (text) — fx `notify.frokost.pluskontoret.dk`
+- `sender_from_name` (text) — fx `Plusfrokost`
 
-## DB-ændringer (Fase 1)
+Tilføj `platform_settings` rækker (eller hardkod platform-defaults i koden) til platform-domænet `notify.gakgak.net` med navnet "Frokost Platform".
 
-```text
-companies
-├── id (uuid, pk)
-├── slug                // 'pluskontoret'
-├── name                // 'Pluskontoret'
-├── custom_domain       // 'frokost.pluskontoret.dk' (unique, nullable)
-├── allowed_domain      // 'pluskontoret.dk'
-├── primary_color, secondary_color, accent_color
-├── is_active
-└── created_at
+Pre-udfyld eksisterende firmaer:
+- Pluskontoret → `notify.frokost.pluskontoret.dk`, "Plusfrokost"
+- Gakgak → `notify.frokost.gakgak.net`, "Gakgak Frokost"
 
-company_modules
-├── company_id
-├── module_key          // 'lunch' | 'catering' | 'kitchen' | 'webflow' | 'microsoft'
-├── is_enabled
-└── config jsonb
-```
+### 3. Edge function: `send-transactional-email`
 
-- Backfill: én række i `companies` for Pluskontoret med `custom_domain='frokost.pluskontoret.dk'`, kopiér farver/allowed_domain fra `company_settings`.
-- Tilføj `company_id uuid` på alle tenant-tabeller (default = Pluskontoret-id, NOT NULL efter backfill).
-- Tilføj `platform_admin` til `app_role`-enum.
-- Behold `company_settings`-tabellen et stykke tid for at undgå brydende ændringer — læs nye felter fra `companies`, men fald tilbage til `company_settings` indtil alt er migreret.
+Erstat de hardkodede `SENDER_DOMAIN` / `FROM_DOMAIN` / `SITE_NAME` med opslag pr. request:
 
----
+- Acceptér ny body-parameter `companyId` (UUID) eller `platform: true`.
+- Hvis `companyId` → slå `sender_subdomain` + `sender_from_name` op fra `companies`.
+- Hvis `platform: true` → brug platform-konstanter.
+- Fallback til Pluskontoret hvis intet sendes (bagudkompatibel).
 
-## Frontend-ændringer
+Disse værdier sættes i kø-payloadens `from`, `sender_domain` (det er det felt mail-providerens lookup bruger).
 
-1. **`src/lib/tenant-resolver.ts`** — hostname → `{mode, company}` (logikken ovenfor).
-2. **`src/hooks/useCurrentCompany.ts`** — exposer resolved company til hele appen via context.
-3. **`src/hooks/useCompanyColors.ts`** — læser farver fra `companies` (via current company), ikke længere singleton `company_settings`.
-4. **`src/App.tsx`** — wrappes med `<TenantProvider>`. Hvis `mode === 'platform'` → render kun platform-routes (`/platform/*`, login). Ellers render eksisterende routes som i dag.
-5. **`src/modules/registry.ts`** — `{ key, label, icon, route, AdminTab?, NavTab?, requires:[role] }` for hver modul. `Index.tsx` og `AdminPanel.tsx` bygger tabs ved at filtrere registry mod `useEnabledModules()` + brugerens roller.
-6. **Stub platform-side** — `src/pages/platform/Companies.tsx` med liste/CRUD af firmaer (kun `platform_admin`).
+### 4. Kaldere skal sende tenant-context
 
----
+Find alle `supabase.functions.invoke('send-transactional-email', ...)` kald og send `companyId` med (eller `platform: true` for platform admin invitationer):
 
-## RLS (Fase 2 — kan vente til efter Fase 1 er stabil)
+- `send-invitations` (firma-invitationer) → tenant companyId
+- `invite-platform-admin` → `platform: true`
+- `send-manual-reminder` → tenant companyId
+- `send-weekly-lunch-reminder` → tenant companyId
+- Eventuelle andre triggere
 
-- Hjælpefunktion `current_company_id()` (security definer) — slår op via `profiles.company_id`.
-- Alle policies udvides: `has_role(auth.uid(), 'admin') AND company_id = current_company_id()`.
-- `platform_admin` får cross-tenant adgang.
-- Edge functions filtrerer på `company_id`; cron-jobs looper over `companies WHERE is_active`.
+### 5. Auth-emails (magic links / invitations fra Supabase Auth)
 
----
+`auth-email-hook` sender pt. også fra det hardkodede domæne. Den får ikke tenant-context fra Supabase Auth, så vi udleder tenant ud fra brugerens email-domæne eller `companies.email_domain` mapping. Hvis ingen match → platform-domænet.
 
-## Hvad du selv skal gøre senere (når admin-domænet er klart)
+### 6. Test
 
-1. Køb domænet i **Project Settings → Domains** (eller koble eksisterende).
-2. Tilføj `VITE_PLATFORM_HOST=<dit-admin-domæne>` i env.
-3. Tildel din egen bruger `platform_admin`-rollen via SQL.
-4. Push genstarter — `admin.ditdomæne.dk` viser nu platform-UI, `frokost.pluskontoret.dk` viser Pluskontorets app uændret.
+- Send testinvitation som admin på Pluskontoret → mail kommer fra `noreply@notify.frokost.pluskontoret.dk` med navnet "Plusfrokost".
+- Send testinvitation som admin på Gakgak → mail fra `notify.frokost.gakgak.net`.
+- Inviter platform admin fra `frokost.gakgak.net` → mail fra `notify.gakgak.net`.
 
-**Bemærk om frokost.lovable.app:** Det forbliver tilgængeligt som "fallback til eneste aktive firma" indtil du har mere end ét firma. Det er fint som intern test-URL, men brug **ikke** lovable.app-domænet til e-mail-links eller produktion (din eksisterende constraint om `frokost.pluskontoret.dk` som primær gælder stadig).
+## Tekniske noter
 
----
-
-## Rækkefølge / faser
-
-```text
-Fase 1 — DB-fundament + tenant-resolver (denne PR)
-   ├── Migration: companies, company_modules, company_id på tabeller, platform_admin-rolle
-   ├── tenant-resolver.ts + useCurrentCompany context
-   ├── useCompanyColors læser fra companies
-   └── Backfill Pluskontoret som første firma
-
-Fase 2 — Frontend modul-registry
-   ├── src/modules/registry.ts
-   ├── Refaktorér Index.tsx + AdminPanel.tsx til registry-drevet
-   └── useEnabledModules()
-
-Fase 3 — Platform-stub
-   ├── /platform/* routes bag platform_admin-rolle
-   └── Companies-CRUD UI
-
-Fase 4 — RLS-stramning (når data faktisk er multi-tenant)
-   ├── current_company_id()
-   ├── Udvid alle policies med company_id-filter
-   └── Edge functions tenant-aware
-
-Fase 5 — Skift fallback fra (Pluskontoret som default) til (kræv eksplicit match)
-   └── Når andet firma bliver oprettet
-```
-
----
-
-## Spørgsmål inden vi går i gang
-
-1. **Skal jeg starte Fase 1 + Fase 2 nu** (DB-fundament + frontend-modul-registry uden RLS-ændringer)? Det er ikke-brydende, og du kan tilføje platform-domænet hvornår som helst senere.
-2. **Bruger pr. firma**: skal én bruger kunne tilhøre flere firmaer (kræver `company_members` join-tabel og firma-switcher), eller én bruger = ét firma (enklere, `company_id` direkte på `profiles`)? Anbefaler det sidste til start.
+- Selve afsendelsen sker i `process-email-queue`, som bruger `sender_domain` fra payloaden — så ingen ændringer der.
+- Hver `sender_domain` skal være verificeret i Lovable Emails, ellers fejler udsendelsen med "No email domain record found".
+- Vi sætter ikke et felt for "platform" på `companies`-tabellen — platform-værdier hardkodes i edge-funktionen (eller flyttes til en lille `platform_settings`-tabel hvis du foretrækker det).

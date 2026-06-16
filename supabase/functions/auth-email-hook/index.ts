@@ -35,11 +35,37 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-// Configuration
+// Configuration — sender opløses dynamisk pr. mail via recipient-domænet
 const SITE_NAME = "frokost"
-const SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
 const ROOT_DOMAIN = "frokost.pluskontoret.dk"
-const FROM_DOMAIN = "notify.frokost.pluskontoret.dk" // Domain shown in From address (may be root or sender subdomain)
+const PLATFORM_SENDER_DOMAIN = "notify.gakgak.net"
+const PLATFORM_FROM_NAME = "Frokost Platform"
+const FALLBACK_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
+const FALLBACK_FROM_NAME = "Plusfrokost"
+
+async function resolveSenderForEmail(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+): Promise<{ senderDomain: string; fromName: string }> {
+  const domain = (email.split('@')[1] || '').toLowerCase()
+  if (!domain) return { senderDomain: PLATFORM_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
+
+  const { data: company } = await supabase
+    .from('companies')
+    .select('sender_subdomain, sender_from_name, name')
+    .eq('allowed_domain', domain)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (company?.sender_subdomain) {
+    return {
+      senderDomain: company.sender_subdomain,
+      fromName: company.sender_from_name || company.name || FALLBACK_FROM_NAME,
+    }
+  }
+  // Ingen tenant match → platform-domæne (fx for platform admin invitationer)
+  return { senderDomain: PLATFORM_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
+}
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.
@@ -244,13 +270,16 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   const messageId = crypto.randomUUID()
 
+  // Opløs afsender ud fra recipient-domænet (firma-match → firma; ellers → platform)
+  const { senderDomain, fromName } = await resolveSenderForEmail(supabase, payload.data.email)
+
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
   await supabase.from('email_send_log').insert({
     message_id: messageId,
     template_name: emailType,
     recipient_email: payload.data.email,
     status: 'pending',
-    metadata: { triggered_by: 'system' },
+    metadata: { triggered_by: 'system', sender_domain: senderDomain, from_name: fromName },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -259,8 +288,8 @@ async function handleWebhook(req: Request): Promise<Response> {
       run_id,
       message_id: messageId,
       to: payload.data.email,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
+      from: `${fromName} <noreply@${senderDomain}>`,
+      sender_domain: senderDomain,
       subject: EMAIL_SUBJECTS[emailType] || 'Notification',
       html,
       text,

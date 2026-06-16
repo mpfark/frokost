@@ -3,17 +3,12 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
-// Configuration baked in at scaffold time — do NOT change these manually.
-// To update, re-run the email domain setup flow.
-const SITE_NAME = "frokost"
-// SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
-// It MUST match the subdomain delegated to Lovable's nameservers — never the root domain.
-// The email API looks up this exact domain; a mismatch causes "No email domain record found".
-const SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
-// FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
-// When display_from_root is enabled, this can be the root domain for cleaner branding,
-// even though actual sending uses the subdomain above.
-const FROM_DOMAIN = "notify.frokost.pluskontoret.dk"
+// Sender-konfiguration opløses dynamisk pr. request via companyId eller platform-flag.
+// Fallback (hvis hverken companyId eller platform sendes med) er det første aktive firma.
+const PLATFORM_SENDER_DOMAIN = "notify.gakgak.net"
+const PLATFORM_FROM_NAME = "Frokost Platform"
+const FALLBACK_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
+const FALLBACK_FROM_NAME = "Plusfrokost"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,6 +56,8 @@ Deno.serve(async (req) => {
   let messageId: string
   let templateData: Record<string, any> = {}
   let triggeredBy: string = 'system'
+  let companyId: string | null = null
+  let isPlatform: boolean = false
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -70,6 +67,9 @@ Deno.serve(async (req) => {
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
+    if (typeof body.companyId === 'string') companyId = body.companyId
+    else if (typeof body.company_id === 'string') companyId = body.company_id
+    if (body.platform === true) isPlatform = true
     if (typeof body.triggeredBy === 'string' && body.triggeredBy.length > 0) {
       triggeredBy = body.triggeredBy
     } else if (typeof body.triggered_by === 'string' && body.triggered_by.length > 0) {
@@ -325,6 +325,37 @@ Deno.serve(async (req) => {
       ? template.subject(templateData)
       : template.subject
 
+  // Opløs afsender pr. request (per-firma branding eller platform)
+  let senderDomain = FALLBACK_SENDER_DOMAIN
+  let fromName = FALLBACK_FROM_NAME
+
+  if (isPlatform) {
+    senderDomain = PLATFORM_SENDER_DOMAIN
+    fromName = PLATFORM_FROM_NAME
+  } else if (companyId) {
+    const { data: company } = await supabase
+      .from('companies')
+      .select('sender_subdomain, sender_from_name, name')
+      .eq('id', companyId)
+      .maybeSingle()
+    if (company?.sender_subdomain) senderDomain = company.sender_subdomain
+    if (company?.sender_from_name) fromName = company.sender_from_name
+    else if (company?.name) fromName = company.name
+  } else {
+    // Ingen tenant-context: brug første aktive firma med konfigureret afsender
+    const { data: defaultCompany } = await supabase
+      .from('companies')
+      .select('sender_subdomain, sender_from_name, name')
+      .eq('is_active', true)
+      .not('sender_subdomain', 'is', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (defaultCompany?.sender_subdomain) senderDomain = defaultCompany.sender_subdomain
+    if (defaultCompany?.sender_from_name) fromName = defaultCompany.sender_from_name
+    else if (defaultCompany?.name) fromName = defaultCompany.name
+  }
+
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
 
@@ -334,7 +365,7 @@ Deno.serve(async (req) => {
     template_name: templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
-    metadata: { triggered_by: triggeredBy },
+    metadata: { triggered_by: triggeredBy, sender_domain: senderDomain, from_name: fromName },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -342,8 +373,8 @@ Deno.serve(async (req) => {
     payload: {
       message_id: messageId,
       to: effectiveRecipient,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
+      from: `${fromName} <noreply@${senderDomain}>`,
+      sender_domain: senderDomain,
       subject: resolvedSubject,
       html,
       text: plainText,

@@ -33,23 +33,13 @@ export const PlatformAdminsCard = ({ currentUserId }: { currentUserId: string })
 
   const load = async () => {
     setLoading(true);
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "platform_admin");
-    const ids = (roles ?? []).map((r) => r.user_id);
-    if (ids.length === 0) {
+    const { data, error } = await supabase.functions.invoke("list-platform-admins");
+    if (error) {
+      toast.error("Kunne ikke hente platform admins");
       setAdmins([]);
-      setLoading(false);
-      return;
+    } else {
+      setAdmins((data?.admins ?? []) as AdminRow[]);
     }
-    const { data: profs } = await supabase
-      .from("profiles")
-      .select("id,email,full_name")
-      .in("id", ids);
-    setAdmins(
-      (profs ?? []).map((p) => ({ user_id: p.id, email: p.email, full_name: p.full_name })),
-    );
     setLoading(false);
   };
 

@@ -103,6 +103,8 @@ export type Database = {
           name: string
           primary_color: string | null
           secondary_color: string | null
+          sender_from_name: string | null
+          sender_subdomain: string | null
           slug: string
           updated_at: string
         }
@@ -116,6 +118,8 @@ export type Database = {
           name: string
           primary_color?: string | null
           secondary_color?: string | null
+          sender_from_name?: string | null
+          sender_subdomain?: string | null
           slug: string
           updated_at?: string
         }
@@ -129,6 +133,8 @@ export type Database = {
           name?: string
           primary_color?: string | null
           secondary_color?: string | null
+          sender_from_name?: string | null
+          sender_subdomain?: string | null
           slug?: string
           updated_at?: string
         }

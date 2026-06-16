@@ -56,6 +56,8 @@ Deno.serve(async (req) => {
   let messageId: string
   let templateData: Record<string, any> = {}
   let triggeredBy: string = 'system'
+  let companyId: string | null = null
+  let isPlatform: boolean = false
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name

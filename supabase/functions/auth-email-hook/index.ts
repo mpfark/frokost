@@ -270,13 +270,16 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   const messageId = crypto.randomUUID()
 
+  // Opløs afsender ud fra recipient-domænet (firma-match → firma; ellers → platform)
+  const { senderDomain, fromName } = await resolveSenderForEmail(supabase, payload.data.email)
+
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
   await supabase.from('email_send_log').insert({
     message_id: messageId,
     template_name: emailType,
     recipient_email: payload.data.email,
     status: 'pending',
-    metadata: { triggered_by: 'system' },
+    metadata: { triggered_by: 'system', sender_domain: senderDomain, from_name: fromName },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -285,8 +288,8 @@ async function handleWebhook(req: Request): Promise<Response> {
       run_id,
       message_id: messageId,
       to: payload.data.email,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
+      from: `${fromName} <noreply@${senderDomain}>`,
+      sender_domain: senderDomain,
       subject: EMAIL_SUBJECTS[emailType] || 'Notification',
       html,
       text,

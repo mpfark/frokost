@@ -67,6 +67,9 @@ Deno.serve(async (req) => {
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
+    if (typeof body.companyId === 'string') companyId = body.companyId
+    else if (typeof body.company_id === 'string') companyId = body.company_id
+    if (body.platform === true) isPlatform = true
     if (typeof body.triggeredBy === 'string' && body.triggeredBy.length > 0) {
       triggeredBy = body.triggeredBy
     } else if (typeof body.triggered_by === 'string' && body.triggered_by.length > 0) {

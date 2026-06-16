@@ -151,8 +151,6 @@ serve(async (req) => {
         .single();
 
       const allowedDomain = companySettings?.allowed_domain;
-      const primaryColor = companySettings?.primary_color || DEFAULT_COLORS.primary;
-      const accentColor = companySettings?.accent_color || DEFAULT_COLORS.accent;
 
       // Get admin profile for email sender name
       const { data: adminProfile } = await supabase

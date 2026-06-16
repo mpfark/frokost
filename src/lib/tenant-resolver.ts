@@ -20,6 +20,9 @@ export interface TenantResolution {
   hostname: string;
 }
 
+const COMPANY_RESOLUTION_FIELDS =
+  "id,slug,name,custom_domain,allowed_domain,primary_color,secondary_color,accent_color,is_active";
+
 // Hosts that always render the platform admin UI (no tenant resolution).
 const PLATFORM_HOSTS = new Set<string>(
   [
@@ -47,7 +50,7 @@ export async function resolveTenant(): Promise<TenantResolution> {
 
   const { data: matched } = await supabase
     .from("companies")
-    .select("*")
+    .select(COMPANY_RESOLUTION_FIELDS)
     .eq("custom_domain", hostname)
     .eq("is_active", true)
     .maybeSingle();
@@ -59,7 +62,7 @@ export async function resolveTenant(): Promise<TenantResolution> {
   // Fallback for preview / lovable.app while only one tenant exists
   const { data: active } = await supabase
     .from("companies")
-    .select("*")
+    .select(COMPANY_RESOLUTION_FIELDS)
     .eq("is_active", true)
     .limit(2);
 

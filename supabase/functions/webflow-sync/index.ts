@@ -1,9 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { DEFAULT_COLORS, generateInvitationEmail, delay } from "../_shared/email-utils.ts";
+import { delay } from "../_shared/email-utils.ts";
 import { verifyAdmin } from "../_shared/auth-utils.ts";
 
 interface WebflowItem {

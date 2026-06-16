@@ -297,8 +297,6 @@ serve(async (req) => {
           }
         }
       }
-        }
-      }
 
       // Handle removed users
       const removedProfiles = existingProfiles?.filter(

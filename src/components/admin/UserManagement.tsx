@@ -59,6 +59,13 @@ export const UserManagement = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   const fetchUsers = useCallback(async (pageNum: number = page) => {
+    // Exclude platform admins from the tenant user list
+    const { data: platformAdmins } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "platform_admin");
+    const platformAdminIds = (platformAdmins || []).map(r => r.user_id);
+
     // Fetch profiles with pagination and status filter
     let query = supabase
       .from("profiles")
@@ -71,8 +78,13 @@ export const UserManagement = () => {
       query = query.eq('is_active', false);
     }
 
+    if (platformAdminIds.length > 0) {
+      query = query.not('id', 'in', `(${platformAdminIds.join(',')})`);
+    }
+
     const { data: profiles, error: profilesError, count } = await query
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+
 
     if (profilesError) {
       toast.error("Kunne ikke indlæse brugere");

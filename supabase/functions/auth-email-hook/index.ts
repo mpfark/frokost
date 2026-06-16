@@ -38,7 +38,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 // Configuration — sender opløses dynamisk pr. mail via recipient-domænet
 const SITE_NAME = "frokost"
 const ROOT_DOMAIN = "frokost.pluskontoret.dk"
-const PLATFORM_SENDER_DOMAIN = "notify.gakgak.net"
+const PLATFORM_SENDER_DOMAIN = "notify.frokost.gakgak.net"
 const PLATFORM_FROM_NAME = "Frokost Platform"
 const FALLBACK_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
 const FALLBACK_FROM_NAME = "Plusfrokost"

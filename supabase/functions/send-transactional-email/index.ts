@@ -5,7 +5,7 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Sender-konfiguration opløses dynamisk pr. request via companyId eller platform-flag.
 // Fallback (hvis hverken companyId eller platform sendes med) er det første aktive firma.
-const PLATFORM_SENDER_DOMAIN = "notify.gakgak.net"
+const PLATFORM_SENDER_DOMAIN = "notify.frokost.gakgak.net"
 const PLATFORM_FROM_NAME = "Frokost Platform"
 const FALLBACK_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
 const FALLBACK_FROM_NAME = "Plusfrokost"

@@ -325,6 +325,37 @@ Deno.serve(async (req) => {
       ? template.subject(templateData)
       : template.subject
 
+  // Opløs afsender pr. request (per-firma branding eller platform)
+  let senderDomain = FALLBACK_SENDER_DOMAIN
+  let fromName = FALLBACK_FROM_NAME
+
+  if (isPlatform) {
+    senderDomain = PLATFORM_SENDER_DOMAIN
+    fromName = PLATFORM_FROM_NAME
+  } else if (companyId) {
+    const { data: company } = await supabase
+      .from('companies')
+      .select('sender_subdomain, sender_from_name, name')
+      .eq('id', companyId)
+      .maybeSingle()
+    if (company?.sender_subdomain) senderDomain = company.sender_subdomain
+    if (company?.sender_from_name) fromName = company.sender_from_name
+    else if (company?.name) fromName = company.name
+  } else {
+    // Ingen tenant-context: brug første aktive firma med konfigureret afsender
+    const { data: defaultCompany } = await supabase
+      .from('companies')
+      .select('sender_subdomain, sender_from_name, name')
+      .eq('is_active', true)
+      .not('sender_subdomain', 'is', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (defaultCompany?.sender_subdomain) senderDomain = defaultCompany.sender_subdomain
+    if (defaultCompany?.sender_from_name) fromName = defaultCompany.sender_from_name
+    else if (defaultCompany?.name) fromName = defaultCompany.name
+  }
+
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
 
@@ -334,7 +365,7 @@ Deno.serve(async (req) => {
     template_name: templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
-    metadata: { triggered_by: triggeredBy },
+    metadata: { triggered_by: triggeredBy, sender_domain: senderDomain, from_name: fromName },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -342,8 +373,8 @@ Deno.serve(async (req) => {
     payload: {
       message_id: messageId,
       to: effectiveRecipient,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
+      from: `${fromName} <noreply@${senderDomain}>`,
+      sender_domain: senderDomain,
       subject: resolvedSubject,
       html,
       text: plainText,

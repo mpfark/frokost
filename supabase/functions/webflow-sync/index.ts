@@ -259,14 +259,18 @@ serve(async (req) => {
             const productionUrl = "https://frokost.pluskontoret.dk";
             const inviteLink = `${productionUrl}/accept-invitation/${invitation.invite_code}`;
 
-            const emailHtml = generateInvitationEmail(inviteLink, adminName, primaryColor, accentColor);
-            
-            const { error: emailError } = await resend.emails.send({
-              from: "Frokost Tilmelding <tilmelding@frokost.pluskontoret.dk>",
-              to: [email],
-              subject: "Du er inviteret til Plusfrokost",
-              html: emailHtml,
-            });
+            const { error: emailError } = await supabase.functions.invoke(
+              "send-transactional-email",
+              {
+                body: {
+                  templateName: "invitation",
+                  recipientEmail: email,
+                  idempotencyKey: `invitation-${invitation.id}`,
+                  templateData: { adminName, inviteLink },
+                  triggeredBy: user.id,
+                },
+              }
+            );
 
             if (emailError) {
               console.error(`Failed to send email to ${email}:`, emailError);
@@ -276,21 +280,23 @@ serve(async (req) => {
                 .from('invitations')
                 .update({ link_sent_at: new Date().toISOString() })
                 .eq('id', invitation.id);
-              
-              console.log(`Invitation email sent to ${email}`);
+
+              console.log(`Invitation email queued for ${email}`);
             }
 
             usersAdded++;
             details.success.push(`Created invitation and sent email to ${email}`);
 
             await delay(500);
-            
+
           } catch (emailErr) {
             console.error(`Error sending invitation to ${email}:`, emailErr);
             details.errors.push(`Error sending invitation to ${email}: ${emailErr instanceof Error ? emailErr.message : 'Unknown error'}`);
             usersAdded++;
             details.success.push(`Created invitation for ${email} (email not sent)`);
           }
+        }
+      }
         }
       }
 

@@ -1,63 +1,32 @@
-## Mål
+## Hvad jeg ændrer
 
-Mails skal sendes fra firmaets eget subdomæne (Pluskontoret → `notify.frokost.pluskontoret.dk`, Gakgak → `notify.frokost.gakgak.net`) og platform-mails fra `notify.gakgak.net`. From-navn (fx "Plusfrokost", "Gakgak Frokost") skal også være per-firma.
+### 1. Email-kø: instant flush + 1-min safety-net
+- `enqueue_email` RPC udvides: efter den lægger en mail i `pgmq`, kalder den straks `process-email-queue` via `pg_net.http_post` (fire-and-forget). Bruger får uændret hastighed.
+- Cron `process-email-queue` ændres fra **hvert 5. sekund → hvert 1. minut** (sikkerhedsnet hvis instant-flush fejler).
+- **Effekt:** 17.280 → 1.440 DB-vågninger/dag (–90 %).
 
-## Trin
+### 2. Weekly reminder: kør kun når admin har valgt
+- Erstatter `0 * * * *` med ét cron-job der kører **én gang om ugen** på `company_settings.reminder_day` + `reminder_hour` (i dag fredag kl. 8).
+- Trigger på `company_settings` re-schedule'r jobbet hvis admin ændrer dag/time/enabled. DST håndteres ved at læse UTC-offset på re-schedule-tidspunktet (worst case: én uges reminder forskydes med 1 time efter et DST-skifte).
+- `reminder_enabled = false` → jobbet unschedule'es.
+- **Effekt:** 168 → 1 DB-vågning/uge.
 
-### 1. DNS / domæne-verifikation (kræver dig)
+### 3. Reconcile room bookings: kun i arbejdstiden, hvert 30. min
+- Cron skiftes fra `*/15 * * * *` til `*/30 7-18 * * 1-5` (Europe/Copenhagen via UTC-offset).
+- MS Graph-webhooks håndterer stadig real-time ændringer; reconcile er kun safety-net.
+- **Effekt:** 96 → ~24 kald/dag (–75 %).
 
-Du skal tilføje to nye Lovable email-domæner i Cloud → Emails:
+## Samlet forventet effekt
+- DB'en får nu reelle tomgangsperioder om natten, weekender og uden for arbejdstid → kan auto-pause.
+- `Cloud compute pico` falder fra ~1,86 credits/dag mod **~0,8–1,2 credits/dag** (estimat).
+- Ingen funktionel ændring for brugere: emails sendes stadig prompte, reminder kommer på samme tid, room sync er fortsat realtid via webhooks.
 
-- `notify.frokost.gakgak.net` (Gakgak firma-mails)
-- `notify.gakgak.net` (platform-mails, fx platform admin invitationer)
+## Teknisk implementering
+Én migration der:
+1. Opdaterer `public.enqueue_email` til at fire-and-forget kalde `process-email-queue` efter `pgmq.send`.
+2. Unschedule + re-schedule `process-email-queue` til `* * * * *`.
+3. Opretter `public.reschedule_weekly_reminder()` helper + trigger på `company_settings` (AFTER UPDATE OF reminder_day, reminder_hour, reminder_enabled).
+4. Unschedule det gamle hourly weekly-reminder job, kalder helper én gang for at oprette det nye.
+5. Unschedule + re-schedule `reconcile-room-bookings-15min` til `*/30 7-18 * * 1-5` (omdøbes til `reconcile-room-bookings-workhours`).
 
-For hvert af dem giver Lovable dig NS-records, som skal sættes hos registrar for `gakgak.net`. Først når statussen er "Active" kan de bruges. Vi fortsætter implementeringen parallelt, så koden er klar.
-
-### 2. Database
-
-Tilføj kolonner til `companies`:
-- `sender_subdomain` (text) — fx `notify.frokost.pluskontoret.dk`
-- `sender_from_name` (text) — fx `Plusfrokost`
-
-Tilføj `platform_settings` rækker (eller hardkod platform-defaults i koden) til platform-domænet `notify.gakgak.net` med navnet "Frokost Platform".
-
-Pre-udfyld eksisterende firmaer:
-- Pluskontoret → `notify.frokost.pluskontoret.dk`, "Plusfrokost"
-- Gakgak → `notify.frokost.gakgak.net`, "Gakgak Frokost"
-
-### 3. Edge function: `send-transactional-email`
-
-Erstat de hardkodede `SENDER_DOMAIN` / `FROM_DOMAIN` / `SITE_NAME` med opslag pr. request:
-
-- Acceptér ny body-parameter `companyId` (UUID) eller `platform: true`.
-- Hvis `companyId` → slå `sender_subdomain` + `sender_from_name` op fra `companies`.
-- Hvis `platform: true` → brug platform-konstanter.
-- Fallback til Pluskontoret hvis intet sendes (bagudkompatibel).
-
-Disse værdier sættes i kø-payloadens `from`, `sender_domain` (det er det felt mail-providerens lookup bruger).
-
-### 4. Kaldere skal sende tenant-context
-
-Find alle `supabase.functions.invoke('send-transactional-email', ...)` kald og send `companyId` med (eller `platform: true` for platform admin invitationer):
-
-- `send-invitations` (firma-invitationer) → tenant companyId
-- `invite-platform-admin` → `platform: true`
-- `send-manual-reminder` → tenant companyId
-- `send-weekly-lunch-reminder` → tenant companyId
-- Eventuelle andre triggere
-
-### 5. Auth-emails (magic links / invitations fra Supabase Auth)
-
-`auth-email-hook` sender pt. også fra det hardkodede domæne. Den får ikke tenant-context fra Supabase Auth, så vi udleder tenant ud fra brugerens email-domæne eller `companies.email_domain` mapping. Hvis ingen match → platform-domænet.
-
-### 6. Test
-
-- Send testinvitation som admin på Pluskontoret → mail kommer fra `noreply@notify.frokost.pluskontoret.dk` med navnet "Plusfrokost".
-- Send testinvitation som admin på Gakgak → mail fra `notify.frokost.gakgak.net`.
-- Inviter platform admin fra `frokost.gakgak.net` → mail fra `notify.gakgak.net`.
-
-## Tekniske noter
-
-- Selve afsendelsen sker i `process-email-queue`, som bruger `sender_domain` fra payloaden — så ingen ændringer der.
-- Hver `sender_domain` skal være verificeret i Lovable Emails, ellers fejler udsendelsen med "No email domain record found".
-- Vi sætter ikke et felt for "platform" på `companies`-tabellen — platform-værdier hardkodes i edge-funktionen (eller flyttes til en lille `platform_settings`-tabel hvis du foretrækker det).
+Verifikation: efter migration kigger jeg i `cron.job` og `cron.job_run_details` for at bekræfte jobbenes nye frekvens.

@@ -963,6 +963,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reschedule_weekly_reminder: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user" | "kitchen" | "platform_admin"

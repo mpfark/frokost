@@ -33,17 +33,20 @@ interface Guest {
   is_vegetarian: boolean;
 }
 
+interface ProfileLite {
+  full_name: string | null;
+  email: string;
+}
+
 interface LunchSignup {
   id: string;
   user_id: string;
   lunch_date: string;
   guest_count: number;
   marked_absent_at: string | null;
-  profiles: {
-    full_name: string | null;
-    email: string;
-  };
+  profiles: ProfileLite | null;
 }
+
 
 interface ClosedDate {
   id: string;

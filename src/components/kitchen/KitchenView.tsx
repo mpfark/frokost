@@ -406,40 +406,84 @@ export const KitchenView = () => {
 
   useEffect(() => {
     if (weeksToDisplay > 0) {
-      fetchSignups();
+      fetchSignups().then(() => fetchGuests());
       fetchClosedDates();
       fetchCateringOrders();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weeksToDisplay]);
 
+  // Profile cache to avoid re-fetching the join on each realtime event
+  type KitchenProfile = NonNullable<LunchSignup["profiles"]>;
+  const profilesCacheRef = useRef<Map<string, KitchenProfile>>(new Map());
+
   useEffect(() => {
-    if (signups.length > 0) {
-      fetchGuests();
-    }
+    signups.forEach((s) => {
+      if (s.profiles && !profilesCacheRef.current.has(s.user_id)) {
+        profilesCacheRef.current.set(s.user_id, s.profiles);
+      }
+    });
   }, [signups]);
 
-  // Debounce utility for realtime updates
-  const debounceTimeoutRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
-  
-  const debouncedFetch = useCallback((key: string, fn: () => void, delay: number = 300) => {
-    if (debounceTimeoutRef.current[key]) {
-      clearTimeout(debounceTimeoutRef.current[key]);
+  const ensureKitchenProfile = useCallback(async (userId: string): Promise<KitchenProfile | null> => {
+    const cached = profilesCacheRef.current.get(userId);
+    if (cached) return cached;
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, email, is_gluten_free, is_lactose_free, is_vegetarian")
+      .eq("id", userId)
+      .maybeSingle();
+    if (data) {
+      profilesCacheRef.current.set(userId, data as KitchenProfile);
+      return data as KitchenProfile;
     }
-    debounceTimeoutRef.current[key] = setTimeout(fn, delay);
+    return null;
   }, []);
+
+  const isDateInRange = useCallback((dateStr: string) => {
+    const endStr = format(addDays(startDate, weeksToDisplay * 7 - 1), "yyyy-MM-dd");
+    const startStr = format(startDate, "yyyy-MM-dd");
+    return dateStr >= startStr && dateStr <= endStr;
+  }, [startDate, weeksToDisplay]);
 
   useEffect(() => {
     const signupsChannel = supabase
       .channel("kitchen_view_signups")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "lunch_signups",
-        },
-        () => {
-          debouncedFetch("signups", fetchSignups);
+        { event: "INSERT", schema: "public", table: "lunch_signups" },
+        async (payload) => {
+          const row = payload.new as Omit<LunchSignup, "profiles">;
+          if (!isDateInRange(row.lunch_date)) return;
+          const profile = await ensureKitchenProfile(row.user_id);
+          setSignups((prev) => {
+            if (prev.some((s) => s.id === row.id)) return prev;
+            return [...prev, { ...row, profiles: profile }];
+          });
+          // Refresh undecided count when a new signup arrives this week
+          fetchUndecidedCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "lunch_signups" },
+        (payload) => {
+          const row = payload.new as Omit<LunchSignup, "profiles">;
+          setSignups((prev) =>
+            prev.map((s) =>
+              s.id === row.id ? { ...s, ...row, profiles: s.profiles ?? profilesCacheRef.current.get(row.user_id) ?? null } : s
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "lunch_signups" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setSignups((prev) => prev.filter((s) => s.id !== oldRow.id));
+          setGuests((prev) => prev.filter((g) => g.signup_id !== oldRow.id));
+          fetchUndecidedCount();
         }
       )
       .subscribe();
@@ -448,13 +492,26 @@ export const KitchenView = () => {
       .channel("kitchen_closed_dates_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "closed_dates",
-        },
-        () => {
-          debouncedFetch("closedDates", fetchClosedDates);
+        { event: "INSERT", schema: "public", table: "closed_dates" },
+        (payload) => {
+          const row = payload.new as ClosedDate;
+          setClosedDates((prev) => (prev.some((c) => c.id === row.id) ? prev : [...prev, row]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "closed_dates" },
+        (payload) => {
+          const row = payload.new as ClosedDate;
+          setClosedDates((prev) => prev.map((c) => (c.id === row.id ? row : c)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "closed_dates" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setClosedDates((prev) => prev.filter((c) => c.id !== oldRow.id));
         }
       )
       .subscribe();
@@ -463,41 +520,52 @@ export const KitchenView = () => {
       .channel("kitchen_guests_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "guests",
-        },
-        () => {
-          debouncedFetch("guests", fetchGuests);
+        { event: "INSERT", schema: "public", table: "guests" },
+        (payload) => {
+          const row = payload.new as Guest;
+          setGuests((prev) => (prev.some((g) => g.id === row.id) ? prev : [...prev, row]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "guests" },
+        (payload) => {
+          const row = payload.new as Guest;
+          setGuests((prev) => prev.map((g) => (g.id === row.id ? row : g)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "guests" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setGuests((prev) => prev.filter((g) => g.id !== oldRow.id));
         }
       )
       .subscribe();
 
+    // Catering still uses a full refetch because it joins profiles (orderer + confirmer).
+    // Volume is low (few orders/day) so this is fine.
     const cateringChannel = supabase
       .channel("kitchen_catering_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "catering_orders",
-        },
+        { event: "*", schema: "public", table: "catering_orders" },
         () => {
-          debouncedFetch("catering", fetchCateringOrders);
+          fetchCateringOrders();
         }
       )
       .subscribe();
 
     return () => {
-      // Clear all debounce timeouts
-      Object.values(debounceTimeoutRef.current).forEach(clearTimeout);
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
       supabase.removeChannel(cateringChannel);
     };
-  }, [debouncedFetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ensureKitchenProfile, isDateInRange]);
+
 
   const getCateringOrdersForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");

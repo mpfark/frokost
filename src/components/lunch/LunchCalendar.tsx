@@ -255,42 +255,83 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
 
   useEffect(() => {
     if (weeksToDisplay > 0) {
-      fetchSignups();
+      fetchSignups().then(() => fetchGuests());
       fetchClosedDates();
       fetchOptouts();
       fetchAllOptouts();
       fetchActiveUserCount();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weeksToDisplay]);
 
+  // Cache of profiles to avoid re-fetching the join on every realtime event
+  const profilesCacheRef = useRef<Map<string, ProfileLite>>(new Map());
+
+  // Keep profile cache fresh from whatever signups we already loaded
   useEffect(() => {
-    if (signups.length > 0) {
-      fetchGuests();
-    }
+    signups.forEach((s) => {
+      if (s.profiles && !profilesCacheRef.current.has(s.user_id)) {
+        profilesCacheRef.current.set(s.user_id, s.profiles);
+      }
+    });
   }, [signups]);
 
-  // Debounce utility for realtime updates
-  const debounceTimeoutRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
-  
-  const debouncedFetch = useCallback((key: string, fn: () => void, delay: number = 300) => {
-    if (debounceTimeoutRef.current[key]) {
-      clearTimeout(debounceTimeoutRef.current[key]);
+  const ensureProfile = useCallback(async (userId: string): Promise<ProfileLite | null> => {
+    const cached = profilesCacheRef.current.get(userId);
+    if (cached) return cached;
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", userId)
+      .maybeSingle();
+    if (data) {
+      profilesCacheRef.current.set(userId, data);
+      return data;
     }
-    debounceTimeoutRef.current[key] = setTimeout(fn, delay);
+    return null;
   }, []);
+
+  const isDateInRange = useCallback((dateStr: string) => {
+    const endStr = format(addDays(startDate, weeksToDisplay * 7 - 1), "yyyy-MM-dd");
+    const startStr = format(startDate, "yyyy-MM-dd");
+    return dateStr >= startStr && dateStr <= endStr;
+  }, [startDate, weeksToDisplay]);
 
   useEffect(() => {
     const signupsChannel = supabase
       .channel("lunch_signups_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "lunch_signups",
-        },
-        () => {
-          debouncedFetch("signups", fetchSignups);
+        { event: "INSERT", schema: "public", table: "lunch_signups" },
+        async (payload) => {
+          const row = payload.new as Omit<LunchSignup, "profiles">;
+          if (!isDateInRange(row.lunch_date)) return;
+          const profile = await ensureProfile(row.user_id);
+          setSignups((prev) => {
+            if (prev.some((s) => s.id === row.id)) return prev;
+            return [...prev, { ...row, profiles: profile }];
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "lunch_signups" },
+        (payload) => {
+          const row = payload.new as Omit<LunchSignup, "profiles">;
+          setSignups((prev) =>
+            prev.map((s) =>
+              s.id === row.id ? { ...s, ...row, profiles: s.profiles ?? profilesCacheRef.current.get(row.user_id) ?? null } : s
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "lunch_signups" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setSignups((prev) => prev.filter((s) => s.id !== oldRow.id));
+          setGuests((prev) => prev.filter((g) => g.signup_id !== oldRow.id));
         }
       )
       .subscribe();
@@ -299,13 +340,27 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       .channel("closed_dates_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "closed_dates",
-        },
-        () => {
-          debouncedFetch("closedDates", fetchClosedDates);
+        { event: "INSERT", schema: "public", table: "closed_dates" },
+        (payload) => {
+          const row = payload.new as ClosedDate;
+          if (!isDateInRange(row.date)) return;
+          setClosedDates((prev) => (prev.some((c) => c.id === row.id) ? prev : [...prev, row]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "closed_dates" },
+        (payload) => {
+          const row = payload.new as ClosedDate;
+          setClosedDates((prev) => prev.map((c) => (c.id === row.id ? row : c)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "closed_dates" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setClosedDates((prev) => prev.filter((c) => c.id !== oldRow.id));
         }
       )
       .subscribe();
@@ -314,16 +369,26 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       .channel("guests_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "guests",
-        },
-        () => {
-          debouncedFetch("guests", () => {
-            fetchSignups();
-            fetchGuests();
-          });
+        { event: "INSERT", schema: "public", table: "guests" },
+        (payload) => {
+          const row = payload.new as Guest;
+          setGuests((prev) => (prev.some((g) => g.id === row.id) ? prev : [...prev, row]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "guests" },
+        (payload) => {
+          const row = payload.new as Guest;
+          setGuests((prev) => prev.map((g) => (g.id === row.id ? row : g)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "guests" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setGuests((prev) => prev.filter((g) => g.id !== oldRow.id));
         }
       )
       .subscribe();
@@ -332,26 +397,35 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
       .channel("lunch_optouts_changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "lunch_optouts",
-        },
-        () => {
-          debouncedFetch("optouts", fetchOptouts);
+        { event: "INSERT", schema: "public", table: "lunch_optouts" },
+        (payload) => {
+          const row = payload.new as LunchOptout;
+          if (!isDateInRange(row.lunch_date)) return;
+          setAllOptouts((prev) => (prev.some((o) => o.id === row.id) ? prev : [...prev, row]));
+          if (row.user_id === userId) {
+            setOptouts((prev) => (prev.some((o) => o.id === row.id) ? prev : [...prev, row]));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "lunch_optouts" },
+        (payload) => {
+          const oldRow = payload.old as { id: string };
+          setAllOptouts((prev) => prev.filter((o) => o.id !== oldRow.id));
+          setOptouts((prev) => prev.filter((o) => o.id !== oldRow.id));
         }
       )
       .subscribe();
 
     return () => {
-      // Clear all debounce timeouts
-      Object.values(debounceTimeoutRef.current).forEach(clearTimeout);
       supabase.removeChannel(signupsChannel);
       supabase.removeChannel(closedDatesChannel);
       supabase.removeChannel(guestsChannel);
       supabase.removeChannel(optoutsChannel);
     };
-  }, [debouncedFetch]);
+  }, [ensureProfile, isDateInRange, userId]);
+
 
   const isSignedUp = (date: Date) => {
     return getUserSignup(date) !== undefined;

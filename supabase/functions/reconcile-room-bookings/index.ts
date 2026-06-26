@@ -68,14 +68,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cron callers (CRON_SECRET) may use up to 60 days; user callers capped at 30.
+    const isCronCaller = !!(cronSecret && bearer === cronSecret);
     let body: any = {};
     try { body = await req.json(); } catch { body = {}; }
-    const daysAhead = Math.min(Math.max(Number(body.daysAhead) || 14, 1), 60);
+    const requestedDays = Number(body.daysAhead) || 14;
+    const maxDays = isCronCaller ? 60 : 30;
+    const daysAhead = Math.min(Math.max(requestedDays, 1), maxDays);
     const startDateStr = (body.weekStart && /^\d{4}-\d{2}-\d{2}$/.test(body.weekStart))
       ? body.weekStart
       : todayInCopenhagen();
     const startDate = new Date(`${startDateStr}T00:00:00Z`).toISOString();
     const endDate = new Date(new Date(`${startDateStr}T00:00:00Z`).getTime() + daysAhead * 24 * 60 * 60 * 1000).toISOString();
+
 
     // Resource room emails
     const { data: settings } = await serviceClient

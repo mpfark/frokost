@@ -1,32 +1,36 @@
-## Hvad jeg ændrer
+## Hvad jeg fandt
 
-### 1. Email-kø: instant flush + 1-min safety-net
-- `enqueue_email` RPC udvides: efter den lægger en mail i `pgmq`, kalder den straks `process-email-queue` via `pg_net.http_post` (fire-and-forget). Bruger får uændret hastighed.
-- Cron `process-email-queue` ændres fra **hvert 5. sekund → hvert 1. minut** (sikkerhedsnet hvis instant-flush fejler).
-- **Effekt:** 17.280 → 1.440 DB-vågninger/dag (–90 %).
+Databasen er 3,20 GB. Heraf er **3,25 GB** (99 %) tabellen `cron.job_run_details` — Postgres' interne log over hver eneste cron-kørsel. Alle dine egne tabeller fylder under 10 MB tilsammen.
 
-### 2. Weekly reminder: kør kun når admin har valgt
-- Erstatter `0 * * * *` med ét cron-job der kører **én gang om ugen** på `company_settings.reminder_day` + `reminder_hour` (i dag fredag kl. 8).
-- Trigger på `company_settings` re-schedule'r jobbet hvis admin ændrer dag/time/enabled. DST håndteres ved at læse UTC-offset på re-schedule-tidspunktet (worst case: én uges reminder forskydes med 1 time efter et DST-skifte).
-- `reminder_enabled = false` → jobbet unschedule'es.
-- **Effekt:** 168 → 1 DB-vågning/uge.
+Den gamle 5-sekunders email-cron skrev 17.280 rækker/døgn i måneder. Selv efter vi sænkede frekvensen, bliver gamle rækker liggende for evigt fordi pg_cron ikke selv rydder op.
 
-### 3. Reconcile room bookings: kun i arbejdstiden, hvert 30. min
-- Cron skiftes fra `*/15 * * * *` til `*/30 7-18 * * 1-5` (Europe/Copenhagen via UTC-offset).
-- MS Graph-webhooks håndterer stadig real-time ændringer; reconcile er kun safety-net.
-- **Effekt:** 96 → ~24 kald/dag (–75 %).
+Det forklarer hvorfor:
+- Frokost fylder ~3 GB hvor dine andre projekter fylder <1 GB
+- Optimering af trafik ikke flyttede `Cloud compute pico` mærkbart: instansen bruger stadig CPU/RAM/IO på autovacuum, backups og query-planning over 3 GB bloat
+- "DB-størrelse driver prisen"-hypotesen var delvist rigtig, men årsagen var ikke dine data — det var log-bloat
 
-## Samlet forventet effekt
-- DB'en får nu reelle tomgangsperioder om natten, weekender og uden for arbejdstid → kan auto-pause.
-- `Cloud compute pico` falder fra ~1,86 credits/dag mod **~0,8–1,2 credits/dag** (estimat).
-- Ingen funktionel ændring for brugere: emails sendes stadig prompte, reminder kommer på samme tid, room sync er fortsat realtid via webhooks.
+## Plan
 
-## Teknisk implementering
-Én migration der:
-1. Opdaterer `public.enqueue_email` til at fire-and-forget kalde `process-email-queue` efter `pgmq.send`.
-2. Unschedule + re-schedule `process-email-queue` til `* * * * *`.
-3. Opretter `public.reschedule_weekly_reminder()` helper + trigger på `company_settings` (AFTER UPDATE OF reminder_day, reminder_hour, reminder_enabled).
-4. Unschedule det gamle hourly weekly-reminder job, kalder helper én gang for at oprette det nye.
-5. Unschedule + re-schedule `reconcile-room-bookings-15min` til `*/30 7-18 * * 1-5` (omdøbes til `reconcile-room-bookings-workhours`).
+### 1. Truncate `cron.job_run_details` nu (migration)
+Tømmer hele tabellen i én operation. Ingen funktionel påvirkning — det er kun historiske run-logs, ikke selve jobbene. Forventet effekt: DB falder fra 3,2 GB til ~10 MB.
 
-Verifikation: efter migration kigger jeg i `cron.job` og `cron.job_run_details` for at bekræfte jobbenes nye frekvens.
+### 2. Auto-cleanup hver nat (migration)
+Nyt cron-job `cleanup-cron-history` der kører kl. 03:00 og sletter rækker ældre end 7 dage fra `cron.job_run_details`. Sikrer at problemet ikke kommer tilbage. 7 dage er rigeligt til debugging af fejlede jobs.
+
+### 3. Tjek de 712k rolled-back transactions
+Efter truncate kigger jeg i `pg_stat_database` og edge function-logs for at se om noget stadig fejler løbende (kunne være en trigger eller en webhook der rammer en låst række). Hvis tallet vokser hurtigt igen efter restart-vinduet, har vi et separat problem at fixe.
+
+### 4. Formulere support-spørgsmål (kun hvis 1+2 ikke flytter prisen)
+Hvis `Cloud compute pico` ikke falder mærkbart inden for 3-5 dage efter oprydningen, skriver jeg et konkret spørgsmål til Lovable support: "DB er nu 10 MB, trafik er minimeret, men pico koster stadig X credits/dag — hvad driver prisen på vores instans?" Det er først meningsfuldt at spørge når vi har elimineret den åbenlyse årsag.
+
+## Hvad jeg IKKE foreslår længere
+- **Retention på dine egne tabeller** (signup_audit_log, email_send_log osv.) — de fylder kilobytes, ikke gigabytes. Spild af tid.
+- **Yderligere React Query / polling-optimering** — vi har allerede gjort det relevante, og det var ikke flaskehalsen.
+
+## Forventet effekt
+- DB-størrelse: 3,2 GB → ~10 MB (–99 %)
+- Backup-tid, autovacuum-arbejde, RAM-cache-pres falder markant
+- `Cloud compute pico` *bør* falde til niveau med dine andre projekter (~0,05-0,2 credits/dag). Hvis ikke, har vi nu et rent grundlag at gå til support med.
+
+## Ærlig caveat
+Jeg ved stadig ikke den eksakte Lovable Cloud-prisformel. Men fundet her er så ekstremt (99 % bloat fra én log-tabel) at det med meget høj sandsynlighed er hovedforklaringen. Hvis prisen ikke falder efter dette, så ved vi at det ER instansens grundpris og ikke aktivitet — og så er svaret enten at acceptere prisen eller kontakte support.

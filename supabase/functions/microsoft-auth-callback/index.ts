@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
     try {
       const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/calendar-webhook`;
       const expirationDateTime = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 - 60000).toISOString();
+      const clientState = Deno.env.get("GRAPH_WEBHOOK_CLIENT_STATE") || "";
 
       const subRes = await fetch("https://graph.microsoft.com/v1.0/subscriptions", {
         method: "POST",
@@ -143,6 +144,7 @@ Deno.serve(async (req) => {
           notificationUrl: webhookUrl,
           resource: "me/events",
           expirationDateTime,
+          clientState,
         }),
       });
 
@@ -155,6 +157,7 @@ Deno.serve(async (req) => {
               user_id: user.id,
               subscription_id: subData.id,
               expires_at: subData.expirationDateTime,
+              client_state: clientState,
             },
             { onConflict: "user_id" }
           );
@@ -162,6 +165,7 @@ Deno.serve(async (req) => {
       } else {
         console.error("Failed to create Graph subscription:", await subRes.text());
       }
+
     } catch (subError) {
       console.error("Graph subscription error:", subError);
       // Non-fatal — user can still use the calendar without webhook

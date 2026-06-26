@@ -68,14 +68,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cron callers (CRON_SECRET) may use up to 60 days; user callers capped at 30.
+    const isCronCaller = !!(cronSecret && bearer === cronSecret);
     let body: any = {};
     try { body = await req.json(); } catch { body = {}; }
-    const daysAhead = Math.min(Math.max(Number(body.daysAhead) || 14, 1), 60);
+    const requestedDays = Number(body.daysAhead) || 14;
+    const maxDays = isCronCaller ? 60 : 30;
+    const daysAhead = Math.min(Math.max(requestedDays, 1), maxDays);
     const startDateStr = (body.weekStart && /^\d{4}-\d{2}-\d{2}$/.test(body.weekStart))
       ? body.weekStart
       : todayInCopenhagen();
     const startDate = new Date(`${startDateStr}T00:00:00Z`).toISOString();
     const endDate = new Date(new Date(`${startDateStr}T00:00:00Z`).getTime() + daysAhead * 24 * 60 * 60 * 1000).toISOString();
+
 
     // Resource room emails
     const { data: settings } = await serviceClient
@@ -178,10 +183,26 @@ Deno.serve(async (req) => {
       .lte("meeting_date", endDateStr);
     if (ordersErr) throw ordersErr;
 
+    // Rooms with successful fetch AND at least one event in the window.
+    // Skip cancellation for any room whose calendar came back empty — that
+    // typically means a transient Graph outage / rate-limit, not real orphans.
+    // (Real "empty calendar" case is rare for active offices and the cost of
+    // skipping one cycle is just a delayed cancel.)
+    const reliableRooms = new Set<string>();
+    for (const email of roomEmails) {
+      const lower = email.toLowerCase();
+      const data = aliveByRoom[lower];
+      if (roomsWithSuccess.has(lower) && data && (data.ids.size > 0 || data.keys.size > 0)) {
+        reliableRooms.add(roomNamesByEmail[lower].toLowerCase());
+      }
+    }
+
     const matchedOrders: CateringOrder[] = [];
     for (const o of (orders || []) as CateringOrder[]) {
       const matched = locationMatchesRoom(o.meeting_location, allRoomNames);
-      if (matched) matchedOrders.push(o);
+      if (matched && reliableRooms.has(matched.toLowerCase())) {
+        matchedOrders.push(o);
+      }
     }
 
     // Determine orphans
@@ -209,6 +230,7 @@ Deno.serve(async (req) => {
       }
       console.log(`Reconcile: cancelled ${orphanIds.length} orphan order(s)`);
     }
+
 
     return new Response(
       JSON.stringify({ checked: matchedOrders.length, cancelled: orphanIds.length, cancelled_ids: orphanIds }),

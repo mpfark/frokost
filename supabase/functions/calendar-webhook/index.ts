@@ -63,13 +63,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    const expectedClientState = Deno.env.get("GRAPH_WEBHOOK_CLIENT_STATE") || "";
+
     // Group notifications by subscriptionId to avoid duplicate work
     const subscriptionIds = [...new Set(notifications.map((n: any) => n.subscriptionId))];
+    // Map subscriptionId -> first matching notification (for clientState lookup)
+    const notificationBySub = new Map<string, any>();
+    for (const n of notifications) {
+      if (!notificationBySub.has(n.subscriptionId)) notificationBySub.set(n.subscriptionId, n);
+    }
 
     for (const subscriptionId of subscriptionIds) {
       const { data: subData } = await serviceClient
         .from("graph_subscriptions")
-        .select("user_id")
+        .select("user_id, client_state")
         .eq("subscription_id", subscriptionId)
         .single();
 
@@ -78,7 +85,21 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Verify clientState matches what we stored when creating the subscription.
+      // Legacy subscriptions (created before GRAPH_WEBHOOK_CLIENT_STATE existed)
+      // have client_state = null in the DB and are still accepted; they get
+      // upgraded next time the user reconnects Microsoft or renewal recreates them.
+      const storedState = (subData as any).client_state as string | null;
+      if (storedState) {
+        const incomingState = notificationBySub.get(subscriptionId)?.clientState;
+        if (incomingState !== storedState) {
+          console.warn("clientState mismatch for subscription:", subscriptionId);
+          continue;
+        }
+      }
+
       const userId = subData.user_id;
+
 
       const { data: tokenData } = await serviceClient
         .from("microsoft_tokens")

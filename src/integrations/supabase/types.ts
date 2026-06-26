@@ -339,6 +339,7 @@ export type Database = {
       }
       graph_subscriptions: {
         Row: {
+          client_state: string | null
           created_at: string
           expires_at: string
           id: string
@@ -347,6 +348,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_state?: string | null
           created_at?: string
           expires_at: string
           id?: string
@@ -355,6 +357,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_state?: string | null
           created_at?: string
           expires_at?: string
           id?: string

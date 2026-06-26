@@ -1,0 +1,1 @@
+ALTER TABLE public.graph_subscriptions ADD COLUMN IF NOT EXISTS client_state text;

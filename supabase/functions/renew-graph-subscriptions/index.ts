@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
         renewed++;
       } else {
         console.error("Failed to renew subscription", sub.subscription_id, await renewRes.text());
+        const clientState = Deno.env.get("GRAPH_WEBHOOK_CLIENT_STATE") || "";
         const createRes = await fetch("https://graph.microsoft.com/v1.0/subscriptions", {
           method: "POST",
           headers: {
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
             notificationUrl: webhookUrl,
             resource: "me/events",
             expirationDateTime: newExpiry,
+            clientState,
           }),
         });
 
@@ -106,10 +108,12 @@ Deno.serve(async (req) => {
             .update({
               subscription_id: newSub.id,
               expires_at: newSub.expirationDateTime,
+              client_state: clientState,
               updated_at: new Date().toISOString(),
             })
             .eq("id", sub.id);
           renewed++;
+
         } else {
           console.error("Failed to recreate subscription for user", sub.user_id);
           await serviceClient.from("graph_subscriptions").delete().eq("id", sub.id);

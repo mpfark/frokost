@@ -41,9 +41,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Server-side allowlist: only emails configured as resource rooms may be queried.
+    // Prevents authenticated users from reading arbitrary colleagues' calendars.
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: settings } = await serviceClient
+      .from("company_settings")
+      .select("resource_room_emails")
+      .single();
+    const allowed = new Set(
+      ((settings as any)?.resource_room_emails || []).map((e: string) => e.toLowerCase())
+    );
+    const requested = roomEmails.map((e: string) => String(e).toLowerCase());
+    const disallowed = requested.filter((e: string) => !allowed.has(e));
+    if (disallowed.length > 0) {
+      return new Response(
+        JSON.stringify({ error: "forbidden", message: "Ikke-godkendte rum-adresser" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const tenantId = Deno.env.get("AZURE_TENANT_ID")!;
     const clientId = Deno.env.get("AZURE_CLIENT_ID")!;
     const clientSecret = Deno.env.get("AZURE_CLIENT_SECRET")!;
+
 
     const accessToken = await getAppToken(tenantId, clientId, clientSecret);
 

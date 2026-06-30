@@ -84,7 +84,7 @@ export const useCateringOrders = (currentWeekStart: Date) => {
   useEffect(() => {
     fetchExistingOrders();
     const channel = supabase
-      .channel(`catering_orders_rt_${currentWeekStart.toISOString()}`)
+      .channel(`catering_orders_rt_${currentWeekStart.getTime()}_${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "catering_orders" }, () => fetchExistingOrders())
       .subscribe();
     return () => { supabase.removeChannel(channel); };

@@ -3,11 +3,11 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
-// Sender-konfiguration opløses dynamisk pr. request via companyId eller platform-flag.
-// Fallback (hvis hverken companyId eller platform sendes med) er det første aktive firma.
-const PLATFORM_SENDER_DOMAIN = "notify.frokost.gakgak.net"
+// Lovable Emails accepterer kun ét konfigureret afsenderdomæne pr. projekt.
+// Vi sender derfor altid fra projektets aktive domæne, men varierer fra-navnet
+// pr. tenant så modtagere stadig ser firmaets brand.
+const PROJECT_SENDER_DOMAIN = "notify.frokost.gakgak.net"
 const PLATFORM_FROM_NAME = "Frokost Platform"
-const FALLBACK_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
 const FALLBACK_FROM_NAME = "Plusfrokost"
 
 const corsHeaders = {

@@ -4,10 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useCompanyColors } from "@/hooks/useCompanyColors";
-import { TenantProvider, useTenant } from "@/contexts/TenantContext";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { ReloadPrompt } from "@/components/notifications/ReloadPrompt";
 import Index from "./pages/Index";
-import Platform from "./pages/Platform";
 import SetPassword from "./pages/SetPassword";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Install from "./pages/Install";
@@ -23,31 +22,9 @@ const TenantColorsLoader = () => {
   return null;
 };
 
-const AppContent = () => {
-  const { mode } = useTenant();
-
-  if (mode === "platform") {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Platform />} />
-          <Route path="*" element={<Platform />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
-  return (
-    <>
-      <TenantColorsLoader />
-      <TenantRoutes />
-    </>
-  );
-};
-
-const TenantRoutes = () => {
-
-  return (
+const AppContent = () => (
+  <>
+    <TenantColorsLoader />
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
@@ -61,8 +38,8 @@ const TenantRoutes = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
-  );
-};
+  </>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

@@ -9,7 +9,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     resolveTenant().then(setResolution).catch((err) => {
       console.error("Tenant resolution failed:", err);
-      setResolution({ mode: "platform", company: null, hostname: window.location.hostname });
+      setResolution({ mode: "tenant", company: null, hostname: window.location.hostname });
     });
   }, []);
 

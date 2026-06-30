@@ -339,6 +339,24 @@ export const UserManagement = () => {
     }
   };
 
+  const toggleActive = async (userId: string, currentlyActive: boolean) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active: !currentlyActive })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success(currentlyActive ? "Bruger sat som inaktiv" : "Bruger sat som aktiv");
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openDeleteDialog = (user: UserWithRoles) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter } from "lucide-react";
+import { Shield, Pencil, Save, X, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter, UserCheck, UserX } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -339,6 +339,24 @@ export const UserManagement = () => {
     }
   };
 
+  const toggleActive = async (userId: string, currentlyActive: boolean) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active: !currentlyActive })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success(currentlyActive ? "Bruger sat som inaktiv" : "Bruger sat som aktiv");
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openDeleteDialog = (user: UserWithRoles) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
@@ -520,6 +538,21 @@ export const UserManagement = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => toggleActive(user.id, user.is_active)}
+                                  disabled={isLoading}
+                                  variant={user.is_active ? "ghost" : "outline"}
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  {user.is_active ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4 text-destructive" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{user.is_active ? "Sæt som inaktiv" : "Sæt som aktiv"}</TooltipContent>
                             </Tooltip>
 
 

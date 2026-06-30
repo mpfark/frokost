@@ -35,38 +35,12 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-// Configuration — Lovable Emails accepterer kun ét konfigureret afsenderdomæne
-// pr. projekt. Vi sender derfor altid fra projektets aktive domæne, men varierer
-// fra-navnet pr. tenant ud fra recipientens domæne.
+// Configuration — single-tenant: always send from the project's configured
+// Lovable Emails domain with the Plusfrokost brand name.
 const SITE_NAME = "frokost"
 const ROOT_DOMAIN = "frokost.pluskontoret.dk"
-const PROJECT_SENDER_DOMAIN = "notify.frokost.gakgak.net"
-const PLATFORM_FROM_NAME = "Frokost Platform"
-const FALLBACK_FROM_NAME = "Plusfrokost"
-
-async function resolveSenderForEmail(
-  supabase: ReturnType<typeof createClient>,
-  email: string,
-): Promise<{ senderDomain: string; fromName: string }> {
-  const domain = (email.split('@')[1] || '').toLowerCase()
-  if (!domain) return { senderDomain: PROJECT_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
-
-  const { data: company } = await supabase
-    .from('companies')
-    .select('sender_from_name, name')
-    .eq('allowed_domain', domain)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (company) {
-    return {
-      senderDomain: PROJECT_SENDER_DOMAIN,
-      fromName: company.sender_from_name || company.name || FALLBACK_FROM_NAME,
-    }
-  }
-  // Ingen tenant match → platform fra-navn (fx for platform admin invitationer)
-  return { senderDomain: PROJECT_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
-}
+const SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
+const FROM_NAME = "Plusfrokost"
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.
@@ -271,8 +245,8 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   const messageId = crypto.randomUUID()
 
-  // Opløs afsender ud fra recipient-domænet (firma-match → firma; ellers → platform)
-  const { senderDomain, fromName } = await resolveSenderForEmail(supabase, payload.data.email)
+  const senderDomain = SENDER_DOMAIN
+  const fromName = FROM_NAME
 
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
   await supabase.from('email_send_log').insert({

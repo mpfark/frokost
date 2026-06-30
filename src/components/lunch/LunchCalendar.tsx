@@ -669,7 +669,7 @@ export const LunchCalendar = ({ userId }: { userId: string }) => {
     try {
       const { error } = await supabase
         .from("guests")
-        .update({ [field]: value })
+        .update({ [field]: value } as never)
         .eq("id", guestId);
 
       if (error) throw error;

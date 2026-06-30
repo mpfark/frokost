@@ -63,7 +63,7 @@ export const CateringOrdersSection = ({ orders, compact = false, onStatusChange 
 
     const { error } = await supabase
       .from("catering_orders")
-      .update(updateData)
+      .update(updateData as never)
       .eq("id", orderId);
 
     if (error) {

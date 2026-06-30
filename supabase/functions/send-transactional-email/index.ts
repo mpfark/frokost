@@ -3,12 +3,10 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
-// Lovable Emails accepterer kun ét konfigureret afsenderdomæne pr. projekt.
-// Vi sender derfor altid fra projektets aktive domæne, men varierer fra-navnet
-// pr. tenant så modtagere stadig ser firmaets brand.
-const PROJECT_SENDER_DOMAIN = "notify.frokost.gakgak.net"
-const PLATFORM_FROM_NAME = "Frokost Platform"
-const FALLBACK_FROM_NAME = "Plusfrokost"
+// Single-tenant sender: always send from the project's configured Lovable
+// Emails domain with the Plusfrokost brand name.
+const PROJECT_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
+const FROM_NAME = "Plusfrokost"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,8 +74,6 @@ Deno.serve(async (req) => {
   let messageId: string
   let templateData: Record<string, any> = {}
   let triggeredBy: string = 'system'
-  let companyId: string | null = null
-  let isPlatform: boolean = false
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -87,9 +83,6 @@ Deno.serve(async (req) => {
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
-    if (typeof body.companyId === 'string') companyId = body.companyId
-    else if (typeof body.company_id === 'string') companyId = body.company_id
-    if (body.platform === true) isPlatform = true
     if (typeof body.triggeredBy === 'string' && body.triggeredBy.length > 0) {
       triggeredBy = body.triggeredBy
     } else if (typeof body.triggered_by === 'string' && body.triggered_by.length > 0) {
@@ -345,32 +338,8 @@ Deno.serve(async (req) => {
       ? template.subject(templateData)
       : template.subject
 
-  // Afsender-domænet er låst til projektets konfigurerede Lovable Emails-domæne.
-  // Kun fra-navnet varierer pr. tenant.
   const senderDomain = PROJECT_SENDER_DOMAIN
-  let fromName = FALLBACK_FROM_NAME
-
-  if (isPlatform) {
-    fromName = PLATFORM_FROM_NAME
-  } else if (companyId) {
-    const { data: company } = await supabase
-      .from('companies')
-      .select('sender_from_name, name')
-      .eq('id', companyId)
-      .maybeSingle()
-    if (company?.sender_from_name) fromName = company.sender_from_name
-    else if (company?.name) fromName = company.name
-  } else {
-    const { data: defaultCompany } = await supabase
-      .from('companies')
-      .select('sender_from_name, name')
-      .eq('is_active', true)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-    if (defaultCompany?.sender_from_name) fromName = defaultCompany.sender_from_name
-    else if (defaultCompany?.name) fromName = defaultCompany.name
-  }
+  const fromName = FROM_NAME
 
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.

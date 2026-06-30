@@ -540,6 +540,21 @@ export const UserManagement = () => {
                               <TooltipContent>{user.reminder_enabled ? "Modtager påmindelser" : "Ingen påmindelser"}</TooltipContent>
                             </Tooltip>
 
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => toggleActive(user.id, user.is_active)}
+                                  disabled={isLoading}
+                                  variant={user.is_active ? "ghost" : "outline"}
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  {user.is_active ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4 text-destructive" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{user.is_active ? "Sæt som inaktiv" : "Sæt som aktiv"}</TooltipContent>
+                            </Tooltip>
+
 
 
                             

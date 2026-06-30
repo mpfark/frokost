@@ -345,33 +345,29 @@ Deno.serve(async (req) => {
       ? template.subject(templateData)
       : template.subject
 
-  // Opløs afsender pr. request (per-firma branding eller platform)
-  let senderDomain = FALLBACK_SENDER_DOMAIN
+  // Afsender-domænet er låst til projektets konfigurerede Lovable Emails-domæne.
+  // Kun fra-navnet varierer pr. tenant.
+  const senderDomain = PROJECT_SENDER_DOMAIN
   let fromName = FALLBACK_FROM_NAME
 
   if (isPlatform) {
-    senderDomain = PLATFORM_SENDER_DOMAIN
     fromName = PLATFORM_FROM_NAME
   } else if (companyId) {
     const { data: company } = await supabase
       .from('companies')
-      .select('sender_subdomain, sender_from_name, name')
+      .select('sender_from_name, name')
       .eq('id', companyId)
       .maybeSingle()
-    if (company?.sender_subdomain) senderDomain = company.sender_subdomain
     if (company?.sender_from_name) fromName = company.sender_from_name
     else if (company?.name) fromName = company.name
   } else {
-    // Ingen tenant-context: brug første aktive firma med konfigureret afsender
     const { data: defaultCompany } = await supabase
       .from('companies')
-      .select('sender_subdomain, sender_from_name, name')
+      .select('sender_from_name, name')
       .eq('is_active', true)
-      .not('sender_subdomain', 'is', null)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
-    if (defaultCompany?.sender_subdomain) senderDomain = defaultCompany.sender_subdomain
     if (defaultCompany?.sender_from_name) fromName = defaultCompany.sender_from_name
     else if (defaultCompany?.name) fromName = defaultCompany.name
   }

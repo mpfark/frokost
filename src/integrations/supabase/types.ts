@@ -103,8 +103,6 @@ export type Database = {
           name: string
           primary_color: string | null
           secondary_color: string | null
-          sender_from_name: string | null
-          sender_subdomain: string | null
           slug: string
           updated_at: string
         }
@@ -118,8 +116,6 @@ export type Database = {
           name: string
           primary_color?: string | null
           secondary_color?: string | null
-          sender_from_name?: string | null
-          sender_subdomain?: string | null
           slug: string
           updated_at?: string
         }
@@ -133,8 +129,6 @@ export type Database = {
           name?: string
           primary_color?: string | null
           secondary_color?: string | null
-          sender_from_name?: string | null
-          sender_subdomain?: string | null
           slug?: string
           updated_at?: string
         }
@@ -948,7 +942,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string

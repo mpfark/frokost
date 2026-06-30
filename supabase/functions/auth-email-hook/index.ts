@@ -35,12 +35,13 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-// Configuration — sender opløses dynamisk pr. mail via recipient-domænet
+// Configuration — Lovable Emails accepterer kun ét konfigureret afsenderdomæne
+// pr. projekt. Vi sender derfor altid fra projektets aktive domæne, men varierer
+// fra-navnet pr. tenant ud fra recipientens domæne.
 const SITE_NAME = "frokost"
 const ROOT_DOMAIN = "frokost.pluskontoret.dk"
-const PLATFORM_SENDER_DOMAIN = "notify.frokost.gakgak.net"
+const PROJECT_SENDER_DOMAIN = "notify.frokost.gakgak.net"
 const PLATFORM_FROM_NAME = "Frokost Platform"
-const FALLBACK_SENDER_DOMAIN = "notify.frokost.pluskontoret.dk"
 const FALLBACK_FROM_NAME = "Plusfrokost"
 
 async function resolveSenderForEmail(
@@ -48,23 +49,23 @@ async function resolveSenderForEmail(
   email: string,
 ): Promise<{ senderDomain: string; fromName: string }> {
   const domain = (email.split('@')[1] || '').toLowerCase()
-  if (!domain) return { senderDomain: PLATFORM_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
+  if (!domain) return { senderDomain: PROJECT_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
 
   const { data: company } = await supabase
     .from('companies')
-    .select('sender_subdomain, sender_from_name, name')
+    .select('sender_from_name, name')
     .eq('allowed_domain', domain)
     .eq('is_active', true)
     .maybeSingle()
 
-  if (company?.sender_subdomain) {
+  if (company) {
     return {
-      senderDomain: company.sender_subdomain,
+      senderDomain: PROJECT_SENDER_DOMAIN,
       fromName: company.sender_from_name || company.name || FALLBACK_FROM_NAME,
     }
   }
-  // Ingen tenant match → platform-domæne (fx for platform admin invitationer)
-  return { senderDomain: PLATFORM_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
+  // Ingen tenant match → platform fra-navn (fx for platform admin invitationer)
+  return { senderDomain: PROJECT_SENDER_DOMAIN, fromName: PLATFORM_FROM_NAME }
 }
 
 // Sample data for preview mode ONLY (not used in actual email sending).

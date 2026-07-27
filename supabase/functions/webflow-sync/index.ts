@@ -17,6 +17,10 @@ interface WebflowItem {
   };
 }
 
+// Normalise names coming from Webflow: hard spaces -> normal, collapse whitespace
+const normaliseName = (value: string) =>
+  value.replace(/[\u00A0\u202F\u2007]/g, ' ').replace(/\s+/g, ' ').trim();
+
 // Zod schema for validating Webflow item data
 const webflowUserSchema = z.object({
   email: z.string()
@@ -25,11 +29,12 @@ const webflowUserSchema = z.object({
     .email({ message: "Invalid email format" })
     .max(255, { message: "Email must be less than 255 characters" }),
   name: z.string()
-    .trim()
-    .min(1, { message: "Name cannot be empty" })
-    .max(100, { message: "Name must be less than 100 characters" })
-    .regex(/^[a-zA-ZæøåÆØÅ\s\-'.]+$/, { message: "Name contains invalid characters" }),
+    .transform(normaliseName)
+    .refine((v) => v.length >= 1, { message: "Name cannot be empty" })
+    .refine((v) => v.length <= 100, { message: "Name must be less than 100 characters" })
+    .refine((v) => /^[\p{L}\p{N}\s\-'.,&/()]+$/u.test(v), { message: "Name contains invalid characters" }),
 });
+
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

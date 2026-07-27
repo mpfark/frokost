@@ -23,12 +23,27 @@ serve(async (req) => {
     const body = await req.json();
     const { inviteCode, invitationId } = body;
 
-    const authHeader = req.headers.get("Authorization");
+    const rawAuthHeader = req.headers.get("Authorization");
 
-    // PUBLIC FLOW: inviteCode without auth header.
+    // supabase-js always attaches the anon/publishable key as Authorization, even
+    // for anonymous calls. Only treat the header as a real user session when it
+    // resolves to an authenticated user — otherwise this is the public flow.
+    let sessionUser: { id: string } | null = null;
+    if (rawAuthHeader) {
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const probeClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: rawAuthHeader } },
+      });
+      const { data: { user: probeUser } } = await probeClient.auth.getUser();
+      sessionUser = probeUser ?? null;
+    }
+    const authHeader = sessionUser ? rawAuthHeader : null;
+
+    // PUBLIC FLOW: inviteCode without a signed-in user.
     // The invite_code is the unguessable secret delivered in the invitation email,
     // unlike `invitations.id` which can leak via logs/referrers.
     if (inviteCode && !authHeader) {
+
       // Rate limit: max 10 attempts per minute per IP
       const clientIp =
         req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

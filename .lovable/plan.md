@@ -1,58 +1,41 @@
-## Mål
-Rul platform-administrationen tilbage så appen igen er en enkelt tenant (Plusfrokost). Behold alle ikke-platform-relaterede forbedringer (sikkerhedsfixes, email-kø-optimeringer, log-oprydning, webhook-hærdning, dependency-bumps).
+## Hvad der skete
 
-## Hvad fjernes
+Loggen fra sidste synk viser præcis årsagen:
 
-**Frontend**
-- `src/pages/Platform.tsx`
-- `src/components/platform/PlatformAdminsCard.tsx` (hele `src/components/platform/`)
-- `src/App.tsx`: fjern host-tjek mod `VITE_PLATFORM_HOST` og platform-route; behold kun tenant-app
-- `src/hooks/useUserRole.ts`: fjern `isPlatformAdmin`
-- Tenant-resolver: fjern platform-gren, behold simpel tenant-opslag
-- `.env`: fjern `VITE_PLATFORM_HOST`
+```
+Validation failed for item 68ee40fc48913abd5aee0438:
+  { validation: "regex", message: "Name contains invalid characters", path: ["name"] }
+```
 
-**Edge functions** (kode-sletning + `supabase--delete_edge_functions`)
-- `invite-platform-admin`
-- `list-platform-admins`
+Det item-ID er Majas post (hendes profil i databasen har `webflow_id = 68ee40fc48913abd5aee0438`). Et andet item, `68ee4313bb15da9c1d753625`, fejlede på samme måde.
 
-**Email-system rulles tilbage til ét fast afsendernavn "Plusfrokost"**
-- `send-transactional-email`: fjern company-opslag, hardcode `fromName = "Plusfrokost"`
-- `auth-email-hook`: fjern `resolveSenderForEmail`, hardcode `Plusfrokost`
-- Migration: drop `sender_from_name`-kolonnen (og evt. andre sender-kolonner) på `companies`
+Kæden af hændelser:
 
-**Database**
-- Migration:
-  - Slet alle rækker i `user_roles` med `role = 'platform_admin'`
-  - Rul `has_role` tilbage til kun at matche eksakt rolle (fjern `OR role = 'platform_admin'`)
-  - Drop funktionen `is_platform_admin`
-  - Drop trigger/funktion `remove_profile_on_platform_admin`
-  - Fjern `'platform_admin'` fra `app_role` enum (kræver recreate af enum siden Postgres ikke kan fjerne enum-værdier; håndteres ved at omdøbe gammel, oprette ny uden værdien, caste kolonne, droppe gammel)
-  - Rul `companies` RLS tilbage til hvad den var før platform-arbejdet (kun authenticated kan læse via membership), og fjern anon-læseregel
-  - Drop `sender_from_name` (og evt. `sender_domain`) på `companies`
+1. Navnet i Webflow valideres mod et strengt mønster, der kun tillader a–z, æøå, mellemrum, bindestreg, apostrof og punktum.
+2. Hendes ændrede navn indeholder et tegn udenfor det (fx et hårdt mellemrum, komma, parentes, tal eller en accent som é/ö).
+3. Ved valideringsfejl springes hele item'et over — og hendes e-mail bliver derfor **ikke** lagt i listen over "findes i Webflow".
+4. Til sidst deaktiverer synken alle Webflow-synkede profiler, der ikke er på den liste → hun blev sat inaktiv, selvom hun er published i CMS'et.
 
-**Bruger-sletning**
-- Slet `mik.ferdinandsen@gmail.com` helt fra `auth.users` (kaskaderer profiles/user_roles/microsoft_tokens m.m.). Køres som data-operation efter migration.
+Så det er ikke publish-status, men navneændringen, der udløste det — præcis som du gættede.
 
-**Domæne**
-- Jeg kan ikke selv frakoble `frokost.gakgak.net` fra projektet — du gør det manuelt i Project Settings → Domains → ⋯ → Remove. Jeg fjerner alle kode-referencer så domænet ikke længere har betydning hvis det skulle hænge fast.
+## Plan
 
-## Hvad bevares
-- Tenant-routing for `frokost.pluskontoret.dk` (uændret)
-- Alle sikkerhedsfixes (`clientState` på Graph-webhooks, `service_role`-lås på `send-transactional-email`, room-allowlist, `search_path` på funktioner, revoked anon execute)
-- Email-kø-optimeringer (1 min polling, ugentlig reminder-cron)
-- `cron.job_run_details`-oprydning
-- Dependency-bumps (`react-router-dom`, `@supabase/supabase-js`)
-- `companies`-tabellen i sig selv (bruges af multi-room/tenant-logik) — kun sender-kolonner droppes
+**1. Gør navnevalidering realistisk (`supabase/functions/webflow-sync/index.ts`)**
+- Normalisér navnet før validering: erstat hårde mellemrum (`\u00A0`, `\u202F`) med almindelige, og kollaps dobbelte mellemrum.
+- Udvid mønsteret til at tillade alle Unicode-bogstaver og tal (`\p{L}\p{N}`) plus mellemrum, bindestreg, apostrof, punktum, komma, `&`, `/` og parenteser. Det dækker titler, mellemnavne og udenlandske tegn.
+- Behold længdegrænserne (1–100 tegn) og e-mailvalideringen uændret.
 
-## Rækkefølge
-1. Migration: enum-omlægning, drop funktioner/triggers, ryd `user_roles`, drop sender-kolonner, rul `companies` RLS tilbage, rul `has_role` tilbage
-2. Slet edge functions fra Supabase
-3. Slet frontend-filer + opdater `App.tsx`, `useUserRole`, tenant-resolver, `.env`
-4. Opdater `send-transactional-email` + `auth-email-hook` til hardcoded "Plusfrokost"
-5. Data-operation: slet auth-bruger `mik.ferdinandsen@gmail.com`
-6. Bed dig fjerne `frokost.gakgak.net` i Project Settings → Domains
+**2. Sikkerhedsnet: valideringsfejl må aldrig deaktivere en bruger**
+- Opsaml e-mails fra items, der fejler validering (men hvor e-mailen kan læses), i et separat `skippedEmails`-sæt.
+- Ekskludér disse fra deaktiverings-/sletningsloopet, så en fremtidig valideringsfejl kun logges — aldrig fører til at en aktiv medarbejder fjernes.
+- Hvis en e-mail slet ikke kan læses fra item'et, logges fejlen som i dag.
 
-## Risici / ting du skal vide
-- **Du mister adgangen som platform admin** når migrationen kører — du skal logge ind som almindelig admin på `frokost.pluskontoret.dk` bagefter (`mf@pluskontoret.dk` har stadig sin tenant-admin-rolle).
-- **Enum-omlægning af `app_role`** kræver kort lock på alle tabeller der bruger typen (kun `user_roles`). Hurtig operation.
-- Hvis `frokost.gakgak.net` stadig er forbundet i Lovable efter koden er fjernet, vil domænet bare vise den almindelige tenant-app (samme som pluskontoret-domænet) indtil du frakobler det.
+**3. Bedre synlighed i admin-UI'et**
+- I `WebflowSyncSettings.tsx`: vis antal sprungne items tydeligt i toasten efter synk (i dag vises kun tilføjet/opdateret/fjernet), så en valideringsfejl ikke går ubemærket hen.
+
+**4. Genoprettelse af data**
+- Majas profil står allerede som aktiv igen i databasen, så der er intet at rette der. Den anden fejlende post (`68ee4313bb15da9c1d753625`) tjekkes efter kodeændringen ved en ny synk.
+
+## Teknisk note
+
+Regex-ændringen kræver `u`-flaget for at `\p{L}` virker i Deno/V8. Ingen databaseændringer er nødvendige; edge-funktionen deployes automatisk.

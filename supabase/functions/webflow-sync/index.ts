@@ -17,6 +17,10 @@ interface WebflowItem {
   };
 }
 
+// Normalise names coming from Webflow: hard spaces -> normal, collapse whitespace
+const normaliseName = (value: string) =>
+  value.replace(/[\u00A0\u202F\u2007]/g, ' ').replace(/\s+/g, ' ').trim();
+
 // Zod schema for validating Webflow item data
 const webflowUserSchema = z.object({
   email: z.string()
@@ -25,11 +29,12 @@ const webflowUserSchema = z.object({
     .email({ message: "Invalid email format" })
     .max(255, { message: "Email must be less than 255 characters" }),
   name: z.string()
-    .trim()
-    .min(1, { message: "Name cannot be empty" })
-    .max(100, { message: "Name must be less than 100 characters" })
-    .regex(/^[a-zA-ZæøåÆØÅ\s\-'.]+$/, { message: "Name contains invalid characters" }),
+    .transform(normaliseName)
+    .refine((v) => v.length >= 1, { message: "Name cannot be empty" })
+    .refine((v) => v.length <= 100, { message: "Name must be less than 100 characters" })
+    .refine((v) => /^[\p{L}\p{N}\s\-'.,&/()]+$/u.test(v), { message: "Name contains invalid characters" }),
 });
+
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -164,6 +169,10 @@ serve(async (req) => {
       // Map Webflow items to users
       const fieldMapping = settings.field_mapping as { name: string; email: string };
       const webflowEmails = new Set<string>();
+      // Emails from items that exist in Webflow but failed validation — these must
+      // never be treated as removed (safety net against accidental deactivation).
+      const skippedEmails = new Set<string>();
+
 
       if (webflowItems.length > 0) {
         console.log('First Webflow item fieldData keys:', Object.keys(webflowItems[0].fieldData));
@@ -177,8 +186,12 @@ serve(async (req) => {
 
         if (!rawEmail || !rawName) {
           details.errors.push(`Skipped item ${item.id}: missing email or name (mapping: ${JSON.stringify(fieldMapping)}, available fields: ${Object.keys(item.fieldData).join(', ')})`);
+          if (typeof rawEmail === 'string' && rawEmail.trim()) {
+            skippedEmails.add(rawEmail.trim().toLowerCase());
+          }
           continue;
         }
+
 
         const validation = webflowUserSchema.safeParse({
           email: rawEmail,
@@ -189,8 +202,12 @@ serve(async (req) => {
           const errors = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
           details.errors.push(`Skipped item ${item.id}: validation failed - ${errors}`);
           console.error(`Validation failed for item ${item.id}:`, validation.error.errors);
+          if (typeof rawEmail === 'string') {
+            skippedEmails.add(rawEmail.trim().toLowerCase());
+          }
           continue;
         }
+
 
         const { email, name } = validation.data;
 
@@ -298,10 +315,17 @@ serve(async (req) => {
         }
       }
 
-      // Handle removed users
+      // Handle removed users — never remove someone whose Webflow item merely
+      // failed validation; they still exist in the CMS.
+      if (skippedEmails.size > 0) {
+        details.skipped = details.skipped || [];
+        details.skipped.push(`${skippedEmails.size} item(s) skipped due to validation — not deactivated`);
+      }
+
       const removedProfiles = existingProfiles?.filter(
-        p => p.webflow_synced && !webflowEmails.has(p.email)
+        p => p.webflow_synced && !webflowEmails.has(p.email) && !skippedEmails.has(p.email)
       ) || [];
+
 
       for (const profile of removedProfiles) {
         if (settings.removal_policy === 'deactivate') {

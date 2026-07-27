@@ -178,6 +178,11 @@ export const WebflowSyncSettings = () => {
       if (removedUsers.length > 0) {
         description += `\nDeaktiveret: ${removedUsers.join(', ')}`;
       }
+      const skippedCount = Array.isArray(data.details?.errors) ? data.details.errors.length : 0;
+      if (skippedCount > 0) {
+        description += `\nSprunget over: ${skippedCount} (se historik nedenfor)`;
+      }
+
 
       toast({
         title: "Synkronisering fuldført",

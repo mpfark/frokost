@@ -169,6 +169,10 @@ serve(async (req) => {
       // Map Webflow items to users
       const fieldMapping = settings.field_mapping as { name: string; email: string };
       const webflowEmails = new Set<string>();
+      // Emails from items that exist in Webflow but failed validation — these must
+      // never be treated as removed (safety net against accidental deactivation).
+      const skippedEmails = new Set<string>();
+
 
       if (webflowItems.length > 0) {
         console.log('First Webflow item fieldData keys:', Object.keys(webflowItems[0].fieldData));

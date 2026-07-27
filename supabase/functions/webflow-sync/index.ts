@@ -198,8 +198,12 @@ serve(async (req) => {
           const errors = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
           details.errors.push(`Skipped item ${item.id}: validation failed - ${errors}`);
           console.error(`Validation failed for item ${item.id}:`, validation.error.errors);
+          if (typeof rawEmail === 'string') {
+            skippedEmails.add(rawEmail.trim().toLowerCase());
+          }
           continue;
         }
+
 
         const { email, name } = validation.data;
 

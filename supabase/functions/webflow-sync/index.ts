@@ -324,7 +324,10 @@ serve(async (req) => {
 
       const removedProfiles = existingProfiles?.filter(
         p => p.webflow_synced && !webflowEmails.has(p.email) && !skippedEmails.has(p.email)
+          // Skip profiles already deactivated by an earlier sync
+          && !(settings.removal_policy === 'deactivate' && p.is_active === false)
       ) || [];
+
 
 
       for (const profile of removedProfiles) {

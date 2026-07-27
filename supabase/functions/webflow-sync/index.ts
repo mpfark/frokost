@@ -315,10 +315,17 @@ serve(async (req) => {
         }
       }
 
-      // Handle removed users
+      // Handle removed users — never remove someone whose Webflow item merely
+      // failed validation; they still exist in the CMS.
+      if (skippedEmails.size > 0) {
+        details.skipped = details.skipped || [];
+        details.skipped.push(`${skippedEmails.size} item(s) skipped due to validation — not deactivated`);
+      }
+
       const removedProfiles = existingProfiles?.filter(
-        p => p.webflow_synced && !webflowEmails.has(p.email)
+        p => p.webflow_synced && !webflowEmails.has(p.email) && !skippedEmails.has(p.email)
       ) || [];
+
 
       for (const profile of removedProfiles) {
         if (settings.removal_policy === 'deactivate') {

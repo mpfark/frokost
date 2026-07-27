@@ -186,8 +186,12 @@ serve(async (req) => {
 
         if (!rawEmail || !rawName) {
           details.errors.push(`Skipped item ${item.id}: missing email or name (mapping: ${JSON.stringify(fieldMapping)}, available fields: ${Object.keys(item.fieldData).join(', ')})`);
+          if (typeof rawEmail === 'string' && rawEmail.trim()) {
+            skippedEmails.add(rawEmail.trim().toLowerCase());
+          }
           continue;
         }
+
 
         const validation = webflowUserSchema.safeParse({
           email: rawEmail,

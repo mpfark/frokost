@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { startOfDay, addDays } from "date-fns";
+import { startOfDay, addDays, format } from "date-fns";
 import { WeekDayGrid } from "./WeekDayGrid";
 import { CateringDialogs } from "./CateringDialogs";
 import { useWeekNavigation } from "./useWeekNavigation";
@@ -79,10 +79,11 @@ export const RoomCalendarsView = forwardRef<RoomCalendarsViewRef>((_, ref) => {
       setIsLoading(false);
     }
 
-    // Fire-and-forget reconciliation against the room calendars (cancel orphan orders)
+    // The server verifies organizer events independently of who ordered.
     try {
-      const { data: recon } = await supabase.functions.invoke("reconcile-room-bookings", { body: {} });
-      if (recon && typeof recon === "object" && (recon as any).cancelled > 0) {
+      const { data: recon, error: reconError } = await supabase.functions.invoke("reconcile-room-bookings", { body: { weekStart: format(currentWeekStart, "yyyy-MM-dd"), daysAhead: 7 } });
+      if (reconError) throw reconError;
+      if (recon && typeof recon === "object" && ((recon as any).cancelled > 0 || (recon as any).updated > 0)) {
         fetchExistingOrders();
       }
     } catch (e) {

@@ -1,262 +1,41 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { getValidAccessToken, getAppToken } from "../_shared/microsoft-auth.ts";
+import { getAppToken } from "../_shared/microsoft-auth.ts";
+import { reconcileCalendarOrders } from "../_shared/calendar-reconciliation.ts";
 
 Deno.serve(async (req) => {
-  // Microsoft Graph sends a validation request with a validationToken query param
-  const url = new URL(req.url);
-  const validationToken = url.searchParams.get("validationToken");
-
-  if (validationToken) {
-    return new Response(validationToken, {
-      status: 200,
-      headers: { "Content-Type": "text/plain" },
-    });
-  }
-
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  const validationToken = new URL(req.url).searchParams.get("validationToken");
+  if (validationToken) return new Response(validationToken, { headers: { "Content-Type": "text/plain" } });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json();
-    const notifications = body?.value || [];
-
-    if (notifications.length === 0) {
-      return new Response("OK", { status: 200 });
+    if (!Array.isArray(body.value) || !body.value.length) return new Response("OK");
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    let verified = false;
+    for (const notification of body.value) {
+      if (typeof notification.subscriptionId !== "string") continue;
+      const { data: subscription, error } = await db.from("graph_subscriptions")
+        .select("client_state").eq("subscription_id", notification.subscriptionId).maybeSingle();
+      if (error) throw error;
+      // Legacy subscriptions without a secret must renew; cron still reconciles.
+      if (subscription?.client_state && subscription.client_state === notification.clientState) verified = true;
     }
-
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const tenantId = Deno.env.get("AZURE_TENANT_ID")!;
-    const clientId = Deno.env.get("AZURE_CLIENT_ID")!;
-    const clientSecret = Deno.env.get("AZURE_CLIENT_SECRET")!;
-
-    // Get configured room emails from company settings
-    const { data: companySettings } = await serviceClient
-      .from("company_settings")
-      .select("resource_room_emails")
-      .single();
-    const resourceRoomEmails: string[] = (companySettings as any)?.resource_room_emails || [];
-
-    // Fetch room display names from Graph API for filtering
-    let roomDisplayNames: string[] = [];
-    if (resourceRoomEmails.length > 0) {
-      try {
-        const appToken = await getAppToken(tenantId, clientId, clientSecret);
-        const placesRes = await fetch("https://graph.microsoft.com/v1.0/places/microsoft.graph.room", {
-          headers: { Authorization: `Bearer ${appToken}`, "Content-Type": "application/json" },
-        });
-        if (placesRes.ok) {
-          const placesData = await placesRes.json();
-          const configuredEmailsLower = new Set(resourceRoomEmails.map(e => e.toLowerCase()));
-          roomDisplayNames = (placesData.value || [])
-            .filter((r: any) => configuredEmailsLower.has((r.emailAddress || "").toLowerCase()))
-            .map((r: any) => r.displayName)
-            .filter(Boolean);
-        }
-      } catch (e) {
-        console.error("Failed to fetch room display names for webhook:", e);
-      }
+    if (!verified) return new Response("OK");
+    const token = await getAppToken(Deno.env.get("AZURE_TENANT_ID")!, Deno.env.get("AZURE_CLIENT_ID")!, Deno.env.get("AZURE_CLIENT_SECRET")!);
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Copenhagen", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    // The subscriber need not be the person who placed the order.
+    const { data: lastOrder, error } = await db.from("catering_orders").select("meeting_date")
+      .in("status", ["pending", "confirmed"]).gte("meeting_date", today)
+      .order("meeting_date", { ascending: false }).limit(1).maybeSingle();
+    if (error) throw error;
+    if (lastOrder) {
+      const end = new Date(`${lastOrder.meeting_date}T00:00:00Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      await reconcileCalendarOrders(db, token, `${today}T00:00:00Z`, end.toISOString());
     }
-
-    const expectedClientState = Deno.env.get("GRAPH_WEBHOOK_CLIENT_STATE") || "";
-
-    // Group notifications by subscriptionId to avoid duplicate work
-    const subscriptionIds = [...new Set(notifications.map((n: any) => n.subscriptionId))];
-    // Map subscriptionId -> first matching notification (for clientState lookup)
-    const notificationBySub = new Map<string, any>();
-    for (const n of notifications) {
-      if (!notificationBySub.has(n.subscriptionId)) notificationBySub.set(n.subscriptionId, n);
-    }
-
-    for (const subscriptionId of subscriptionIds) {
-      const { data: subData } = await serviceClient
-        .from("graph_subscriptions")
-        .select("user_id, client_state")
-        .eq("subscription_id", subscriptionId)
-        .single();
-
-      if (!subData) {
-        console.warn("No user found for subscription:", subscriptionId);
-        continue;
-      }
-
-      // Verify clientState matches what we stored when creating the subscription.
-      // Legacy subscriptions (created before GRAPH_WEBHOOK_CLIENT_STATE existed)
-      // have client_state = null in the DB and are still accepted; they get
-      // upgraded next time the user reconnects Microsoft or renewal recreates them.
-      const storedState = (subData as any).client_state as string | null;
-      if (storedState) {
-        const incomingState = notificationBySub.get(subscriptionId)?.clientState;
-        if (incomingState !== storedState) {
-          console.warn("clientState mismatch for subscription:", subscriptionId);
-          continue;
-        }
-      }
-
-      const userId = subData.user_id;
-
-
-      const { data: tokenData } = await serviceClient
-        .from("microsoft_tokens")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      if (!tokenData) {
-        console.warn("No Microsoft tokens for user:", userId);
-        continue;
-      }
-
-      const accessToken = await getValidAccessToken(serviceClient, userId, tokenData);
-      if (!accessToken) {
-        console.warn("Could not get valid access token for user:", userId);
-        continue;
-      }
-
-      // Get pending/confirmed orders for this user (current and future)
-      const today = new Date().toISOString().split("T")[0];
-      const { data: orders } = await serviceClient
-        .from("catering_orders")
-        .select("id, meeting_subject, meeting_date, meeting_time, meeting_location, meeting_external_id, status")
-        .eq("user_id", userId)
-        .in("status", ["pending", "confirmed"])
-        .gte("meeting_date", today);
-
-      if (!orders || orders.length === 0) continue;
-
-      // Determine date range from orders
-      const dates = orders.map((o) => o.meeting_date).sort();
-      const startDate = new Date(dates[0]).toISOString();
-      const lastDate = new Date(dates[dates.length - 1]);
-      lastDate.setDate(lastDate.getDate() + 1);
-      const endDate = lastDate.toISOString();
-
-      const graphUrl = `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${startDate}&endDateTime=${endDate}&$select=subject,start,end,organizer,attendees,location,isAllDay,iCalUId&$top=100`;
-
-      const graphRes = await fetch(graphUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          Prefer: 'outlook.timezone="Europe/Copenhagen"',
-        },
-      });
-
-      if (!graphRes.ok) {
-        console.error("Graph API error for user", userId, ":", graphRes.status);
-        continue;
-      }
-
-      const calendarData = await graphRes.json();
-      const allEvents = (calendarData.value || []).filter((e: any) => !e.isAllDay);
-
-      // Build lookup by iCalUId
-      const eventByExternalId = new Map<string, any>();
-      for (const e of allEvents) {
-        if (e.iCalUId) {
-          eventByExternalId.set(e.iCalUId, e);
-        }
-      }
-
-      // Filter events for orphan detection
-      const filteredEvents = allEvents
-        .filter((e: any) => (e.attendees || []).filter((a: any) => a.type !== "resource").length > 0 && e.location?.displayName)
-        .filter((e: any) => {
-          if (roomDisplayNames.length > 0) {
-            const loc = (e.location?.displayName || "").toLowerCase();
-            return roomDisplayNames.some((name) => loc.includes(name.toLowerCase()) || name.toLowerCase().includes(loc));
-          }
-          return true;
-        });
-
-      // Build event keys for orphan detection
-      const eventKeys = new Set<string>();
-      for (const e of filteredEvents) {
-        try {
-          const startDt = new Date(e.start.dateTime + "Z");
-          const endDt = new Date(e.end.dateTime + "Z");
-          const date = startDt.toISOString().split("T")[0];
-          const startTime = startDt.toTimeString().slice(0, 5);
-          const endTime = endDt.toTimeString().slice(0, 5);
-          eventKeys.add(`${e.subject}|${date}|${startTime} - ${endTime}`);
-        } catch {
-          // skip parse errors
-        }
-      }
-
-      // Process each order: detect updates or orphans
-      const orphanedIds: string[] = [];
-      for (const order of orders) {
-        if (order.meeting_external_id) {
-          const matchedEvent = eventByExternalId.get(order.meeting_external_id);
-          if (matchedEvent) {
-            try {
-              const startDt = new Date(matchedEvent.start.dateTime + "Z");
-              const endDt = new Date(matchedEvent.end.dateTime + "Z");
-              const newDate = startDt.toISOString().split("T")[0];
-              const newTime = `${startDt.toTimeString().slice(0, 5)} - ${endDt.toTimeString().slice(0, 5)}`;
-              const newLocation = matchedEvent.location?.displayName || null;
-              const newSubject = matchedEvent.subject || order.meeting_subject;
-
-              const locationChanged = (newLocation || "") !== (order.meeting_location || "");
-              const timeChanged = newTime !== order.meeting_time;
-              const dateChanged = newDate !== order.meeting_date;
-              const subjectChanged = newSubject !== order.meeting_subject;
-
-              if (locationChanged || timeChanged || dateChanged || subjectChanged) {
-                const updates: Record<string, unknown> = {
-                  meeting_location: newLocation,
-                  meeting_time: newTime,
-                  meeting_date: newDate,
-                  meeting_subject: newSubject,
-                  status: "pending",
-                  confirmed_by: null,
-                  confirmed_at: null,
-                };
-                await serviceClient
-                  .from("catering_orders")
-                  .update(updates)
-                  .eq("id", order.id);
-
-                const changes: string[] = [];
-                if (locationChanged) changes.push(`lokale: "${order.meeting_location || "?"}" → "${newLocation || "?"}"`);
-                if (timeChanged) changes.push(`tid: ${order.meeting_time} → ${newTime}`);
-                if (dateChanged) changes.push(`dato: ${order.meeting_date} → ${newDate}`);
-                if (subjectChanged) changes.push(`emne ændret`);
-
-                console.log(`Updated order ${order.id} for user ${userId}: ${changes.join(", ")}`);
-              }
-            } catch (e) {
-              console.error("Error checking event changes:", e);
-            }
-            continue;
-          }
-        }
-
-        const key = `${order.meeting_subject}|${order.meeting_date}|${order.meeting_time}`;
-        if (!eventKeys.has(key)) {
-          orphanedIds.push(order.id);
-        }
-      }
-
-      if (orphanedIds.length > 0) {
-        console.log(`Auto-cancelling ${orphanedIds.length} orphaned orders for user ${userId}`);
-        for (const id of orphanedIds) {
-          await serviceClient
-            .from("catering_orders")
-            .update({ status: "cancelled" })
-            .eq("id", id);
-        }
-      }
-    }
-
     return new Response("OK", { status: 202 });
   } catch (error) {
-    console.error("Webhook error:", error);
-    return new Response("Error", { status: 200 });
+    console.error("Calendar webhook failed", error);
+    return new Response("Retry later", { status: 503 });
   }
 });

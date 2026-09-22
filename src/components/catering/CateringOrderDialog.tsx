@@ -269,6 +269,18 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         }
       }
 
+      // Establish the organizer reference while the meeting is still visible.
+      // A failed calendar check must not turn a saved booking into a save error.
+      try {
+        const { data: reconciliation, error: reconciliationError } = await supabase.functions.invoke("reconcile-room-bookings", {
+          body: { weekStart: meeting.date, daysAhead: 1 },
+        });
+        if (reconciliationError || reconciliation?.skipped > 0) {
+          toast.warning("Bestillingen er gemt. Kalenderkontrollen kunne ikke fuldføres og forsøges igen senere.");
+        }
+      } catch {
+        toast.warning("Bestillingen er gemt. Kalenderkontrollen forsøges igen senere.");
+      }
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Kunne ikke gemme forplejning");

@@ -111,33 +111,6 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
     }
   };
 
-  const autoCancelOrphanedOrders = async (fetchedEvents: CalendarEvent[], orders: Record<string, ExistingOrder>) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const eventKeys = new Set<string>();
-    fetchedEvents.forEach((e) => {
-      if (e.isAllDay || !e.location) return;
-      try {
-        const date = format(parseISO(e.startTime), "yyyy-MM-dd");
-        const time = `${format(parseISO(e.startTime), "HH:mm")} - ${format(parseISO(e.endTime), "HH:mm")}`;
-        eventKeys.add(`${date}|${time}|${(e.location || "").toLowerCase()}`);
-      } catch { /* ignore */ }
-    });
-    const orphanedIds: string[] = [];
-    for (const [key, order] of Object.entries(orders)) {
-      // Only auto-cancel orders created by the current user
-      if (order.user_id === user.id && (order.status === "pending" || order.status === "confirmed") && !eventKeys.has(key)) {
-        orphanedIds.push(order.id);
-      }
-    }
-    if (orphanedIds.length > 0) {
-      for (const id of orphanedIds) await supabase.from("catering_orders").update({ status: "cancelled" }).eq("id", id);
-      toast.info(`${orphanedIds.length} forplejningsbestilling${orphanedIds.length > 1 ? "er" : ""} annulleret — mødet er fjernet fra din kalender`);
-      fetchExistingOrders();
-    }
-  };
-
   useEffect(() => { checkConnection(); fetchRoomDisplayNames(); }, []);
 
   useEffect(() => {
@@ -160,7 +133,11 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
           console.error("Calendar fetch error:", err); setError(err.message || "Ukendt fejl"); setEvents([]); return;
         } finally { setIsLoading(false); }
         await fetchExistingOrders();
-        await autoCancelOrphanedOrders(fetchedEvents, existingOrders);
+        const { error: reconcileError } = await supabase.functions.invoke("reconcile-room-bookings", {
+          body: { weekStart: format(currentWeekStart, "yyyy-MM-dd"), daysAhead: 7 },
+        });
+        if (reconcileError) console.warn("Calendar reconciliation deferred", reconcileError);
+        else await fetchExistingOrders();
       };
       loadAndCheck();
     }

@@ -92,6 +92,21 @@ export const AuthForm = () => {
     }
   };
 
+  const handleMicrosoftSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("microsoft", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Microsoft-login mislykkedes");
+      }
+      // Hvis redirected: browseren sender brugeren videre til Microsoft
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === "otp-email") sendOtp(false);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +92,21 @@ export const AuthForm = () => {
     }
   };
 
+  const handleMicrosoftSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("microsoft", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Microsoft-login mislykkedes");
+      }
+      // Hvis redirected: browseren sender brugeren videre til Microsoft
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === "otp-email") sendOtp(false);
@@ -131,6 +147,31 @@ export const AuthForm = () => {
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sender..." : "Send login-kode"}
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">eller</span>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleMicrosoftSignIn}
+                  disabled={isLoading}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 23 23" aria-hidden="true">
+                    <path fill="#f35325" d="M1 1h10v10H1z" />
+                    <path fill="#81bc06" d="M12 1h10v10H12z" />
+                    <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                    <path fill="#ffba08" d="M12 12h10v10H12z" />
+                  </svg>
+                  Log ind med Microsoft
                 </Button>
               </>
             )}

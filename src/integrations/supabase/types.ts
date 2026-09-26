@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      catering_calendar_sources: {
+        Row: {
+          event_id: string
+          external_id: string
+          mailbox: string
+          order_id: string
+        }
+        Insert: {
+          event_id: string
+          external_id: string
+          mailbox: string
+          order_id: string
+        }
+        Update: {
+          event_id?: string
+          external_id?: string
+          mailbox?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catering_calendar_sources_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "catering_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catering_orders: {
         Row: {
           catering_types: string[]
@@ -923,6 +952,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_calendar_order_change: {
+        Args: {
+          p_change: Json
+          p_expected_updated_at: string
+          p_order_id: string
+        }
+        Returns: boolean
+      }
       cleanup_old_lunch_data: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       delete_email: {

@@ -71,3 +71,10 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Product and design principles
+
+Before making significant product, architecture, authentication or UI changes, read:
+
+- `docs/PRODUCT_INTENT.md`
+- `docs/PLUSKONTORET_APP_STANDARD.md`

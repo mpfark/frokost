@@ -26,7 +26,7 @@ export function AppHeader({ activeTab, fullName, role, signedIn, loading, isAdmi
   const focus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
   return <div className="sticky top-0 z-30 bg-background">
     <header data-app-header className="border-b border-border bg-card/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between px-4 sm:flex-nowrap sm:px-6 lg:px-8">
+      <div className="app-container flex flex-wrap items-center justify-between sm:flex-nowrap">
         <Link to="/" className={"flex h-16 w-full min-w-0 items-center gap-3 rounded-lg text-left sm:w-auto " + focus}>
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"><UtensilsCrossed className="size-5" aria-hidden="true" /></span>
           <span className="min-w-0"><span className="block text-base font-bold sm:text-xl">Pluskontoret Frokost</span><span className="block text-xs text-muted-foreground">Frokost og forplejning</span></span>
@@ -44,7 +44,7 @@ export function AppHeader({ activeTab, fullName, role, signedIn, loading, isAdmi
         </div>
       </div>
     </header>
-    <div data-app-navigation className="mx-auto w-full max-w-[1400px] border-b border-border px-4 py-3 sm:px-6 lg:px-8">
+    <div data-app-navigation className="app-container border-b border-border py-3">
       <nav aria-label="Hovednavigation" className="flex gap-2 overflow-x-auto py-1 -my-1">
         {items.map(({id,label,icon:Icon}) => <Link key={id} to={"/?tab=" + id} aria-current={activeTab === id ? "page" : undefined} className={"flex shrink-0 items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors " + focus + " " + (activeTab === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><Icon className="size-4" aria-hidden="true" />{label}</Link>)}
       </nav>

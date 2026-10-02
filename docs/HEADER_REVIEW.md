@@ -49,3 +49,13 @@ Screenshots og rå bounding boxes ligger i docs/qa/header.
 Microsoft-login mod Entra, rigtige brugeres sessioner, de fulde frokost-/forplejnings-/adminflows, live notifikationer, profilgemning, kalendercallback og tokenbaseret e-mailafmelding er ikke afprøvet end-to-end mod backend. Callback og afmelding er gennemgået i kode og bygget, men ikke visuelt afprøvet. De fulde domæneskærmes indhold blev ikke visuelt verificeret med produktionsdata.
 
 Denne topændring kræver ingen migrationer eller deploy af backendfunktioner. For at få den i Lovable skal koden committes og pushes til den branch, Lovable er forbundet med; derefter kontrolleres previewet og Publish bruges, hvis den offentlige app skal opdateres. Den lokale branch hedder fix/microsoft-only-login og indeholder også tidligere ændringer; deres publiceringskrav er beskrevet separat i docs/microsoft-only-login.md. Denne opgave har hverken pushet, publiceret eller ændret produktionsdata.
+
+## Efterfølgende rettelse: ens indholdsbredde
+
+Toppen var bredere end kalenderkortene, fordi toppen brugte 1400 px ramme, mens Index havde en indlejret 1280 px container. Profil, vejledning og installation brugte yderligere forskellige maksimalbredder. Disse sideafhængige rammer er nu erstattet med app-container og app-content i src/index.css: én maksimal ramme på 1344 px inklusive 32 px gutters på hver side, altså 1280 px indhold på desktop. På mobil bruges 16 px gutters og på mellemstore skærme 24 px. Toppen er rykket ind til kalenderens eksisterende kanter. Profil, vejledning, installation og øvrige routes deler nu samme ramme. Centrering og maksimalbredde på administrationsområdets undernavigation er også fjernet. Dialoger og feltbegrænsninger er bevaret.
+
+Typecheck, målrettet lint, de eksisterende 17 tests og produktionsbuild inklusive PWA passerer. Build har fortsat advarsel om stor bundle. Ingen nye stylingtests er tilføjet.
+
+Browserkontrol bruger samme isolerede testopsætning og begrænsninger som ovenfor. Domæneindhold er testindhold; de rigtige fælles layouts samt vejledning og installation er renderet. Ved 1440 px viewport blev kanterne målt til x=80 og x=1360 for top, navigation og indhold på Min plan, Forplejning, Køkken, Admin, Profil, Installation og Vejledning. Ved 390 px viewport blev kanterne målt til x=16 og x=374 for de samme sider plus 404. Ingen vandret dokument-overflow. Rå målinger og nye screenshots findes i docs/qa/width. De tidligere målinger ovenfor dokumenterer versionen før denne bredderettelse.
+
+Ingen ændringer i adgangskontrol, forretningslogik, database eller backend. Publicering kræver opdatering af Lovable fra den relevante GitHub-branch og efterfølgende Publish. Denne bredderettelse kræver ingen migrationer eller backenddeploy.

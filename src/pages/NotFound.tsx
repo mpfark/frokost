@@ -9,7 +9,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex items-center justify-center bg-background p-8">
+    <main className="app-content flex items-center justify-center">
       <div className="text-center">
         <h1 className="mb-4 text-4xl font-bold">404</h1>
         <p className="mb-4 text-xl text-muted-foreground">Ups! Siden blev ikke fundet</p>
@@ -17,7 +17,7 @@ const NotFound = () => {
           Tilbage til forsiden
         </Link>
       </div>
-    </div>
+    </main>
   );
 };
 

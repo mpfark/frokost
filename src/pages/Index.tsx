@@ -8,10 +8,10 @@ import { useAppSession } from "@/components/layout/AppSession";
 
 const Index = () => {
   const {user,isLoading,isAdmin,canAccessKitchen,activeTab} = useAppSession();
-  if (isLoading) return <main className="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8"><p role="status" className="animate-pulse text-muted-foreground">Indlæser…</p></main>;
+  if (isLoading) return <main className="app-content"><p role="status" className="animate-pulse text-muted-foreground">Indlæser…</p></main>;
   if (!user) return <AuthForm />;
-  return <main className="mx-auto min-w-0 max-w-[1400px] p-4 sm:p-6 lg:p-8">
-    <div className={activeTab === "profile" ? "mx-auto max-w-4xl" : "mx-auto max-w-7xl"}>
+  return <main className="app-content">
+    <div className="w-full min-w-0">
       {activeTab === "calendar" && <LunchCalendar userId={user.id} />}
       {activeTab === "outlook" && user.email && <OutlookCalendar userEmail={user.email} />}
       {activeTab === "kitchen" && canAccessKitchen && <KitchenView />}

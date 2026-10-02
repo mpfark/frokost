@@ -1,0 +1,242 @@
+[
+  {
+    "label": "desktop-plan",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "desktop-Forplejning",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "desktop-Køkken",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "desktop-Admin",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "desktop-Åbn profil",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "desktop-install",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "desktop-guide",
+    "content": {
+      "left": 80,
+      "right": 1360
+    },
+    "header": {
+      "left": 80,
+      "right": 1360
+    },
+    "navigation": {
+      "left": 80,
+      "right": 1360
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-guide",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-plan",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-Forplejning",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-Køkken",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-Admin",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-Åbn profil",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-install",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  },
+  {
+    "label": "mobile-404",
+    "content": {
+      "left": 16,
+      "right": 374
+    },
+    "header": {
+      "left": 16,
+      "right": 374
+    },
+    "navigation": {
+      "left": 16,
+      "right": 374
+    },
+    "overflow": false
+  }
+]

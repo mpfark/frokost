@@ -6,7 +6,7 @@ import { AppearanceSettings } from "@/components/admin/settings/AppearanceSettin
 export const CompanySettings = () => {
   return (
     <Tabs defaultValue="general" className="w-full">
-      <TabsList className="grid w-full max-w-lg mx-auto mb-6 grid-cols-3">
+      <TabsList className="grid w-full mb-6 grid-cols-3">
         <TabsTrigger value="general">Generelt</TabsTrigger>
         <TabsTrigger value="reminders">Påmindelser</TabsTrigger>
         <TabsTrigger value="appearance">Udseende</TabsTrigger>

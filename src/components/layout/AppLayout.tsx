@@ -92,8 +92,8 @@ export function AppLayout() {
   const loading = isLoading || isRoleLoading;
   const name = profile?.id === user?.id && profile?.name ? profile.name : user?.user_metadata?.full_name || user?.email || "Medarbejder";
   return <AppSession.Provider value={{user,isLoading:loading,isAdmin,canAccessKitchen,activeTab}}>
-    <div className="min-h-screen bg-background text-foreground">
-      <AppHeader activeTab={location.pathname === "/" && user ? activeTab : null} fullName={name} role={isAdmin ? "Administrator" : isKitchen ? "Køkken" : "Medarbejder"} signedIn={!!user} loading={loading} isAdmin={isAdmin} canAccessKitchen={canAccessKitchen} onLogout={logout} loggingOut={loggingOut} notifications={canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />} />
+    <div className="min-h-dvh bg-background text-foreground">
+      {user && <AppHeader activeTab={location.pathname === "/" && user ? activeTab : null} fullName={name} role={isAdmin ? "Administrator" : isKitchen ? "Køkken" : "Medarbejder"} signedIn={!!user} loading={loading} isAdmin={isAdmin} canAccessKitchen={canAccessKitchen} onLogout={logout} loggingOut={loggingOut} notifications={canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />} />}
       <Outlet />
     </div>
   </AppSession.Provider>;

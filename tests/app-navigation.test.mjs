@@ -5,15 +5,17 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const result=await build({stdin:{contents:
-  "export { AppHeader } from './src/components/layout/AppHeader'; export { AppSession } from './src/components/layout/AppSession'; export { default as Index } from './src/pages/Index'; export { MemoryRouter } from 'react-router-dom'; export { renderToStaticMarkup } from 'react-dom/server'; export { createElement } from 'react';", resolveDir:root},
+  "export { AppLayout } from './src/components/layout/AppLayout'; export { Routes, Route } from 'react-router-dom'; export { AppHeader } from './src/components/layout/AppHeader'; export { AppSession } from './src/components/layout/AppSession'; export { default as Index } from './src/pages/Index'; export { MemoryRouter } from 'react-router-dom'; export { renderToStaticMarkup } from 'react-dom/server'; export { createElement } from 'react';", resolveDir:root},
   absWorkingDir:root,bundle:true,platform:'node',format:'cjs',write:false,jsx:'automatic',logLevel:'silent',define:{'process.env.NODE_ENV':'\"production\"'},
   plugins:[{name:'mock-content-only',setup(build){
-    build.onResolve({filter:/@\/components\/(lunch\/LunchCalendar|kitchen\/KitchenView|admin\/AdminPanel|profile\/ProfileSettings|catering\/OutlookCalendar|auth\/AuthForm)$/},args=>({path:args.path,namespace:'content'}));
+    build.onResolve({filter:/@\/components\/(lunch\/LunchCalendar|kitchen\/KitchenView|admin\/AdminPanel|profile\/ProfileSettings|catering\/OutlookCalendar|auth\/AuthForm|kitchen\/KitchenNotifications|notifications\/UserNotifications)$/},args=>({path:args.path,namespace:'content'}));
     build.onLoad({filter:/.*/,namespace:'content'},args=>({contents:'export const '+args.path.split('/').at(-1)+' = () => "'+args.path.split('/').at(-1)+'";'}));
+    build.onResolve({filter:/@\/(integrations\/supabase\/client|hooks\/useUserRole)$/},args=>({path:args.path,namespace:'session'}));
+    build.onLoad({filter:/.*/,namespace:'session'},()=>({contents:'export const supabase = {}; export const useUserRole = () => ({isAdmin:false,isKitchen:false,isLoading:true});'}));
   }}]});
 const module={exports:{}};
 new Function('require','module','exports',result.outputFiles[0].text)(createRequire(import.meta.url),module,module.exports);
-const {AppHeader,AppSession,Index,MemoryRouter,renderToStaticMarkup,createElement:h}=module.exports;
+const {AppLayout,Routes,Route,AppHeader,AppSession,Index,MemoryRouter,renderToStaticMarkup,createElement:h}=module.exports;
 const base={activeTab:'calendar',fullName:'Testbruger',role:'Medarbejder',signedIn:true,loading:false,isAdmin:false,canAccessKitchen:false,onLogout(){},loggingOut:false};
 const header=props=>renderToStaticMarkup(h(MemoryRouter,null,h(AppHeader,{...base,...props})));
 test('employee navigation exposes lunch and catering, with a working profile route',()=>{
@@ -40,4 +42,10 @@ test('authorized roles still render their existing screens',()=>{
 });
 test('profile and loading keep the existing sign-in boundary',()=>{
   assert.match(page({activeTab:'profile'}),/ProfileSettings/);assert.match(page({user:null}),/AuthForm/);assert.doesNotMatch(page({isLoading:true,activeTab:'admin',isAdmin:true}),/AdminPanel/);
+});
+
+test('session loading exposes its outlet without anonymous header, navigation or logout',()=>{
+  const html=renderToStaticMarkup(h(MemoryRouter,null,h(Routes,null,h(Route,{element:h(AppLayout)},h(Route,{index:true,element:h('p',null,'Login indlæses')})))));
+  assert.match(html,/Login indlæses/);
+  assert.doesNotMatch(html,/<header|<nav|Log ud|Hovednavigation/);
 });

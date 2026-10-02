@@ -26,7 +26,7 @@ export const AuthForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <main className="flex min-h-dvh items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -34,12 +34,12 @@ export const AuthForm = () => {
               <UtensilsCrossed className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Plusfrokost</CardTitle>
-          <CardDescription>Log ind med din Microsoft-arbejdskonto.</CardDescription>
+          <CardTitle className="text-2xl">Pluskontoret Arkitekter</CardTitle>
+          <CardDescription>Frokost og forplejning · Log ind med din Microsoft-arbejdskonto.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button type="button" className="w-full" onClick={handleMicrosoftSignIn} disabled={isLoading}>
-            <svg className="w-4 h-4" viewBox="0 0 23 23" aria-hidden="true">
+          <Button type="button" className="h-10 w-full shadow-none" onClick={handleMicrosoftSignIn} disabled={isLoading}>
+            <svg className="size-4" viewBox="0 0 23 23" aria-hidden="true">
               <path fill="#f35325" d="M1 1h10v10H1z" />
               <path fill="#81bc06" d="M12 1h10v10H12z" />
               <path fill="#05a6f0" d="M1 12h10v10H1z" />
@@ -52,6 +52,6 @@ export const AuthForm = () => {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 };

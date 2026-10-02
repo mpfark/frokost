@@ -119,6 +119,16 @@ All colors MUST be HSL.
 }
 
 @layer components {
+  /* One page frame: 1280 px of content plus responsive side gutters. */
+  .app-container {
+    @apply mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8;
+    max-width: calc(80rem + 4rem);
+  }
+
+  .app-content {
+    @apply app-container py-4 sm:py-6 lg:py-8;
+  }
+
   .week-celebration {
     background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 76% 46%) 100%);
   }

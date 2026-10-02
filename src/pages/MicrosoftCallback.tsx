@@ -55,7 +55,7 @@ const MicrosoftCallback = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-[50vh] flex items-center justify-center bg-background">
+    <main className="app-content min-h-[50vh] flex items-center justify-center">
       <div className="text-center space-y-4">
         {status === "processing" && (
           <>
@@ -70,7 +70,7 @@ const MicrosoftCallback = () => {
           <p className="text-destructive font-medium">Noget gik galt. Sender dig tilbage...</p>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

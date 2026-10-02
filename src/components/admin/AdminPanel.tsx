@@ -8,7 +8,7 @@ import { StatisticsView } from "@/components/statistics/StatisticsView";
 export const AdminPanel = () => {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full max-w-3xl mx-auto mb-8 grid-cols-2 md:grid-cols-5 h-auto">
+      <TabsList className="grid w-full mb-8 grid-cols-2 md:grid-cols-5 h-auto">
         <TabsTrigger value="users">Brugere</TabsTrigger>
         <TabsTrigger value="invitations">Invitationer</TabsTrigger>
         <TabsTrigger value="settings">Indstillinger</TabsTrigger>

@@ -46,8 +46,8 @@ const Unsubscribe = () => {
   };
 
   return (
-    <div className="min-h-[50vh] flex items-center justify-center bg-background p-4">
-      <div className="max-w-md w-full bg-card rounded-lg shadow-sm border p-8 text-center">
+    <main className="app-content min-h-[50vh] flex items-center justify-center">
+      <div className="w-full bg-card rounded-lg shadow-sm border p-8 text-center">
         <div className="text-3xl mb-4">🍽</div>
         <h1 className="text-xl font-bold text-foreground mb-2">Plusfrokost</h1>
 
@@ -87,7 +87,7 @@ const Unsubscribe = () => {
           <p className="text-destructive">Der opstod en fejl. Prøv igen senere.</p>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

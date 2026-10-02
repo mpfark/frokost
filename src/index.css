@@ -103,6 +103,10 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 
+  html {
+    scrollbar-gutter: stable;
+  }
+
   /* Hide scrollbars but keep scroll functionality */
   * {
     scrollbar-width: none; /* Firefox */

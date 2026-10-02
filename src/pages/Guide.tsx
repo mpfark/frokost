@@ -8,28 +8,28 @@ const steps = [
     description: "Du modtager en e-mail med en invitation til frokostordningen.",
     details: [
       "E-mailen indeholder et unikt invitationslink",
-      "Linket er gyldigt i en begrænset periode",
+      "Invitationen er gyldig i 7 dage",
       "Klik på linket i e-mailen for at komme videre"
     ]
   },
   {
     icon: Link2,
     title: "2. Klik på invitationslinket",
-    description: "Linket logger dig automatisk ind — du skal ikke vælge en adgangskode.",
+    description: "Linket åbner login-siden. Vælg Microsoft for at logge ind.",
     details: [
-      "Linket virker i 7 dage",
-      "Du sendes direkte til frokostkalenderen",
-      "Bed administratoren om et nyt link, hvis det er udløbet"
+      "Vælg Log ind med Microsoft",
+      "Brug din Microsoft-arbejdskonto med samme e-mail som invitationen",
+      "Kontakt administratoren, hvis du mangler adgang"
     ]
   },
   {
     icon: LogIn,
-    title: "3. Log ind senere med en kode",
-    description: "Næste gang du skal logge ind, bruger du en 8-cifret kode sendt til din e-mail.",
+    title: "3. Log ind med Microsoft",
+    description: "Brug også Microsoft-login, når du vender tilbage til frokostordningen.",
     details: [
-      "Indtast din e-mail på forsiden",
-      "Tjek din indbakke for koden",
-      "Skriv koden ind for at logge ind"
+      "Vælg Log ind med Microsoft på forsiden",
+      "Vælg din arbejdskonto hos Microsoft",
+      "Gennemfør eventuel godkendelse hos Microsoft"
     ]
   },
   {
@@ -58,17 +58,9 @@ const steps = [
 
 const Guide = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-foreground">Brugervejledning</h1>
-          <p className="text-muted-foreground mt-1">
-            Sådan kommer du i gang med frokostordningen
-          </p>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="bg-background">
+<main className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+        <div className="mb-6"><h1 className="text-2xl font-bold">Brugervejledning</h1><p className="text-muted-foreground mt-1">Sådan kommer du i gang med frokostordningen</p></div>
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

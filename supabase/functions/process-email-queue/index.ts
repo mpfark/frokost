@@ -4,7 +4,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
-const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
 
 // Check if an error is a rate-limit (429) response.
@@ -116,7 +115,7 @@ Deno.serve(async (req) => {
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
     .from('email_send_state')
-    .select('retry_after_until, batch_size, send_delay_ms, auth_email_ttl_minutes, transactional_email_ttl_minutes')
+    .select('retry_after_until, batch_size, send_delay_ms, transactional_email_ttl_minutes')
     .single()
 
   if (state?.retry_after_until && new Date(state.retry_after_until) > new Date()) {
@@ -129,13 +128,12 @@ Deno.serve(async (req) => {
   const batchSize = state?.batch_size ?? DEFAULT_BATCH_SIZE
   const sendDelayMs = state?.send_delay_ms ?? DEFAULT_SEND_DELAY_MS
   const ttlMinutes: Record<string, number> = {
-    auth_emails: state?.auth_email_ttl_minutes ?? DEFAULT_AUTH_TTL_MINUTES,
     transactional_emails: state?.transactional_email_ttl_minutes ?? DEFAULT_TRANSACTIONAL_TTL_MINUTES,
   }
 
   let totalProcessed = 0
 
-  // 2. Process auth_emails first (priority), then transactional_emails
+  // 2. Retire queued login emails without sending; process transactional mail normally
   for (const queue of ['auth_emails', 'transactional_emails']) {
     const { data: messages, error: readError } = await supabase.rpc('read_email_batch', {
       queue_name: queue,
@@ -149,6 +147,13 @@ Deno.serve(async (req) => {
     }
 
     if (!messages?.length) continue
+
+    if (queue === 'auth_emails') {
+      for (const message of messages) {
+        await moveToDlq(supabase, queue, message, 'Email login retired: Microsoft sign-in required')
+      }
+      continue
+    }
 
     // Retry budget is based on real send failures, not pgmq read_ct.
     // read_ct increments for every message in a claimed batch, including

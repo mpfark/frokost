@@ -1,116 +1,28 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { UtensilsCrossed, AlertCircle, ArrowLeft } from "lucide-react";
-import { z } from "zod";
-
-type AuthMode = "otp-email" | "otp-code";
-
-const emailSchema = z.string().trim().email({ message: "Indtast en gyldig e-mail" }).max(255);
+import { UtensilsCrossed } from "lucide-react";
 
 export const AuthForm = () => {
-  const [mode, setMode] = useState<AuthMode>("otp-email");
-  const [email, setEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
-
-  useEffect(() => {
-    if (resendCountdown <= 0) return;
-    const t = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCountdown]);
-
-  const sendOtp = async (isResend = false) => {
-    const validation = emailSchema.safeParse(email);
-    if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: false,
-        },
-      });
-
-      if (error) throw error;
-
-      toast.success(isResend ? "Ny kode sendt til din e-mail" : "Vi har sendt en kode til din e-mail");
-      setMode("otp-code");
-      setOtpCode("");
-      setResendCountdown(60);
-    } catch (error: any) {
-      const msg = error.message?.toLowerCase() || "";
-      if (msg.includes("not found") || msg.includes("signups not allowed") || msg.includes("user not found")) {
-        toast.error("Ingen konto fundet med denne e-mail. Kontakt en administrator for at få en invitation.");
-      } else if (msg.includes("rate") || msg.includes("too many")) {
-        toast.error("For mange forsøg. Vent et øjeblik og prøv igen.");
-      } else {
-        toast.error(error.message || "Kunne ikke sende kode");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const verifyOtp = async () => {
-    if (otpCode.length !== 8) {
-      toast.error("Indtast den 8-cifrede kode");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: otpCode,
-        type: "email",
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      const msg = error.message?.toLowerCase() || "";
-      if (msg.includes("expired") || msg.includes("invalid")) {
-        toast.error("Koden er ugyldig eller udløbet. Prøv at sende en ny kode.");
-      } else {
-        toast.error(error.message || "Kunne ikke verificere kode");
-      }
-      setOtpCode("");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleMicrosoftSignIn = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("microsoft", {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        toast.error("Microsoft-login mislykkedes");
+        toast.error("Microsoft-login mislykkedes. Prøv igen eller kontakt en administrator.");
       }
-      // Hvis redirected: browseren sender brugeren videre til Microsoft
+    } catch {
+      toast.error("Kunne ikke starte Microsoft-login. Prøv igen om lidt.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === "otp-email") sendOtp(false);
-    else if (mode === "otp-code") verifyOtp();
   };
 
   return (
@@ -123,119 +35,21 @@ export const AuthForm = () => {
             </div>
           </div>
           <CardTitle className="text-2xl">Plusfrokost</CardTitle>
-          <CardDescription>
-            {mode === "otp-email" && "Indtast din e-mail for at logge ind"}
-            {mode === "otp-code" && "Indtast koden vi sendte til din e-mail"}
-          </CardDescription>
+          <CardDescription>Log ind med din Microsoft-arbejdskonto.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "otp-email" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder="dig@pluskontoret.dk"
-                    autoComplete="email"
-                    autoFocus
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sender..." : "Send login-kode"}
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">eller</span>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleMicrosoftSignIn}
-                  disabled={isLoading}
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 23 23" aria-hidden="true">
-                    <path fill="#f35325" d="M1 1h10v10H1z" />
-                    <path fill="#81bc06" d="M12 1h10v10H12z" />
-                    <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                    <path fill="#ffba08" d="M12 12h10v10H12z" />
-                  </svg>
-                  Log ind med Microsoft
-                </Button>
-              </>
-            )}
-
-            {mode === "otp-code" && (
-              <>
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Vi har sendt en 8-cifret kode til <strong>{email}</strong>. Tjek også spam-mappen.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-2">
-                  <Label htmlFor="otp">Login-kode</Label>
-                  <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={8}
-                      value={otpCode}
-                      onChange={(v) => setOtpCode(v)}
-                      autoFocus
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                        <InputOTPSlot index={6} />
-                        <InputOTPSlot index={7} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading || otpCode.length !== 8}>
-                  {isLoading ? "Logger ind..." : "Log ind"}
-                </Button>
-
-                <div className="flex items-center justify-between text-sm">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("otp-email");
-                      setOtpCode("");
-                    }}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-primary"
-                  >
-                    <ArrowLeft className="h-3 w-3" />
-                    Skift e-mail
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => sendOtp(true)}
-                    disabled={resendCountdown > 0 || isLoading}
-                    className="text-primary hover:underline disabled:text-muted-foreground disabled:no-underline disabled:cursor-not-allowed"
-                  >
-                    {resendCountdown > 0 ? `Send ny kode (${resendCountdown}s)` : "Send ny kode"}
-                  </button>
-                </div>
-              </>
-            )}
-          </form>
+        <CardContent className="space-y-4">
+          <Button type="button" className="w-full" onClick={handleMicrosoftSignIn} disabled={isLoading}>
+            <svg className="w-4 h-4" viewBox="0 0 23 23" aria-hidden="true">
+              <path fill="#f35325" d="M1 1h10v10H1z" />
+              <path fill="#81bc06" d="M12 1h10v10H12z" />
+              <path fill="#05a6f0" d="M1 12h10v10H1z" />
+              <path fill="#ffba08" d="M12 12h10v10H12z" />
+            </svg>
+            {isLoading ? "Åbner Microsoft-login..." : "Log ind med Microsoft"}
+          </Button>
+          <p className="text-sm text-center text-muted-foreground">
+            Brug samme arbejdsmail som på din invitation. Kontakt en administrator, hvis du mangler adgang.
+          </p>
         </CardContent>
       </Card>
     </div>

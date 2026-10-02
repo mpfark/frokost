@@ -6,10 +6,15 @@ export const useUserRole = (userId: string | undefined) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isKitchen, setIsKitchen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [resolvedUserId, setResolvedUserId] = useState<string | undefined>(undefined);
   const previousRolesRef = useRef<{ admin: boolean; kitchen: boolean } | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    previousRolesRef.current = null;
+    setIsLoading(!!userId);
     if (!userId) {
+      setResolvedUserId(undefined);
       setIsAdmin(false);
       setIsKitchen(false);
       setIsLoading(false);
@@ -22,6 +27,8 @@ export const useUserRole = (userId: string | undefined) => {
         .select("role")
         .eq("user_id", userId);
 
+      if (cancelled) return;
+      setResolvedUserId(userId);
       if (error) {
         console.error("[useUserRole] Error fetching roles:", error);
         if (previousRolesRef.current) {
@@ -73,9 +80,11 @@ export const useUserRole = (userId: string | undefined) => {
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [userId]);
 
-  return { isAdmin, isKitchen, isLoading };
+  const currentUser = !!userId && resolvedUserId === userId;
+  return { isAdmin: currentUser && isAdmin, isKitchen: currentUser && isKitchen, isLoading: !!userId && (!currentUser || isLoading) };
 };

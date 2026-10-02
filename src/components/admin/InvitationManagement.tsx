@@ -566,7 +566,7 @@ export const InvitationManagement = () => {
                             setResendDialogOpen(true);
                           }}
                           disabled={actionLoading === invite.id}
-                          title="Send ny magic link"
+                          title="Send ny invitation"
                         >
                           <RefreshCw className="h-3 w-3" />
                         </Button>
@@ -628,7 +628,7 @@ export const InvitationManagement = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Gensend invitation?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dette vil generere et nyt magic link og sende en ny e-mail til <strong>{selectedInvitation?.email}</strong>.
+              Dette vil sende en ny invitation med vejledning til Microsoft-login til <strong>{selectedInvitation?.email}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

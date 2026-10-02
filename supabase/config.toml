@@ -29,8 +29,6 @@ project_id = "gupglbmayvwwxwkunotk"
     verify_jwt = true
   [functions.send-manual-reminder]
     verify_jwt = true
-  [functions.send-password-reset]
-    verify_jwt = true
   [functions.send-push-notification]
     verify_jwt = false
   [functions.send-weekly-lunch-reminder]

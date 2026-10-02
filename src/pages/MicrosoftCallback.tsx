@@ -55,7 +55,7 @@ const MicrosoftCallback = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-[50vh] flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         {status === "processing" && (
           <>

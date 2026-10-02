@@ -48,7 +48,7 @@ serve(async (req) => {
     // Get the current user using the access token
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
-    if (userError || !user) {
+    if (userError || !user?.email || !user.email_confirmed_at) {
       console.error('Failed to get user from token:', userError);
       throw new Error('Unauthorized');
     }
@@ -65,6 +65,7 @@ serve(async (req) => {
       })
       .eq('email', user.email!.toLowerCase())
       .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
       .select('id');
 
     if (error) {

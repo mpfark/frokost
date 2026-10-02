@@ -27,15 +27,15 @@ const InvitationEmail = ({ adminName = 'En administrator', inviteLink = '#' }: I
           {adminName} har inviteret dig til at bruge <strong>{SITE_NAME}</strong> — vores frokost tilmeldingssystem.
         </Text>
         <Text style={text}>
-          Klik på knappen nedenfor for at logge ind — du skal ikke vælge en adgangskode:
+          Åbn Plusfrokost og vælg Microsoft-login. Brug din Microsoft-arbejdskonto med samme e-mailadresse som denne invitation:
         </Text>
         <Section style={{ textAlign: 'center' as const, margin: '30px 0' }}>
           <Button style={button} href={inviteLink}>
-            Log ind på Plusfrokost
+            Åbn Microsoft-login
           </Button>
         </Section>
         <Text style={note}>
-          <strong>Bemærk:</strong> Linket virker i 7 dage. Hvis det er udløbet, kan du kontakte en administrator for at få tilsendt et nyt.
+          <strong>Bemærk:</strong> Invitationen er gyldig i 7 dage. Linket åbner login-siden og logger dig ikke automatisk ind. Kontakt en administrator, hvis du mangler adgang.
         </Text>
         <Hr style={hr} />
         <Text style={footer}>

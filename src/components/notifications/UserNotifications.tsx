@@ -83,7 +83,7 @@ export const UserNotifications = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Åbn notifikationer">
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-2 -right-2 h-5 min-w-5 px-1 text-[10px] flex items-center justify-center">
@@ -92,7 +92,7 @@ export const UserNotifications = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 max-w-[calc(100vw-2rem)] p-0" align="end">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h4 className="text-sm font-semibold">Notifikationer</h4>
           <div className="flex items-center gap-1">

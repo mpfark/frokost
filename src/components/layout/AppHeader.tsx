@@ -29,7 +29,7 @@ export function AppHeader({ activeTab, fullName, role, signedIn, loading, isAdmi
       <div className="app-container flex flex-wrap items-center justify-between sm:flex-nowrap">
         <Link to="/" className={"flex h-16 w-full min-w-0 items-center gap-3 rounded-lg text-left sm:w-auto " + focus}>
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"><UtensilsCrossed className="size-5" aria-hidden="true" /></span>
-          <span className="min-w-0"><span className="block text-base font-bold sm:text-xl">Pluskontoret Arkitekter</span><span className="block text-xs text-muted-foreground">Frokost og forplejning</span></span>
+          <span className="min-w-0"><span className="hidden text-base font-bold sm:block sm:text-xl">Pluskontoret Arkitekter</span><span className="block text-xs text-muted-foreground">Frokost og forplejning</span></span>
         </Link>
         <div className="flex h-12 w-full min-w-0 items-center justify-end gap-2 pb-2 sm:h-16 sm:w-auto sm:gap-3 sm:pb-0">
           <span className="mr-auto min-w-0 flex-1 text-left sm:mr-0 sm:w-48 sm:flex-none sm:text-right" aria-busy={loading}>

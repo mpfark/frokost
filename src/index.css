@@ -1,3 +1,4 @@
+@import "./styles/app-chrome.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

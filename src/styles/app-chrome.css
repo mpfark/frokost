@@ -1,0 +1,131 @@
+/* Shared app chrome: keep this pattern identical in Frokost and IT-hjælp. */
+.app-top {
+  --app-header-height: 3.5rem;
+  --app-control-size: 2.75rem;
+  --app-icon-size: 1.25rem;
+  --app-nav-active: hsl(142 76% 36%);
+  @apply sticky top-0 z-30 bg-background;
+}
+.app-header-row {
+  @apply flex min-w-0 items-center justify-between gap-2;
+  height: var(--app-header-height);
+}
+.app-brand {
+  @apply flex min-w-0 shrink-0 items-center gap-3 rounded-lg text-left;
+}
+.app-brand-copy,
+.app-user-copy {
+  display: none;
+}
+.app-header-actions {
+  @apply flex shrink-0 items-center gap-2;
+}
+.app-top .app-action,
+.app-notification-slot,
+.app-notification-slot > button {
+  width: var(--app-control-size);
+  height: var(--app-control-size);
+  flex-shrink: 0;
+}
+.app-action svg,
+.app-notification-slot > button svg {
+  width: var(--app-icon-size);
+  height: var(--app-icon-size);
+}
+.app-top .app-profile {
+  border-radius: 9999px;
+}
+.app-action {
+  @apply rounded-lg hover:bg-muted hover:text-foreground;
+}
+.app-nav-frame {
+  @apply border-b border-border py-2;
+}
+.app-nav {
+  @apply flex gap-2;
+}
+.app-nav-item {
+  @apply flex min-w-0 flex-1 items-center justify-center gap-3 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground;
+  height: 2.75rem;
+  padding: 0 0.75rem;
+}
+.app-nav-item svg {
+  width: var(--app-icon-size);
+  height: var(--app-icon-size);
+  flex-shrink: 0;
+}
+.app-nav-label {
+  display: none;
+}
+.app-top .app-action:hover,
+.app-top .app-notification-slot > button:hover,
+.app-top .app-nav-item:hover {
+  @apply bg-muted text-foreground;
+}
+.app-top .app-nav-item[aria-current="page"] {
+  background: var(--app-nav-active);
+  color: white;
+}
+.app-top .app-brand:focus-visible,
+.app-top .app-action:focus-visible,
+.app-top .app-notification-slot > button:focus-visible,
+.app-top .app-nav-item:focus-visible {
+  outline: 2px solid var(--app-nav-active, hsl(142 76% 36%));
+  outline-offset: 2px;
+  box-shadow: none;
+}
+@media (min-width: 640px) {
+  .app-top {
+    --app-header-height: 4rem;
+    --app-control-size: 2.25rem;
+    --app-icon-size: 1rem;
+  }
+  .app-brand {
+    flex-shrink: 1;
+  }
+  .app-brand-copy {
+    display: block;
+    min-width: 0;
+  }
+  .app-brand-copy > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .app-user-copy {
+    display: block;
+    width: 12rem;
+    min-width: 0;
+    text-align: right;
+  }
+  .app-header-actions {
+    gap: 0.75rem;
+  }
+  .app-nav-frame {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  .app-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0.25rem;
+    margin: -0.25rem;
+  }
+  .app-nav-item {
+    flex: 0 0 auto;
+    height: 2.5rem;
+    white-space: nowrap;
+  }
+  .app-nav-label {
+    display: inline;
+  }
+}
+
+/* Match Frokost’s root scrollbar treatment to prevent route-dependent gutters. */
+:root {
+  scrollbar-gutter: stable;
+  scrollbar-width: none;
+}
+:root::-webkit-scrollbar {
+  display: none;
+}

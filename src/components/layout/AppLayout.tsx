@@ -7,6 +7,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { KitchenNotifications } from "@/components/kitchen/KitchenNotifications";
 import { UserNotifications } from "@/components/notifications/UserNotifications";
 import { AppHeader } from "./AppHeader";
+import { HeaderNavigationProvider } from "./HeaderSubnavigation";
 import { toast } from "sonner";
 
 export function AppLayout() {
@@ -92,9 +93,11 @@ export function AppLayout() {
   const loading = isLoading || isRoleLoading;
   const name = profile?.id === user?.id && profile?.name ? profile.name : user?.user_metadata?.full_name || user?.email || "Medarbejder";
   return <AppSession.Provider value={{user,isLoading:loading,isAdmin,canAccessKitchen,activeTab}}>
+    <HeaderNavigationProvider>
     <div className="min-h-dvh bg-background text-foreground">
       {user && <AppHeader activeTab={location.pathname === "/" && user ? activeTab : null} fullName={name} role={isAdmin ? "Administrator" : isKitchen ? "Køkken" : "Medarbejder"} signedIn={!!user} loading={loading} isAdmin={isAdmin} canAccessKitchen={canAccessKitchen} onLogout={logout} loggingOut={loggingOut} notifications={canAccessKitchen ? <KitchenNotifications /> : <UserNotifications />} />}
       <Outlet />
     </div>
+    </HeaderNavigationProvider>
   </AppSession.Provider>;
 }

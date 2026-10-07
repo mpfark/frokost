@@ -129,3 +129,22 @@
 :root::-webkit-scrollbar {
   display: none;
 }
+
+/* Page submenus extend the sticky header, using the same frame and tokens. */
+.app-subnav-slot:empty { display: none; }
+.app-subnav-frame { border-bottom: 1px solid var(--subnav-border); padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.app-top { --subnav-border: hsl(var(--border)); }
+.app-top .app-subnav {
+  display: flex; width: 100%; height: auto; justify-content: flex-start;
+  gap: 0.5rem; overflow-x: auto; border-radius: 0; background: transparent;
+  padding: 0.25rem; margin: -0.25rem; color: inherit;
+}
+.app-top .app-subnav [role="tab"] {
+  flex: 0 0 auto; min-height: 2.75rem; padding: 0 0.75rem;
+  border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500;
+  color: hsl(var(--muted-foreground)); box-shadow: none;
+}
+.app-top .app-subnav [role="tab"]:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.app-top .app-subnav [role="tab"][data-state="active"] { background: var(--app-nav-active); color: hsl(var(--primary-foreground)); }
+.app-top .app-subnav [role="tab"]:focus-visible { outline: 2px solid var(--app-nav-active); outline-offset: 2px; box-shadow: none; }
+@media (min-width: 640px) { .app-top .app-subnav [role="tab"] { min-height: 2.5rem; } }

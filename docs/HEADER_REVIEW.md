@@ -1,5 +1,15 @@
 # Frokost: fælles top og navigation
 
+## Undermenuer i headeren — 7. oktober 2026
+
+Forplejning, Køkken og Admin viser nu deres undermenu som en ekstra række i den fælles sticky header. Rækken deler indholdsbredde, farver, aktiv markering og fokusmarkering med hovednavigationen. Lange undermenuer kan scrolles vandret på mobil. Radix-fanernes React-kontekst bevares gennem en portal, så faneskift, piletaster og relationen mellem fane og indhold stadig fungerer. Rækken forsvinder, når siden ikke har en undermenu.
+
+Den gentagne Forplejning-overskrift i kalenderkortet er fjernet; opdateringsknapperne er bevaret og har fået tilgængelige navne. IT-hjælp bruger samme headerudvidelse til Administration og har fået fjernet de gentagne sideoverskrifter i Administration, IT-dashboard og Mine sager. Sagstitler og overskrifter for konkrete indholdsafsnit er bevaret.
+
+Typecheck og produktionsbuild passerer i begge apps. Frokosts 9 navigationstests passerer. Målrettet lint af header, layout, AdminPanel og begge nye headerkomponenter passerer. OutlookCalendar har fortsat fem eksisterende any-fejl og en hook-advarsel; KitchenView har en eksisterende hook-advarsel.
+
+Browserkontrol af Frokosts rigtige AppHeader, HeaderSubnavigation og Radix-komponenter med undermenuer udtrukket fra de tre sider og isoleret testindhold: klik, ArrowLeft, End, skift mellem hovedmenuer og mobilbredde 390 px fungerer. Undermenuerne ligger i headeren, og dokumentet har ingen vandret overflow. Forhåndsvisningen bruger testindhold; fulde domænesider og IT-hjælps brugerflader er ikke afprøvet end-to-end. Ingen push eller publicering er udført.
+
 Kontrolleret 2. oktober 2026. Reference: den aktuelle top i IT-hjælps src/components/helpdesk-app.tsx. IT-hjælp er ikke ændret.
 
 ## Ændringer

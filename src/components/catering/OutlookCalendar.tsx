@@ -1,7 +1,8 @@
+import { HeaderSubnavigation } from "@/components/layout/HeaderSubnavigation";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClosedDates } from "./useClosedDates";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, AlertCircle, RefreshCw, Link, ChevronLeft, ChevronRight } from "lucide-react";
@@ -157,16 +158,18 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
   return (
     <>
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
+        <HeaderSubnavigation>
+          <TabsList aria-label="Forplejning" className="app-subnav">
+            <TabsTrigger value="my-meetings">Dine møder</TabsTrigger>
+            <TabsTrigger value="rooms">Mødelokaler</TabsTrigger>
+          </TabsList>
+        </HeaderSubnavigation>
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-primary" />
-                Forplejning
-              </CardTitle>
+          <CardHeader className="p-4 pb-0 md:px-6">
+            <div className="flex items-center justify-end">
               <div className="flex items-center gap-1">
                 {activeSubTab === "my-meetings" && isConnected && (
-                  <Button variant="ghost" size="icon" onClick={fetchEvents} disabled={isLoading}>
+                  <Button variant="ghost" size="icon" onClick={fetchEvents} disabled={isLoading} aria-label="Opdater dine møder">
                     <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
                   </Button>
                 )}
@@ -174,6 +177,7 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Opdater mødelokaler"
                     onClick={() => roomCalendarsRef.current?.refresh()}
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -181,11 +185,6 @@ export const OutlookCalendar = ({ userEmail, selectedDate }: OutlookCalendarProp
                 )}
               </div>
             </div>
-
-            <TabsList className="w-full mt-2">
-              <TabsTrigger value="my-meetings" className="flex-1">Dine møder</TabsTrigger>
-              <TabsTrigger value="rooms" className="flex-1">Mødelokaler</TabsTrigger>
-            </TabsList>
           </CardHeader>
 
           <CardContent>

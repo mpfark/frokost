@@ -1,3 +1,4 @@
+import { HeaderSubnavigation } from "@/components/layout/HeaderSubnavigation";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, format, startOfWeek, getWeek, addMonths, startOfMonth, isWeekend, subDays } from "date-fns";
@@ -699,8 +700,8 @@ export const KitchenView = () => {
 
   return (
     <Tabs defaultValue="day" className="w-full">
-      <div className="flex items-center justify-center gap-3 mb-8">
-        <TabsList className="grid max-w-2xl grid-cols-3 h-auto flex-1">
+      <HeaderSubnavigation>
+        <TabsList aria-label="Køkken" className="app-subnav">
           <TabsTrigger value="day" className="flex items-center gap-2">
             <CalendarCheck className="w-4 h-4" />
             Dag
@@ -714,7 +715,7 @@ export const KitchenView = () => {
             Lukkede dage
           </TabsTrigger>
         </TabsList>
-      </div>
+      </HeaderSubnavigation>
 
       {/* Day Tab Content */}
       <TabsContent value="day" className="space-y-4">

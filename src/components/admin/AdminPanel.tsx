@@ -1,3 +1,4 @@
+import { HeaderSubnavigation } from "@/components/layout/HeaderSubnavigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { InvitationManagement } from "@/components/admin/InvitationManagement";
@@ -8,13 +9,15 @@ import { StatisticsView } from "@/components/statistics/StatisticsView";
 export const AdminPanel = () => {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full mb-8 grid-cols-2 md:grid-cols-5 h-auto">
+      <HeaderSubnavigation>
+      <TabsList aria-label="Administration" className="app-subnav">
         <TabsTrigger value="users">Brugere</TabsTrigger>
         <TabsTrigger value="invitations">Invitationer</TabsTrigger>
         <TabsTrigger value="settings">Indstillinger</TabsTrigger>
         <TabsTrigger value="webflow">Importer</TabsTrigger>
         <TabsTrigger value="statistics">Statistik</TabsTrigger>
       </TabsList>
+      </HeaderSubnavigation>
       
       <TabsContent value="users">
         <UserManagement />

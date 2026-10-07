@@ -11,6 +11,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 
+import { HeaderNavigationSlot } from "./HeaderSubnavigation";
+
 export interface AppHeaderProps {
   activeTab: string | null;
   fullName: string;
@@ -137,6 +139,7 @@ export function AppHeader({
           ))}
         </nav>
       </div>
+      <HeaderNavigationSlot />
     </div>
   );
 }

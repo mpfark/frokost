@@ -11,27 +11,34 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    // Only allow calls authenticated with the service role key (from database triggers via pg_net)
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const json = (obj: unknown, status = 200) =>
+      new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const body = await req.json().catch(() => ({}));
 
-    const body = await req.json();
-
-    // Diagnostic mode: return public key for verification
+    // Public: the VAPID public key is not secret; the frontend uses it so it always matches the sender.
     if (body.action === "get_public_key") {
-      const pubKey = Deno.env.get("VAPID_PUBLIC_KEY");
-      return new Response(JSON.stringify({ publicKey: pubKey }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ publicKey: Deno.env.get("VAPID_PUBLIC_KEY") ?? null });
     }
+
+    // Auth: database triggers send x-push-token (stored server-side only).
+    // Logged-in users may only send a test push to themselves.
+    let selfTestUserId: string | null = null;
+    const pushToken = req.headers.get("x-push-token");
+    let authorized = false;
+    if (pushToken) {
+      const { data: cfg } = await supabase.from("push_internal_config").select("token").eq("id", 1).single();
+      authorized = !!cfg?.token && cfg.token === pushToken;
+    } else if (req.headers.get("Authorization") === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+      authorized = true;
+    } else if (body.action === "self_test") {
+      const jwt = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
+      const { data: u } = await supabase.auth.getUser(jwt);
+      if (u?.user) { selfTestUserId = u.user.id; authorized = true; }
+    }
+    if (!authorized) return json({ error: "Unauthorized" }, 401);
+    if (selfTestUserId) { body.test_push = true; body.target_user_id = selfTestUserId; }
 
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");

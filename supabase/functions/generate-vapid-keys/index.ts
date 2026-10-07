@@ -29,7 +29,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       vapidKeysJson: JSON.stringify(exportedKeys),
       applicationServerKey,
-      note: "Save 'vapidKeysJson' as VAPID_KEYS_JSON secret. Use 'applicationServerKey' in your frontend PushSubscriptionButton."
+      note: "Set VAPID_PUBLIC_KEY to applicationServerKey and VAPID_PRIVATE_KEY to the matching private key. The frontend fetches the public key from send-push-notification automatically; all phones must re-enable notifications after rotation."
     }, null, 2), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

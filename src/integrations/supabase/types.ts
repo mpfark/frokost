@@ -689,6 +689,24 @@ export type Database = {
           },
         ]
       }
+      push_internal_config: {
+        Row: {
+          created_at: string
+          id: number
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          token?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string

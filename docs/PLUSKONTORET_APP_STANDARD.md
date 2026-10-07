@@ -232,9 +232,9 @@ Eksempel:
 - `--foreground`
 - `--border`
 
-De konkrete Pluskontoret-farver bør defineres ét sted og genbruges mellem apps.
+Farverne er faste og defineres som CSS-tokens i hver app: Frokost bruger grønne nuancer, og IT-hjælp bruger blå. Farver kan ikke ændres i administrationen.
 
-Produktet må gerne have et diskret identitetsikon, men apps bør ikke have helt forskellige farvetemaer.
+Apps deler layout og komponentmønstre, mens grøn og blå giver hver app sin egen identitet.
 
 ## Typografi
 

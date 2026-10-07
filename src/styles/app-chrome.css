@@ -3,7 +3,7 @@
   --app-header-height: 3.5rem;
   --app-control-size: 2.75rem;
   --app-icon-size: 1.25rem;
-  --app-nav-active: hsl(142 76% 36%);
+  --app-nav-active: var(--app-primary);
   @apply sticky top-0 z-30 bg-background;
 }
 .app-header-row {
@@ -64,13 +64,13 @@
 }
 .app-top .app-nav-item[aria-current="page"] {
   background: var(--app-nav-active);
-  color: white;
+  @apply text-primary-foreground;
 }
 .app-top .app-brand:focus-visible,
 .app-top .app-action:focus-visible,
 .app-top .app-notification-slot > button:focus-visible,
 .app-top .app-nav-item:focus-visible {
-  outline: 2px solid var(--app-nav-active, hsl(142 76% 36%));
+  outline: 2px solid var(--app-nav-active);
   outline-offset: 2px;
   box-shadow: none;
 }

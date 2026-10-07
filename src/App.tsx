@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useCompanyColors } from "@/hooks/useCompanyColors";
 import { TenantProvider } from "@/contexts/TenantContext";
 import { ReloadPrompt } from "@/components/notifications/ReloadPrompt";
 import Index from "./pages/Index";
@@ -17,14 +16,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 
 const queryClient = new QueryClient();
 
-const TenantColorsLoader = () => {
-  useCompanyColors();
-  return null;
-};
-
 const AppContent = () => (
   <>
-    <TenantColorsLoader />
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>

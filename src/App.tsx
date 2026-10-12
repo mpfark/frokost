@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import Install from "./pages/Install";
 import Guide from "./pages/Guide";
 import MicrosoftCallback from "./pages/MicrosoftCallback";
-import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -28,7 +27,6 @@ const AppContent = () => (
           <Route path="/guide" element={<Guide />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/microsoft-callback" element={<MicrosoftCallback />} />
-          <Route path="/unsubscribe" element={<Unsubscribe />} />
         </Route>
 
       </Routes>

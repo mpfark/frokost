@@ -137,6 +137,8 @@ export async function reconcileCalendarOrders(db: SupabaseClient, token: string,
   const organizerCalendars = new Map<string, Promise<Meeting[]>>();
   let cancelled = 0, updated = 0, skipped = 0;
   const cancelledIds: string[] = [];
+  const skippedIds: string[] = [];
+  const skipOrder = (orderId: string) => { skipped++; skippedIds.push(orderId); };
   for (const order of orders) {
     try {
       if (!order.meeting_external_id) { skipped++; continue; }

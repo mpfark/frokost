@@ -148,12 +148,12 @@ export async function reconcileCalendarOrders(db: SupabaseClient, token: string,
       if (!source) {
         const candidate = roomEvents.find(event => event.iCalUId === order.meeting_external_id && !event.isCancelled);
         const mailbox = candidate?.organizer?.emailAddress?.address?.toLowerCase();
-        if (!mailbox) { skipped++; continue; }
+        if (!mailbox) { skipOrder(order.id); continue; }
         if (!organizerCalendars.has(mailbox)) {
           organizerCalendars.set(mailbox, graphPages<Meeting>(calendarUrl(mailbox, discoveryStart, discoveryEnd), token));
         }
         const matches = (await organizerCalendars.get(mailbox)!).filter(event => event.iCalUId === order.meeting_external_id);
-        if (matches.length !== 1) { skipped++; continue; }
+        if (matches.length !== 1) { skipOrder(order.id); continue; }
         source = { order_id: order.id, mailbox, event_id: matches[0].id, external_id: order.meeting_external_id };
         const { error: saveError } = await db.from("catering_calendar_sources").upsert(source);
         if (saveError) throw saveError;
@@ -167,13 +167,13 @@ export async function reconcileCalendarOrders(db: SupabaseClient, token: string,
         p_order_id: order.id, p_expected_updated_at: order.updated_at, p_change: change,
       });
       if (applyError) throw applyError;
-      if (!applied) { skipped++; continue; }
+      if (!applied) { skipOrder(order.id); continue; }
       if (change.kind === "moved" || change.kind === "cancelled") { cancelled++; cancelledIds.push(order.id); }
       else updated++;
     } catch (error) {
-      skipped++;
+      skipOrder(order.id);
       console.error("Calendar order check deferred", order.id, error);
     }
   }
-  return { checked: orders.length, cancelled, updated, skipped, cancelled_ids: cancelledIds };
+  return { checked: orders.length, cancelled, updated, skipped, cancelled_ids: cancelledIds, skipped_ids: skippedIds };
 }

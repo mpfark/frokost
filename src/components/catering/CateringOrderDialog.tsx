@@ -275,7 +275,10 @@ export const CateringOrderDialog = ({ open, onOpenChange, meeting, existingOrder
         const { data: reconciliation, error: reconciliationError } = await supabase.functions.invoke("reconcile-room-bookings", {
           body: { weekStart: meeting.date, daysAhead: 1 },
         });
-        if (reconciliationError || reconciliation?.skipped > 0) {
+        // Only warn when THIS order could not be checked — unrelated orders
+        // on the same day must not cast doubt on a successful save.
+        const thisOrderSkipped = Array.isArray(reconciliation?.skipped_ids) && reconciliation.skipped_ids.includes(orderId);
+        if (reconciliationError || thisOrderSkipped) {
           toast.warning("Bestillingen er gemt. Kalenderkontrollen kunne ikke fuldføres og forsøges igen senere.");
         }
       } catch {

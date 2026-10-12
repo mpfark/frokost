@@ -970,6 +970,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_lunch_absence: {
+        Args: {
+          p_end_date: string
+          p_remove: boolean
+          p_start_date: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       apply_calendar_order_change: {
         Args: {
           p_change: Json

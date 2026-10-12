@@ -1,3 +1,4 @@
+import { sendLoggedEmail } from "../_shared/send-logged-email.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -136,15 +137,13 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         const userName = u.full_name || u.email.split("@")[0];
 
-        await serviceClient.functions.invoke("send-transactional-email", {
-          body: {
+        await sendLoggedEmail({
             templateName: "manual-reminder",
             recipientEmail: u.email,
             idempotencyKey: `manual-reminder-${u.id}-${mondayStr}`,
             templateData: { userName, weekNumber },
             triggeredBy: user.id,
-          },
-        });
+          });
 
         emailsSent++;
         await delay(500);

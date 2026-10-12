@@ -1,3 +1,4 @@
+import { sendLoggedEmail } from "../_shared/send-logged-email.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -119,15 +120,13 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
 
         const userName = profile?.full_name || testEmail.split("@")[0];
 
-        await supabaseAdmin.functions.invoke("send-transactional-email", {
-          body: {
+        await sendLoggedEmail({
             templateName: "weekly-reminder",
             recipientEmail: testEmail,
             idempotencyKey: `weekly-test-${testEmail}-${mondayStr}`,
             templateData: { userName, weekNumber },
             triggeredBy: "system",
-          },
-        });
+          });
 
         console.log(`Test email queued for ${testEmail}`);
       } catch (emailError) {
@@ -204,15 +203,13 @@ async function processReminders(req: Request, testEmail?: string, cronSecret?: s
       try {
         const userName = user.full_name || user.email.split("@")[0];
 
-        await supabaseAdmin.functions.invoke("send-transactional-email", {
-          body: {
+        await sendLoggedEmail({
             templateName: "weekly-reminder",
             recipientEmail: user.email,
             idempotencyKey: `weekly-reminder-${user.id}-${mondayStr}`,
             templateData: { userName, weekNumber },
             triggeredBy: "system",
-          },
-        });
+          });
 
         emailsSent++;
         await delay(500);

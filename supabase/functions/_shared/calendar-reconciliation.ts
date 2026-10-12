@@ -141,7 +141,7 @@ export async function reconcileCalendarOrders(db: SupabaseClient, token: string,
   const skipOrder = (orderId: string) => { skipped++; skippedIds.push(orderId); };
   for (const order of orders) {
     try {
-      if (!order.meeting_external_id) { skipped++; continue; }
+      if (!order.meeting_external_id) { skipOrder(order.id); continue; }
       const { data: saved, error } = await db.from("catering_calendar_sources").select("*").eq("order_id", order.id).maybeSingle();
       if (error) throw error;
       let source: Source | null = saved?.external_id === order.meeting_external_id ? saved : null;

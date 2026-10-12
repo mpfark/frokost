@@ -22,6 +22,9 @@ import { Badge } from "@/components/ui/badge";
 
 interface AbsenceManagerProps {
   userId: string;
+  adminUserName?: string;
+  onClose?: () => void;
+  onChanged?: () => void;
 }
 
 interface AbsencePeriod {
@@ -67,8 +70,9 @@ function groupIntoPeriods(optouts: { id: string; lunch_date: string }[]): Absenc
   return periods;
 }
 
-export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+export const AbsenceManager = ({ userId, adminUserName, onClose, onChanged }: AbsenceManagerProps) => {
+  const isAdminMode = adminUserName !== undefined;
+  const [dialogOpen, setDialogOpen] = useState(isAdminMode);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,6 +94,8 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
 
     if (!error && data) {
       setPeriods(groupIntoPeriods(data));
+    } else if (error) {
+      toast.error("Kunne ikke indlæse kommende fravær");
     }
     setIsFetchingPeriods(false);
   }, [userId, todayStr]);
@@ -133,6 +139,26 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
       if (allWeekdays.length === 0) {
         toast.error("Der er ingen hverdage i den valgte periode");
         setIsSubmitting(false);
+        return;
+      }
+
+      if (isAdminMode) {
+        const { data: count, error } = await supabase.rpc("admin_set_lunch_absence", {
+          p_user_id: userId,
+          p_start_date: format(startDay, "yyyy-MM-dd"),
+          p_end_date: format(endDay, "yyyy-MM-dd"),
+          p_remove: false,
+        });
+        if (error) throw error;
+        if (!count) {
+          toast.info("Alle hverdage i perioden er enten lukket eller allerede frameldt");
+          return;
+        }
+        toast.success(`Fravær registreret for ${adminUserName}: ${count} dag${count === 1 ? "" : "e"}`);
+        setStartDate(undefined);
+        setEndDate(undefined);
+        await fetchOptouts();
+        onChanged?.();
         return;
       }
 
@@ -193,12 +219,20 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
     setDeletingPeriodIdx(periodIdx);
     try {
       const ids = period.dates.map(d => d.id);
-      const { error } = await supabase.from("lunch_optouts").delete().in("id", ids);
+      const { error } = isAdminMode
+        ? await supabase.rpc("admin_set_lunch_absence", {
+            p_user_id: userId,
+            p_start_date: period.startDate,
+            p_end_date: period.endDate,
+            p_remove: true,
+          })
+        : await supabase.from("lunch_optouts").delete().in("id", ids);
       if (error) {
         toast.error("Kunne ikke annullere fravær");
       } else {
         toast.success("Fravær annulleret");
-        fetchOptouts();
+        await fetchOptouts();
+        onChanged?.();
       }
     } catch {
       toast.error("Der opstod en fejl");
@@ -214,20 +248,58 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
     return `${start} – ${end}`;
   };
 
+  const absencePeriods = (
+    <>
+      {isFetchingPeriods ? (
+        <div className="flex justify-center py-2"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+      ) : periods.length > 0 ? (
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground">Kommende fravær</Label>
+          {periods.map((period, idx) => (
+            <div key={period.startDate} className="flex items-center justify-between rounded-md border px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{formatPeriodLabel(period)}</span>
+                <Badge variant="secondary" className="text-xs">{period.dates.length} dag{period.dates.length !== 1 ? "e" : ""}</Badge>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                aria-label={`Annuller fravær ${formatPeriodLabel(period)}`}
+                onClick={() => handleDeletePeriod(idx)} disabled={isSubmitting || deletingPeriodIdx !== null}>
+                {deletingPeriodIdx === idx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          ))}
+          {isAdminMode && <p className="text-xs text-muted-foreground">Hvis du annullerer fravær, bliver medarbejderen ikke automatisk tilmeldt frokost igen.</p>}
+        </div>
+      ) : null}
+    </>
+  );
+
+  const closeDialog = () => {
+    if (isSubmitting || deletingPeriodIdx !== null) return;
+    setDialogOpen(false);
+    setStartDate(undefined);
+    setEndDate(undefined);
+    onClose?.();
+  };
+
   return (
     <div className="space-y-3">
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" className="w-full">
-            <Palmtree className="w-4 h-4 mr-2" />
-            Meld fravær
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={dialogOpen} onOpenChange={(open) => open ? setDialogOpen(true) : closeDialog()}>
+        {!isAdminMode && (
+          <DialogTrigger asChild>
+            <Button variant="outline" className="w-full">
+              <Palmtree className="w-4 h-4 mr-2" />
+              Meld fravær
+            </Button>
+          </DialogTrigger>
+        )}
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Meld fravær</DialogTitle>
+            <DialogTitle>{isAdminMode ? `Fravær for ${adminUserName}` : "Meld fravær"}</DialogTitle>
             <DialogDescription>
-              Vælg en periode (ferie, barsel, mv.), og du bliver automatisk frameldt frokost på alle hverdage.
+              {isAdminMode
+                ? "Vælg en periode. Medarbejderen bliver frameldt frokost på alle åbne hverdage. Eksisterende tilmeldinger og tilknyttede gæster fjernes."
+                : "Vælg en periode (ferie, barsel, mv.), og du bliver automatisk frameldt frokost på alle hverdage."}
             </DialogDescription>
           </DialogHeader>
 
@@ -264,51 +336,25 @@ export const AbsenceManager = ({ userId }: AbsenceManagerProps) => {
 
             {startDate && endDate && (
               <p className="text-sm text-muted-foreground">
-                Du melder dig fra frokost i {generateWeekdays(startDate, endDate).length} hverdage
+                {isAdminMode ? "Medarbejderen frameldes" : "Du melder dig fra"} frokost i {generateWeekdays(startDate, endDate).length} hverdage (lukkede dage springes over)
               </p>
             )}
           </div>
 
+          {isAdminMode && absencePeriods}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); setStartDate(undefined); setEndDate(undefined); }}>
-              Annuller
+            <Button variant="outline" onClick={closeDialog} disabled={isSubmitting || deletingPeriodIdx !== null}>
+              {isAdminMode ? "Luk" : "Annuller"}
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting || !startDate || !endDate}>
+            <Button onClick={handleSubmit} disabled={isSubmitting || deletingPeriodIdx !== null || !startDate || !endDate}>
               {isSubmitting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gemmer...</>) : "Gem fravær"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Existing absence periods */}
-      {isFetchingPeriods ? (
-        <div className="flex justify-center py-2">
-          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-        </div>
-      ) : periods.length > 0 ? (
-        <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">Kommende fravær</Label>
-          {periods.map((period, idx) => (
-            <div key={period.startDate} className="flex items-center justify-between rounded-md border px-3 py-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">{formatPeriodLabel(period)}</span>
-                <Badge variant="secondary" className="text-xs">
-                  {period.dates.length} dag{period.dates.length !== 1 ? "e" : ""}
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                onClick={() => handleDeletePeriod(idx)}
-                disabled={deletingPeriodIdx === idx}
-              >
-                {deletingPeriodIdx === idx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-              </Button>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {!isAdminMode && absencePeriods}
     </div>
   );
 };

@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Pencil, Save, X, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter, UserCheck, UserX } from "lucide-react";
+import { Shield, Pencil, Save, X, UtensilsCrossed, Trash2, ChevronLeft, ChevronRight, Bell, BellOff, Filter, UserCheck, UserX, Palmtree } from "lucide-react";
+import { AbsenceManager } from "@/components/profile/AbsenceManager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -54,6 +55,7 @@ export const UserManagement = () => {
   const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
+  const [absenceUser, setAbsenceUser] = useState<UserWithRoles | null>(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
@@ -459,6 +461,7 @@ export const UserManagement = () => {
                               </div>
                               {user.absencePeriods && user.absencePeriods.length > 0 && (
                                 <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                                  <span className="text-xs text-muted-foreground">Fravær:</span>
                                   {user.absencePeriods.map((period, i) => {
                                     const startDate = parseISO(period.start);
                                     const endDate = parseISO(period.end);
@@ -467,7 +470,7 @@ export const UserManagement = () => {
                                       : `${format(startDate, "d. MMM", { locale: da })} – ${format(endDate, "d. MMM", { locale: da })}`;
                                     return (
                                       <Badge key={i} variant="outline" className="text-xs text-muted-foreground">
-                                        Fravær: {label}
+                                        {label}
                                       </Badge>
                                     );
                                   })}
@@ -479,7 +482,18 @@ export const UserManagement = () => {
                         </div>
                         
                         {!isEditing && (
-                          <div className="flex gap-1 order-2">
+                          <div className="flex flex-wrap gap-1 order-2">
+                            <Button
+                              onClick={() => setAbsenceUser(user)}
+                              disabled={isLoading}
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              aria-label={`Meld fravær for ${user.full_name || user.email}`}
+                            >
+                              <Palmtree className="w-4 h-4 mr-2" />
+                              Meld fravær
+                            </Button>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -669,6 +683,16 @@ export const UserManagement = () => {
             )}
           </CardContent>
         </Card>
+
+        {absenceUser && (
+          <AbsenceManager
+            key={absenceUser.id}
+            userId={absenceUser.id}
+            adminUserName={absenceUser.full_name || absenceUser.email}
+            onClose={() => setAbsenceUser(null)}
+            onChanged={() => { void fetchUsers(); }}
+          />
+        )}
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>

@@ -1,3 +1,4 @@
+import { sendLoggedEmail } from "../_shared/send-logged-email.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
@@ -158,18 +159,13 @@ serve(async (req: Request) => {
         const inviteLink = `https://frokost.pluskontoret.dk/accept-invitation/${invitationData.invite_code}`;
 
         // Send invitation via transactional email system
-        const { error: emailError } = await supabaseServiceClient.functions.invoke(
-          "send-transactional-email",
-          {
-            body: {
+        const { error: emailError } = await sendLoggedEmail({
               templateName: "invitation",
               recipientEmail: email.toLowerCase(),
               idempotencyKey: `invitation-${invitationData.id}`,
               templateData: { adminName, inviteLink },
               triggeredBy: user.id,
-            },
-          }
-        );
+            });
 
         if (emailError) {
           console.error("Email send error:", emailError);

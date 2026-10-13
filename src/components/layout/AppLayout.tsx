@@ -21,7 +21,7 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const requestedTab = params.get("tab") || "calendar";
-  const activeTab = ["calendar", "outlook", "kitchen", "admin", "profile"].includes(requestedTab) ? requestedTab : "calendar";
+  const activeTab = ["calendar", "outlook", "absence", "kitchen", "admin", "profile"].includes(requestedTab) ? requestedTab : "calendar";
 
   useEffect(() => {
     let cancelled = false;

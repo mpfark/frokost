@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Smartphone, LogOut, Unlink } from "lucide-react";
 import { PushSubscriptionButton } from "@/components/notifications/PushSubscriptionButton";
-import { AbsenceManager } from "@/components/profile/AbsenceManager";
 import { profileSchema } from "@/lib/validations";
 
 interface ProfileSettingsProps {
@@ -165,17 +164,6 @@ export const ProfileSettings = ({ userId }: ProfileSettingsProps) => {
           <Button onClick={handleSave} disabled={isLoading} className="w-full">
             {isLoading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gemmer...</>) : "Gem ændringer"}
           </Button>
-        </CardContent>
-      </Card>
-
-      {/* Absence Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Meld fravær</CardTitle>
-          <CardDescription>Registrer ferie, barsel eller andet fravær</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AbsenceManager userId={userId} />
         </CardContent>
       </Card>
 

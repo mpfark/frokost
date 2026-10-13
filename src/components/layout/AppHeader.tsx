@@ -1,6 +1,7 @@
 import {
   Calendar,
   CalendarDays,
+  Palmtree,
   ChefHat,
   Settings,
   UtensilsCrossed,
@@ -41,6 +42,7 @@ export function AppHeader({
   const items = [
     { id: "calendar", label: "Min plan", icon: Calendar },
     { id: "outlook", label: "Forplejning", icon: CalendarDays },
+    { id: "absence", label: "Meld fravær", icon: Palmtree },
     ...(canAccessKitchen
       ? [{ id: "kitchen", label: "Køkken", icon: ChefHat }]
       : []),
